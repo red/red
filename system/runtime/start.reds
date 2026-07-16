@@ -46,11 +46,17 @@ system: declare struct! [								;-- trimmed down temporary system definition
 		system/stack/frame: as pointer! [integer!] 0
 
 		;; Extract arguments from the call stack (which was setup by the kernel).
-		***__argc: pop
-		***__argv: system/stack/top
+		#either target = 'ARM64 [
+			***__argv: system/stack/top
+			***__argc: ***__argv/value
+			***__argv: ***__argv + 2
+		][
+			***__argc: pop
+			***__argv: system/stack/top
+		]
 
 		;; Align the stack to a 128-bit boundary, to prevent misaligned access penalities.
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			system/stack/top: as pointer! [integer!] (FFFFFFFFFFFFFFF0h and as uint64! ***__argv)
 		][
 			system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
@@ -99,7 +105,7 @@ system: declare struct! [								;-- trimmed down temporary system definition
 
 		;; Before pushing arguments for `libc-start`, align the stack to a
 		;; 128-bit boundary, to prevent misaligned access penalities.
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			system/stack/top: as pointer! [integer!] (FFFFFFFFFFFFFFF0h and as uint64! ***__argv)
 		][
 			system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
@@ -136,8 +142,14 @@ system: declare struct! [								;-- trimmed down temporary system definition
 
 		;; Extract arguments from the call stack (which was setup by the
 		;; kernel).
-		***__argc: pop
-		***__argv: system/stack/top
+		#either target = 'ARM64 [
+			***__argv: system/stack/top
+			***__argc: ***__argv/value
+			***__argv: ***__argv + 2
+		][
+			***__argc: pop
+			***__argv: system/stack/top
+		]
 		
 		system/stack/top: system/stack/top - 4			;-- simulate a structors struct on stack
 		push 0											;-- fini
@@ -176,12 +188,18 @@ system: declare struct! [								;-- trimmed down temporary system definition
 
 		;; Extract arguments from the call stack (which was setup by the
 		;; kernel).
-		***__argc: pop
-		***__argv: system/stack/top
+		#either target = 'ARM64 [
+			***__argv: system/stack/top
+			***__argc: ***__argv/value
+			***__argv: ***__argv + 2
+		][
+			***__argc: pop
+			***__argv: system/stack/top
+		]
 
 		;; Before pushing arguments for `libc-start`, align the stack to a
 		;; 128-bit boundary, to prevent misaligned access penalities.
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			system/stack/top: as pointer! [integer!] (FFFFFFFFFFFFFFF0h and as uint64! ***__argv)
 		][
 			system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
@@ -190,7 +208,7 @@ system: declare struct! [								;-- trimmed down temporary system definition
 		;; The call to `libc-start` takes 7 4-byte arguments (passed on the
 		;; stack on 32-bit targets. On x64 the backend uses register
 		;; arguments, so the old padding push would corrupt the call setup.
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			;-- no extra stack padding
 		][
 			push 0

@@ -46,7 +46,7 @@ Red/System [
 ;#define ulong!			integer!
 
 ptr-ptr!: alias struct! [value [int-ptr!]]
-#either target = 'X86-64 [
+#either any [target = 'X86-64 target = 'ARM64] [
 	ptr-slot!: alias struct! [value [byte-ptr!]]
 	#define vararg-ptr! [pointer! [uint64!]]
 	#define AS_NATIVE_SLOT(value) [as uint64! value]
@@ -60,7 +60,7 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 #define func-table! vararg-ptr!
 #define ptr-value!	  [ptr-ptr! value]
 
-#either target = 'X86-64 [
+#either any [target = 'X86-64 target = 'ARM64] [
 	vararg-to-integer: func [value [uint64!] return: [integer!]][as integer! value]
 	vararg-from-pointer: func [value [int-ptr!] return: [vararg-ptr!]][as vararg-ptr! value]
 	vararg-to-int-pointer: func [value [vararg-ptr!] return: [int-ptr!]][as int-ptr! value]
@@ -126,7 +126,7 @@ str-array!: alias struct! [
 	item [c-string!]
 ]
 
-#either target = 'X86-64 [
+#either any [target = 'X86-64 target = 'ARM64] [
 	typed-value!: alias struct! [
 		type	 [integer!]
 		_align0	 [integer!]
@@ -195,7 +195,7 @@ typed-value-as-integer: func [
 	item [typed-value!]
 	return: [integer!]
 ][
-	#either target = 'X86-64 [
+	#either any [target = 'X86-64 target = 'ARM64] [
 		as integer! item/value
 	][
 		item/value
@@ -206,7 +206,7 @@ typed-value-as-pointer: func [
 	item [typed-value!]
 	return: [int-ptr!]
 ][
-	#either target = 'X86-64 [
+	#either any [target = 'X86-64 target = 'ARM64] [
 		item/value
 	][
 		as int-ptr! item/value
@@ -420,6 +420,7 @@ re-throw: func [/local id [integer!]][
 	system/stack/frame: system/stack/top	;-- reposition frame pointer just after the catch slots
 ]
 PUSH_FRAME_SPECIAL_SLOTS
+#if target = 'ARM64 [push 0]
 
 system/stk-root: system/stack/frame			;-- save root of R/S native stack (internal usage, like Red's GC)
 

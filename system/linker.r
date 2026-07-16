@@ -8,6 +8,30 @@ REBOL [
 ]
 
 linker: context [
+	target-64?: func [target [word!]][to logic! find [X86-64 ARM64] target]
+
+	patch-arm64-page-ref: func [
+		buffer [binary!]
+		ptr [integer!]
+		pc [integer!]
+		target-ptr [integer!]
+		reg [integer!]
+		/local page-delta imm immlo immhi adrp add
+	][
+		page-delta: (target-ptr - (target-ptr // 4096))
+			- (pc - (pc // 4096))
+		if any [page-delta < -4294967296 page-delta > 4294963200][
+			throw-error "ARM64 ADRP target is out of range"
+		]
+		imm: shift page-delta 12
+		immlo: imm and 3
+		immhi: shift/logical (imm and 2097148) 2
+		adrp: (to integer! #{90000000}) or (immlo * 536870912) or (immhi * 32) or reg
+		add: (to integer! #{91000000}) or ((target-ptr and 4095) * 1024)
+			or (reg * 32) or reg
+		change/part at buffer ptr to-bin32 adrp 4
+		change/part at buffer ptr + 4 to-bin32 add 4
+	]
 	version: 		1.0.0							;-- emitted linker version
 	cpu-class: 		'IA-32							;-- default target
 	file-emitter:	none							;-- file emitter object
@@ -98,9 +122,9 @@ linker: context [
 		unless job/runtime? [exit]
 		bits-offset: second second find job/symbols '***-ptr-bitmaps
 		spec: find job/symbols '***-exec-image
-		struct-offset: either job/target = 'X86-64 [8][4]
+		struct-offset: either target-64? job/target [8][4]
 		field-offset: struct-offset
-		either job/target = 'X86-64 [
+		either target-64? job/target [
 			change/part
 				at job/sections/data/2 spec/2/2 + field-offset + 1
 				rejoin [
@@ -138,7 +162,27 @@ linker: context [
 		ro-offset:	 either job/PIC? [rodata-ptr - code-ptr][rodata-ptr]
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
-				either job/target = 'X86-64 [
+				case [
+					job/target = 'ARM64 [
+						foreach ref spec/3 [
+							either block? ref [
+								target-ptr: case [
+									spec/1 = 'global [data-ptr + spec/2]
+									spec/1 = 'constant [rodata-ptr + spec/2]
+									spec/1 = 'native-ref [code-ptr + spec/2 - 1]
+								]
+								if integer? target-ptr [
+									patch-arm64-page-ref
+										cbuf ref/1 code-ptr + ref/1 - 1 target-ptr ref/2
+								]
+							][
+								unless find [import import-var] spec/1 [
+									throw-error "invalid ARM64 symbol reference"
+								]
+							]
+						]
+					]
+					job/target = 'X86-64 [
 					parse spec/3 [
 						any [
 							ref: integer! (
@@ -160,7 +204,8 @@ linker: context [
 							| skip
 						]
 					]
-				][
+					]
+					true [
 					all [
 						any [
 							all [
@@ -178,6 +223,7 @@ linker: context [
 						]
 						ptr: form-struct pointer
 						parse spec/3 [any [ref: integer! (change at cbuf ref/1 ptr) | skip]]
+					]
 					]
 				]
 			]

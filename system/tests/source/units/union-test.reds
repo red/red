@@ -9,7 +9,7 @@ Red/System [
 
 #include %../../../../quick-test/quick-test.reds
 
-#if any [target = 'IA-32 target = 'ARM target = 'X86-64] [
+#if any [target = 'IA-32 target = 'ARM target = 'X86-64 target = 'ARM64] [
 
 raw-value!: alias union! [
 	i32 [integer!]
@@ -160,7 +160,7 @@ union-by-value-make-large: func [
 ===start-group=== "Raw union layout and access"
 
 	--test-- "union-raw-size-1"
-	#either target = 'X86-64 [
+	#either any [target = 'X86-64 target = 'ARM64] [
 		--assert 8 = size? raw-value!
 	][
 		--assert 4 = size? raw-value!
@@ -204,7 +204,7 @@ union-by-value-make-large: func [
 ===start-group=== "Tagged union predicates and assignment"
 
 	--test-- "union-tagged-size-1"
-	#either target = 'X86-64 [
+	#either any [target = 'X86-64 target = 'ARM64] [
 		--assert 16 = size? tagged-value!
 	][
 		--assert 12 = size? tagged-value!

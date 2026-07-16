@@ -146,9 +146,13 @@ posix-startup-ctx: context [
 				[cdecl]
 			][
 				system/image: ***-exec-image
-				system/image/base: as byte-ptr! 
-					#either target = 'IA-32 [system/cpu/ebx][system/cpu/r9]
-					- system/image/code
+				#either target = 'ARM64 [
+					system/image/base: (as byte-ptr! :***-boot-rs) - system/image/code
+				][
+					system/image/base: as byte-ptr!
+						#either target = 'IA-32 [system/cpu/ebx][system/cpu/r9]
+						- system/image/code
+				]
 
 				***-init-system-image
 				

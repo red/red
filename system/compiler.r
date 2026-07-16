@@ -637,6 +637,7 @@ system-dialect: make-profilable context [
 								ret?: not empty? expr-call-stack
 								fetch-expression/final/keep 'atomic
 								emitter/target/emit-atomic-math op pc/1 path/4 = 'old ret? 'seq-cst
+								last-type: [integer!]
 								pc: next pc
 								true
 							][
@@ -4015,7 +4016,7 @@ system-dialect: make-profilable context [
 				]
 				all [
 					functions/:name/2 = 'syscall		
-					job/target = 'ARM					;-- odd, but required for Linux/ARM syscalls
+					find [ARM ARM64] job/target			;-- register ABIs need source-order restoration
 					job/syscall = 'Linux
 				]
 			][		
@@ -4045,16 +4046,29 @@ system-dialect: make-profilable context [
 			all [not found? not tail? next list list/1]
 		]
 		
-		pass-struct-pointer?: func [spec [block!] slots [integer!]][
+		arm64-hfa-result?: func [spec [block!] /local ret][
+			all [
+				job/target = 'ARM64
+				ret: select spec/4 return-def
+				first emitter/target/homogeneous-aggregate? ret
+			]
+		]
+
+		pass-struct-pointer?: func [spec [block!] slots [integer!] /result][
 			all [
 				spec/2 = 'import						 ;-- system ABI is enforced on imports only
 				spec/3 = 'cdecl							 ;-- stdcall applies to R/S or Windows ABI
 				any [
 					all [1 < slots job/target = 'ARM]	 ;-- ARM requires it only for struct > 4 bytes
+					all [
+						2 < slots
+						job/target = 'ARM64
+						not all [result arm64-hfa-result? spec]
+					]							 ;-- AAPCS64 uses an indirect result above 16 bytes, except HFAs
 					all [1 < slots job/target = 'X86-64] ;-- MS x64 ABI passes structs > 8 bytes by pointer
 					all [
 						not find [Windows macOS FreeBSD NetBSD] job/OS	 ;-- fallback on Linux ABI
-						job/target <> 'ARM
+						not find [ARM ARM64] job/target
 					]
 				]
 			]
@@ -4064,8 +4078,8 @@ system-dialect: make-profilable context [
 			if all [
 				slots: emitter/struct-slots?/check spec/4
 				any [
-					2 < slots							;-- R/S and Windows ABI
-					pass-struct-pointer? spec slots		;-- check other cases
+					all [2 < slots not arm64-hfa-result? spec] ;-- R/S and Windows ABI, except AAPCS64 HFAs
+					pass-struct-pointer?/result spec slots	;-- check other cases
 				]
 			][
 				unless caller: get-caller name [
@@ -4115,7 +4129,7 @@ system-dialect: make-profilable context [
 				saved-call-last-math-op
 		][
 			comp-nested: func [expr][
-				either job/target = 'X86-64 [
+				either emitter/target/stateful-calls? [
 					saved-call-arg-index: emitter/target/call-arg-index
 					saved-call-arg-types: copy emitter/target/call-arg-types
 					saved-call-stack-slots: emitter/target/call-stack-slots
@@ -4197,7 +4211,7 @@ system-dialect: make-profilable context [
 						types: back types
 					]
 					temp-slots: 0
-					if all [types job/target = 'X86-64][
+					if all [types find [X86-64 ARM64] job/target][
 						scan-types: types
 						foreach expr list [
 							if all [scan-types not tag? expr block? scan-types/1 struct-by-value? scan-types/1][
@@ -4225,7 +4239,7 @@ system-dialect: make-profilable context [
 								struct-type: resolve-aliased types/1
 								struct-slots: emitter/struct-slots?/direct struct-type/2
 								either all [
-									job/target = 'X86-64
+									find [X86-64 ARM64] job/target
 									pass-struct-pointer? spec struct-slots
 								][
 									emitter/push-struct-ref expr struct-type
@@ -4564,7 +4578,7 @@ system-dialect: make-profilable context [
 					word? expr/1
 					any [not subrc? throw-error "cannot return a struct by value from a subroutine"]
 					spec: select functions expr/1
-					pass-struct-pointer? spec emitter/struct-slots?/check spec/4
+					pass-struct-pointer?/result spec emitter/struct-slots?/check spec/4
 					store?: no							;-- avoid emitting assignment code
 				]
 				if all [

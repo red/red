@@ -60,25 +60,29 @@ Red/System [
 
 		run-queue-test: func [
 			/local
-				threads [int-ptr!]
+				threads [ptr-ptr!]
+				slot    [ptr-ptr!]
 				n		[integer!]
 				ret		[integer!]
 				qe		[queue!]
 		][
 			qe: queue/create A_QE_SIZE
-			threads: system/stack/allocate 64
+			threads: as ptr-ptr! system/stack/allocate 64
 			n: 1
 			until [			;-- start producer and consumer threads
-				threads/n: as-integer thread/start as int-ptr! :producer-func as int-ptr! qe 0
+				slot: threads + n - 1
+				slot/value: thread/start as int-ptr! :producer-func as int-ptr! qe 0
 				n: n + 1
-				threads/n: as-integer thread/start as int-ptr! :consumer-func as int-ptr! qe 0
+				slot: threads + n - 1
+				slot/value: thread/start as int-ptr! :consumer-func as int-ptr! qe 0
 				n: n + 1
 				n = 65
 			]
 			n: 1
 			until [
 				ret: 0
-				thread/wait as int-ptr! threads/n -1 :ret
+				slot: threads + n - 1
+				thread/wait slot/value -1 :ret
 				if n % 2 = 0 [--assert ret = A_N_ITERS]
 				n: n + 1
 				n = 65
@@ -103,25 +107,29 @@ Red/System [
 
 		run-queue-test-2: func [
 			/local
-				threads [int-ptr!]
+				threads [ptr-ptr!]
+				slot    [ptr-ptr!]
 				n		[integer!]
 				ret		[integer!]
 				qe		[queue!]
 		][
 			qe: queue/create A_QE_SIZE
-			threads: system/stack/allocate 32
+			threads: as ptr-ptr! system/stack/allocate 32
 			n: 1
 			until [			;-- start consumer threads
-				threads/n: as-integer thread/start as int-ptr! :consumer-func as int-ptr! qe 0
+				slot: threads + n - 1
+				slot/value: thread/start as int-ptr! :consumer-func as int-ptr! qe 0
 				n: n + 1
 				n = 32
 			]
 			;-- start producer threads
-			threads/n: as-integer thread/start as int-ptr! :s-producer-func as int-ptr! qe 0
+			slot: threads + n - 1
+			slot/value: thread/start as int-ptr! :s-producer-func as int-ptr! qe 0
 
 			until [
 				ret: 0
-				thread/wait as int-ptr! threads/n -1 :ret
+				slot: threads + n - 1
+				thread/wait slot/value -1 :ret
 				if n <> 32 [--assert ret = A_N_ITERS]
 				n: n - 1
 				zero? n
@@ -157,26 +165,28 @@ Red/System [
 
 		run-queue-test-3: func [
 			/local
-				threads [int-ptr!]
+				threads [ptr-ptr!]
+				slot    [ptr-ptr!]
 				n		[integer!]
 				ret		[integer!]
 				qe		[queue!]
 		][
 			qe: queue/create A_QE_SIZE
-			threads: system/stack/allocate 32
+			threads: as ptr-ptr! system/stack/allocate 32
 
 			;-- start consumer thread
-			threads/1: as-integer thread/start as int-ptr! :s-consumer-func as int-ptr! qe 0
+			threads/value: thread/start as int-ptr! :s-consumer-func as int-ptr! qe 0
 
 			n: 2
 			until [			;-- start producer threads
-				threads/n: as-integer thread/start as int-ptr! :producer-func as int-ptr! qe 0
+				slot: threads + n - 1
+				slot/value: thread/start as int-ptr! :producer-func as int-ptr! qe 0
 				n: n + 1
 				n = 33
 			]
 
 			ret: 0
-			thread/wait as int-ptr! threads/1 -1 :ret
+			thread/wait threads/value -1 :ret
 
 			--assert ret = 1
 		]

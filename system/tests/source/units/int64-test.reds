@@ -9,7 +9,7 @@ Red/System [
 
 #include %../../../../quick-test/quick-test.reds
 
-#if any [target = 'IA-32 target = 'ARM] [
+#if any [target = 'IA-32 target = 'ARM target = 'ARM64] [
 
 i64-parts!: alias struct! [lo [integer!] hi [integer!]]
 
@@ -169,7 +169,7 @@ i64-zero?: func [
 
 ]
 
-#if target = 'ARM [
+#if any [target = 'ARM target = 'ARM64] [
 
 ===start-group=== "ARM 64-bit literal and assignment tests"
 

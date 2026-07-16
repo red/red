@@ -18,6 +18,10 @@ make-profilable make target-class [
 	branch-offset-size:	4
 	locals-offset:		32
 	def-locals-offset:	32
+	native-ref-one-based?: yes
+	pc-as-pointer?:	yes
+	stack-bitmap-counts?: yes
+	stateful-calls?:	yes
 	last-math-op:		none
 	fpu-cword:			none							;-- MXCSR/control word reference in emitter/symbols
 	conditions: make hash! [

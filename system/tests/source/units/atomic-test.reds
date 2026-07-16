@@ -50,18 +50,20 @@ Red/System [
 	run-parallel: func [
 		op-func		[int-ptr!]
 		/local
-			threads [int-ptr!]
+			threads [ptr-ptr!]
+			slot    [ptr-ptr!]
 			n		[integer!]
 	][
-		threads: system/stack/allocate A_N_THREADS
+		threads: as ptr-ptr! system/stack/allocate A_N_THREADS
 		n: 1
 		until [			;-- start some threads
-			threads/n: as-integer thread/start op-func null 0
+			slot: threads + n - 1
+			slot/value: thread/start op-func null 0
 			n: n + 1
 			n > A_N_THREADS
 		]
 		loop A_N_THREADS [
-			thread/wait as int-ptr! threads/value -1 null
+			thread/wait threads/value -1 null
 			threads: threads + 1
 		]
 	]
@@ -71,20 +73,22 @@ Red/System [
 		n-threads	[integer!]		;-- number of threads
 		return:		[logic!]
 		/local
-			threads [int-ptr!]
+			threads [ptr-ptr!]
+			slot    [ptr-ptr!]
 			n		[integer!]
 			ret		[integer!]
 	][
-		threads: system/stack/allocate n-threads
+		threads: as ptr-ptr! system/stack/allocate n-threads
 		n: 1
 		until [			;-- start some threads
-			threads/n: as-integer thread/start op-func as int-ptr! n 0
+			slot: threads + n - 1
+			slot/value: thread/start op-func as int-ptr! n 0
 			n: n + 1
 			n > n-threads
 		]
 		loop n-threads [
 			ret: 0
-			thread/wait as int-ptr! threads/value -1 :ret
+			thread/wait threads/value -1 :ret
 			unless as logic! ret [return false]
 			threads: threads + 1
 		]
@@ -185,20 +189,22 @@ Red/System [
 		init-value	[integer!]
 		return:		[integer!]
 		/local
-			threads [int-ptr!]
+			threads [ptr-ptr!]
+			slot    [ptr-ptr!]
 			n		[integer!]
 			a		[integer!]
 	][
 		a: init-value
-		threads: system/stack/allocate A_N_THREADS
+		threads: as ptr-ptr! system/stack/allocate A_N_THREADS
 		n: 1
 		until [			;-- start some threads
-			threads/n: as-integer thread/start op-func :a 0
+			slot: threads + n - 1
+			slot/value: thread/start op-func :a 0
 			n: n + 1
 			n > A_N_THREADS
 		]
 		loop A_N_THREADS [
-			thread/wait as int-ptr! threads/value -1 null
+			thread/wait threads/value -1 null
 			threads: threads + 1
 		]
 		a

@@ -219,7 +219,7 @@ emitter: make-profilable context [
 					'native-ref
 					all [
 						entry/2/2
-						either target/target = 'X86-64 [entry/2/2][entry/2/2 - 1]
+						either target/native-ref-one-based? [entry/2/2][entry/2/2 - 1]
 					]
 					make block! 1
 				]
@@ -716,7 +716,7 @@ emitter: make-profilable context [
 						compiler/throw-error "cannot modify system/pc"
 					]
 					target/emit-get-pc
-					compiler/last-type: either target/target = 'X86-64 [
+					compiler/last-type: either target/pc-as-pointer? [
 						[pointer! [byte!]]
 					][
 						[integer!]
@@ -951,7 +951,13 @@ emitter: make-profilable context [
 						]
 					]
 				]
-				2 < struct-slots? ret
+				all [
+					2 < struct-slots? ret
+					any [
+						target/target <> 'ARM64
+						not first target/homogeneous-aggregate? ret
+					]
+				]
 			]
 		]
 	]
@@ -1068,7 +1074,7 @@ emitter: make-profilable context [
 		;; In the vast majority, the minimum format [<int> - <int>] is enough.
 		
 		if empty? locals [
-			return either target/target = 'X86-64 [[0 0 0 - 0]][[0 - 0]]
+			return either target/stack-bitmap-counts? [[0 0 0 - 0]][[0 - 0]]
 		]
 		ts: [pointer! struct! union! c-string!]
 		out: make block! 3
@@ -1131,7 +1137,7 @@ emitter: make-profilable context [
 					arg-slots: i
 					args-done?: yes
 					append out bits
-					if target/target <> 'X86-64 [
+					if not target/stack-bitmap-counts? [
 						compact-extension out			;-- remove tail empty arrays (arguments)
 					]
 					append out '-						;-- inserts separator between args and locals bitmaps
@@ -1144,10 +1150,10 @@ emitter: make-profilable context [
 		unless args-done? [arg-slots: i]
 		local-slots: either args-done? [i][0]
 		unless find out '- [append out [- 0]]
-		if target/target <> 'X86-64 [
+		if not target/stack-bitmap-counts? [
 			compact-extension find/tail out '-			;-- remove tail empty arrays (locals)
 		]
-		if target/target = 'X86-64 [insert out reduce [arg-slots local-slots]]
+		if target/stack-bitmap-counts? [insert out reduce [arg-slots local-slots]]
 		out
 	]
 	
@@ -1238,7 +1244,7 @@ emitter: make-profilable context [
 		all [
 			spec: find/last symbols name
 			spec/2/1 = 'native-ref						;-- function's address references
-			spec/2/2: either target/target = 'X86-64 [tail-ptr][tail-ptr - 1] ;-- store entry point
+			spec/2/2: either target/native-ref-one-based? [tail-ptr][tail-ptr - 1] ;-- store entry point
 		]
 		clear exits										;-- reset exit-points list
 
@@ -1274,17 +1280,23 @@ emitter: make-profilable context [
 		spec
 	]
 	
-	reloc-native-calls: has [ptr][
+	reloc-native-calls: has [ptr address-refs][
 		foreach [name spec] symbols [
 			if all [
 				spec/1 = 'native
 				not empty? spec/3
 			][
 				ptr: spec/2
+				address-refs: make block! 1
 				foreach ref spec/3 [
-					target/patch-call code-buf ref ptr	;-- target-specific func call
+					either all [target/target = 'ARM64 block? ref][
+						append/only address-refs ref		;-- ADRP+ADD is patched after final layout
+					][
+						target/patch-call code-buf ref ptr	;-- target-specific func call
+					]
 				]
 				clear spec/3
+				append spec/3 address-refs
 			]
 		]
 	]
@@ -1300,7 +1312,7 @@ emitter: make-profilable context [
 	]
 	
 	start-epilog: does [								;-- libc init epilog
-		poke second find/last symbols '***_start 2 either target/target = 'X86-64 [
+		poke second find/last symbols '***_start 2 either target/native-ref-one-based? [
 			tail-ptr
 		][
 			tail-ptr - 1

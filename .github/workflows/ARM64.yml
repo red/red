@@ -1,0 +1,52 @@
+name: ARM64
+
+on: [push, pull_request]
+
+jobs:
+  Build-ARM64-Tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Build Linux ARM64 tests
+      uses: ./CI/Linux-32
+      with:
+        command: rebol -qws system/tests/build-arm-tests.r -t Linux-ARM64
+
+    - name: Validate ARM64 test package
+      shell: bash
+      run: |
+        package=quick-test/runnable/arm-tests/system
+        test -f "$package/run-all.sh"
+        expected=$(find system/tests/source/units -maxdepth 1 -name 'arm64-*.reds' | wc -l)
+        actual=$(find "$package" -maxdepth 1 -name 'arm64-*' | wc -l)
+        test "$actual" -eq "$expected"
+
+    - name: Upload ARM64 test package
+      uses: actions/upload-artifact@v7
+      with:
+        name: arm64-system-tests
+        path: quick-test/runnable/arm-tests/system/
+        retention-days: 3
+
+  Run-ARM64-Tests:
+    runs-on: ubuntu-24.04-arm
+    needs: Build-ARM64-Tests
+    steps:
+    - name: Download ARM64 test package
+      uses: actions/download-artifact@v8
+      with:
+        name: arm64-system-tests
+        path: system
+
+    - name: Run ARM64 tests
+      working-directory: system
+      run: sh ./run-all.sh
+
+    - name: Upload failure log
+      if: failure()
+      uses: actions/upload-artifact@v7
+      with:
+        name: arm64-system-test-log
+        path: system/quick-test.log

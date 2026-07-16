@@ -636,6 +636,7 @@ redc: context [
 		if any [type = 'dll opts/type = 'dll][
 			if type = 'dll [opts/type: type]
 			if opts/OS <> 'Windows [opts/PIC?: yes]
+			opts/PIE?: no
 		]
 
 		;; Check common syntax mistakes

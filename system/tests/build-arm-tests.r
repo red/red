@@ -22,6 +22,14 @@ if all [
 do %source/units/create-dylib-auto-test.r
 do %source/units/compile-test-dylibs.r
 
+;; compile-test-dylibs is also used by quick-test, where qt is pre-initialized.
+unless value? 'qt [
+	qt: make object! [
+		base-dir: clean-path %../../
+		tests-dir: clean-path %./
+	]
+]
+
 ;; process arguments (if any)
 target: none
 if system/script/args  [
@@ -31,6 +39,7 @@ if system/script/args  [
 	    target = "Android"
 	    target = "RPi"
 		target = "Linux-ARM"
+		target = "Linux-ARM64"
 	][
 	    target: none
 	]
@@ -48,8 +57,9 @@ unless target [
         1) Linux armel (ARMv5)
         2) Android
         3) Linux armhf (ARMv7+)
+		4) Linux arm64 (AArch64)
         => }
-    target: pick ["Linux-ARM" "Android" "RPi"] to-integer target
+	target: pick ["Linux-ARM" "Android" "RPi" "Linux-ARM64"] to-integer target
 ]
 
 ;; helper function
@@ -89,22 +99,58 @@ compile-test arm-dir/dylib-auto-test.reds
 if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
 
 ;; get the correct structlib
-structlib-version: switch target [
-	"Linux-ARM" [%libstructlib-armsf.so]
-	"Android" [%libstructlib-android.so]
-	"RPi" [%libstructlib-armhf.so]
+either target = "Linux-ARM64" [
+	;; The checked-in libraries are 32-bit. Build this source on the ARM64 host.
+	write/binary arm-dir/structlib.c read/binary %source/units/libs/structlib.c
+][
+	structlib-version: switch target [
+		"Linux-ARM" [%libstructlib-armsf.so]
+		"Android" [%libstructlib-android.so]
+		"RPi" [%libstructlib-armhf.so]
+	]
+	write/binary arm-dir/libstructlib.so read/binary join %source/units/libs/ structlib-version
 ]
-write/binary arm-dir/libstructlib.so read/binary join %source/units/libs/ structlib-version
 
 ;; get the list of test source files
 test-files: copy []
 all-tests: read %run-all.r
 parse/all all-tests [any [a-test-file (append test-files to file! file) | skip] end]
+
+;; run-all.r contains both 32-bit and 64-bit variants behind runtime conditions.
+filtered-tests: copy []
+foreach test-file test-files [
+	either target = "Linux-ARM64" [
+		unless any [
+			find test-file "/struct-test.reds"
+			find test-file "/size-test.reds"
+		][append filtered-tests test-file]
+	][
+		unless any [
+			find test-file "/struct-x64-test.reds"
+			find test-file "/size-x64-test.reds"
+		][append filtered-tests test-file]
+	]
+]
+test-files: filtered-tests
 ;; compile the tests and move the executables to runnable/arm-tests
 foreach test-file test-files [
 	if none = find test-file "dylib" [      		;; ignore any dylibs tests
 		compile-test replace clean-path test-file "%" ""
 	]
+]
+
+;; ARM64 backend smokes return a process status instead of a quick-test report.
+;; Package them beside the regular suites; run-all.sh handles their contract.
+if target = "Linux-ARM64" [
+	smoke-files: copy []
+	foreach file read %source/units/ [
+		name: form file
+		if all [
+			find/match name "arm64-"
+			find name ".reds"
+		][append smoke-files join %source/units/ file]
+	]
+	foreach smoke-file sort smoke-files [compile-test clean-path smoke-file]
 ]
 
 ;; generate the dylib tests

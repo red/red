@@ -32,7 +32,7 @@ Red/System [
 #define FPU_X87_PRECISION_DOUBLE_EXT 3		;-- 80-bit float, 64-bit mantissa
 
 ;-- FPU values for system/fpu/status
-#either target = 'ARM [
+#either any [target = 'ARM target = 'ARM64] [
 	#define FPU_EXCEPTION_INVALID_OP	 1		;-- Invalid Operation
 	#define FPU_EXCEPTION_ZERO_DIVIDE	 2		;-- Zero Divide
 	#define FPU_EXCEPTION_OVERFLOW		 4		;-- Overflow
@@ -191,6 +191,60 @@ FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask
 			overflow?	[logic!]
 		]
 
+	]
+	ARM64 [
+		VFP-option!: alias struct! [
+			rounding		[integer!]
+			flush-to-zero	[logic!]
+			NaN-mode		[logic!]
+		]
+
+		__fpu-struct!: alias struct! [
+			type		 [integer!]
+			option		 [VFP-option!]
+			mask		 [FPU-exceptions-mask!]
+			status		 [integer!]
+			control-word [integer!]
+			epsilon		 [integer!]
+			update		 [integer!]
+			init		 [integer!]
+		]
+
+		__cpu-struct!: alias struct! [
+			x0			[int-ptr!]
+			x1			[int-ptr!]
+			x2			[int-ptr!]
+			x3			[int-ptr!]
+			x4			[int-ptr!]
+			x5			[int-ptr!]
+			x6			[int-ptr!]
+			x7			[int-ptr!]
+			x8			[int-ptr!]
+			x9			[int-ptr!]
+			x10		[int-ptr!]
+			x11		[int-ptr!]
+			x12		[int-ptr!]
+			x13		[int-ptr!]
+			x14		[int-ptr!]
+			x15		[int-ptr!]
+			x16		[int-ptr!]
+			x17		[int-ptr!]
+			x18		[int-ptr!]
+			x19		[int-ptr!]
+			x20		[int-ptr!]
+			x21		[int-ptr!]
+			x22		[int-ptr!]
+			x23		[int-ptr!]
+			x24		[int-ptr!]
+			x25		[int-ptr!]
+			x26		[int-ptr!]
+			x27		[int-ptr!]
+			x28		[int-ptr!]
+			x29		[int-ptr!]
+			x30		[int-ptr!]
+			sp			[int-ptr!]
+			overflow?	[logic!]
+		]
 	]
 ]
 

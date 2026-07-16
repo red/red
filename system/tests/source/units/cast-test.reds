@@ -168,9 +168,15 @@ Red/System [
 	--test-- "int-cast-15"
 		cs: "Hello"
 		cs2: ""
-		i: as integer! cs
-		i: i + 1
-		cs2: as c-string! i
+		#either any [target = 'X86-64 target = 'ARM64] [
+			i64-cast: as int64! cs
+			i64-cast: i64-cast + 1
+			cs2: as c-string! i64-cast
+		][
+			i: as integer! cs
+			i: i + 1
+			cs2: as c-string! i
+		]
 		--assert cs2/1 = #"e"
 		--assert 4 = length? cs2
 	
@@ -483,10 +489,15 @@ Red/System [
   
 	--test-- "c-string-cast-1"
 		csc1-str: "Hello, Nenad"
-		i: 0
-		i: as integer! csc1-str
-		i: i + 7
-		csc1-str: as c-string! i
+		#either any [target = 'X86-64 target = 'ARM64] [
+			csc1-i64: as int64! csc1-str
+			csc1-i64: csc1-i64 + 7
+			csc1-str: as c-string! csc1-i64
+		][
+			i: as integer! csc1-str
+			i: i + 7
+			csc1-str: as c-string! i
+		]
 		--assert csc1-str/1 = #"N"
 		--assert csc1-str/2 = #"e"
 		--assert csc1-str/3 = #"n"

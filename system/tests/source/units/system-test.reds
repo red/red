@@ -38,7 +38,13 @@ Red/System [
 ===start-group=== "system/stack/push-all pop-all"
 
 	--test-- "save-all-1"
-		#either target = 'IA-32 [
+		#either target = 'ARM64 [
+			aa: system/cpu/x0
+			system/stack/push-all
+			system/cpu/x0: as int-ptr! 123
+			system/stack/pop-all
+			bb: system/cpu/x0
+		][#either target = 'IA-32 [
 			aa: system/cpu/eax
 			system/stack/push-all
 			system/cpu/eax: 123
@@ -50,7 +56,7 @@ Red/System [
 			system/cpu/rax: as int-ptr! 123
 			system/stack/pop-all
 			bb: system/cpu/rax
-		]
+		]]
 		--assert aa = bb
 
 ===end-group===
@@ -111,7 +117,11 @@ Red/System [
 ===start-group=== "system/cpu register read/write"
 
 	--test-- "reg-rw-1"
-		#either target = 'IA-32 [
+		#either target = 'ARM64 [
+			system/cpu/x1: as int-ptr! 42
+			rcx-val: system/cpu/x1
+			--assert rcx-val = as int-ptr! 42
+		][#either target = 'IA-32 [
 			system/cpu/ecx: 42
 			rcx-val: system/cpu/ecx
 			--assert rcx-val = 42
@@ -119,7 +129,7 @@ Red/System [
 			system/cpu/rcx: as int-ptr! 42
 			rcx-val: system/cpu/rcx
 			--assert rcx-val = as int-ptr! 42
-		]
+		]]
 
 ===end-group===
 

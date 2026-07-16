@@ -11,6 +11,10 @@ target-class: context [
 	target: little-endian?: struct-align: ptr-size: void-ptr: none ; TBD: document once stabilized
 	default-align: stack-width: stack-slot-max:				  	   ; TBD: document once stabilized
 	branch-offset-size: locals-offset: def-locals-offset: none	   ; TBD: document once stabilized
+	native-ref-one-based?: no
+	pc-as-pointer?: no
+	stack-bitmap-counts?: no
+	stateful-calls?: no
 	
 	on-global-prolog: 		 none					;-- called at start of global code section
 	on-global-epilog: 		 none					;-- called at end of global code section

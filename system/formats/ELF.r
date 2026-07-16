@@ -41,6 +41,7 @@ context [
 		em-386			3			;; intel 80386
 		em-arm			40			;; ARM
 		em-x86-64		62			;; AMD x86-64
+		em-aarch64		183			;; ARM AArch64
 		
 		ef-arm-abi		83886080	;; ABI version: 05000000h
 		ef-arm-hard		1024		;; Hard floating point required (400h)
@@ -135,6 +136,11 @@ context [
 		r-x86-64-jump-slot	7		;; set PLT/GOT entry to symbol address
 		r-x86-64-relative	8		;; relocation relative to image base
 		r-x86-64-gotpcrel	9		;; 32-bit signed PC-relative GOT offset
+
+		r-aarch64-copy		1024	;; copy symbol at runtime
+		r-aarch64-glob-dat	1025	;; set GOT entry to symbol address
+		r-aarch64-jump-slot	1026	;; set PLT/GOT entry to symbol address
+		r-aarch64-relative	1027	;; relocation relative to image base
 
 		stabs-n-undf	0			;; undefined stabs entry
 		stabs-n-fun		36			;; function name
@@ -353,7 +359,7 @@ context [
 		value			[uint64]
 	] none
 
-	elf64-target?: func [target [word!]][target = 'X86-64]
+	elf64-target?: func [target [word!]][to logic! find [X86-64 ARM64] target]
 	ehdr-struct?: func [target [word!]][either elf64-target? target [elf-header64][elf-header]]
 	phdr-struct?: func [target [word!]][either elf64-target? target [program-header64][program-header]]
 	shdr-struct?: func [target [word!]][either elf64-target? target [section-header64][section-header]]
@@ -426,7 +432,7 @@ context [
 			di-name di-off di-size
 			get-address get-offset get-size get-meta get-data set-data
 			relro-offset plt-offset pos list soname base
-			relro-entry
+			relro-entry dynamic-entry dynamic-section rw-entry gap
 			import-funcs import-vars relro-imports gotplt-count plt-size
 			ehdr-struct phdr-struct shdr-struct dynamic-struct
 			symbol-struct relocation-struct relro-word-struct
@@ -474,7 +480,9 @@ context [
 			3 + length? import-funcs
 		][0]
 		plt-size: either all [elf64-target? job/target not empty? import-funcs][
-			16 * (1 + length? import-funcs)
+			either job/target = 'ARM64 [32 + (16 * length? import-funcs)][
+				16 * (1 + length? import-funcs)
+			]
 		][0]
 
 		structure: copy/deep default-structure
@@ -585,15 +593,21 @@ context [
 			"relro"			size 0					;-- overlaps .rodata; address/size patched post-layout
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		size [(symbol-struct)	1 + (length? imports) + ((length? exports) / 2)]
+			".dynsym"		align (either elf64-target? job/target [8][4])
 			(reloc-section)	size [(relocation-struct) (length? relro-imports) + (length? data-reloc) + (length? rodata-reloc) + ((length? data-imports) / 3)]
+			(reloc-section)	align (either elf64-target? job/target [8][4])
 			".rela.plt"		size [(relocation-struct) length? import-funcs]
+			".rela.plt"		align (either elf64-target? job/target [8][4])
 			".plt"			size (plt-size)
 			".data"			size (data-size)
-			".data"			align (job/static-align)
+			".data"			align (either elf64-target? job/target [max 8 job/static-align][job/static-align])
 			".rodata"		align (either elf64-target? job/target [8][4])
 			".got.plt"		size [(relro-word-struct) gotplt-count]
+			".got.plt"		align (either elf64-target? job/target [8][4])
 			".data.rel.ro"	size [(relro-word-struct) length? relro-imports]
+			".data.rel.ro"	align (either elf64-target? job/target [8][4])
 			".dynamic"		size [(dynamic-struct)	dynamic-size + length? libraries]
+			".dynamic"		align (either elf64-target? job/target [8][4])
 			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
 			"shdr"			size [(shdr-struct)		length? sections]
 
@@ -614,6 +628,19 @@ context [
 		]
 
 		layout: layout-binary structure commands
+		if all [elf64-target? job/target dynamic-entry: select layout "dynamic"] [
+			dynamic-section: select layout ".dynamic"
+			gap: dynamic-section/offset - dynamic-entry/offset
+			dynamic-entry/offset: dynamic-section/offset
+			dynamic-entry/address: dynamic-section/address
+			dynamic-entry/size: dynamic-section/size
+			dynamic-entry/meta/align: 'dword
+			dynamic-section/meta/align: 'dword
+			if positive? gap [
+				rw-entry: select layout "rw"
+				rw-entry/size: rw-entry/size + gap
+			]
+		]
 
 		;; In the following section, we try to minimize the global state passed
 		;; around. Instead of just passing LAYOUT to all build-* functions, we
@@ -885,6 +912,9 @@ context [
 			X86-64	[
 				eh/machine: defs/em-x86-64
 			]
+			ARM64	[
+				eh/machine: defs/em-aarch64
+			]
 		]
 
 		eh
@@ -1000,9 +1030,12 @@ context [
 		rodata-relocs [block!]
 		rodata-address [integer!]
 		rodata [binary!]
-		/local rel-type result entry len copy-type di-name di-off di-size i reloc symbol ptr import-count
+		/local rel-type result entry len copy-type relative-type glob-dat-type di-name di-off di-size i reloc symbol ptr import-count
 	] [
 		if elf64-target? target-arch [
+			glob-dat-type: either target-arch = 'ARM64 [defs/r-aarch64-glob-dat][defs/r-x86-64-glob-dat]
+			relative-type: either target-arch = 'ARM64 [defs/r-aarch64-relative][defs/r-x86-64-relative]
+			copy-type: either target-arch = 'ARM64 [defs/r-aarch64-copy][defs/r-x86-64-copy]
 			reloc: relocation-struct? target-arch
 			import-count: length? symbols
 			result: make block! (length? relocs) + (length? rodata-relocs)
@@ -1011,21 +1044,21 @@ context [
 				symbol: vars/:i
 				entry: make-struct reloc none
 				entry/offset:	relro-address + ((size-of machine-word64) * (i - 1))
-				entry/info:		reduce [defs/r-x86-64-glob-dat index? find symbols symbol]
+				entry/info:		reduce [glob-dat-type index? find symbols symbol]
 				entry/addend:	0
 				append result entry
 			]
 			foreach ptr relocs [
 				entry: make-struct reloc none
 				entry/offset:	data-address + ptr
-				entry/info:		reduce [defs/r-x86-64-relative 0]
+				entry/info:		reduce [relative-type 0]
 				entry/addend:	to integer! reverse copy/part at data ptr + 1 4
 				append result entry
 			]
 			foreach ptr rodata-relocs [
 				entry: make-struct reloc none
 				entry/offset: rodata-address + ptr
-				entry/info: reduce [defs/r-x86-64-relative 0]
+				entry/info: reduce [relative-type 0]
 				entry/addend: to integer! reverse copy/part at rodata ptr + 1 4
 				append result entry
 			]
@@ -1033,7 +1066,7 @@ context [
 			foreach [di-name di-off di-size] data-imports [
 				entry: make-struct reloc none
 				entry/offset: data-address + di-off
-				entry/info: reduce [defs/r-x86-64-copy 1 + import-count + i]
+				entry/info: reduce [copy-type 1 + import-count + i]
 				entry/addend: 0
 				append result entry
 				i: i + 1
@@ -1112,7 +1145,10 @@ context [
 		foreach symbol funcs [
 			entry: make-struct reloc none
 			entry/offset:	gotplt-address + ((size-of machine-word64) * (3 + slot))
-			entry/info:		reduce [defs/r-x86-64-jump-slot index? find imports symbol]
+			entry/info:		reduce [
+				either target-arch = 'ARM64 [defs/r-aarch64-jump-slot][defs/r-x86-64-jump-slot]
+				index? find imports symbol
+			]
 			entry/addend:	0
 			append result entry
 			slot: slot + 1
@@ -1127,6 +1163,16 @@ context [
 		plt-address [integer!]
 		/local result slot
 	][
+		if target-arch = 'ARM64 [
+			result: make block! 3 + length? funcs
+			append result make-struct machine-word64 reduce [0]
+			append result make-struct machine-word64 reduce [0]
+			append result make-struct machine-word64 reduce [0]
+			foreach symbol funcs [
+				append result make-struct machine-word64 reduce [plt-address]
+			]
+			return result
+		]
 		result: make block! 3 + length? funcs
 		append result make-struct machine-word64 reduce [dynamic-address]
 		append result make-struct machine-word64 reduce [0]
@@ -1139,13 +1185,48 @@ context [
 		result
 	]
 
+	encode-aarch64-adrp: func [target [integer!] source [integer!] reg [integer!] /local pages encoded][
+		pages: ((target and -4096) - (source and -4096)) / 4096
+		if any [pages < -1048576 pages > 1048575][
+			make error! "AArch64 PLT ADRP target is out of range"
+		]
+		encoded: pages and 2097151
+		(to integer! #{90000000})
+			or ((encoded and 3) * 536870912)
+			or ((shift/logical (encoded and 2097148) 2) * 32)
+			or reg
+	]
+
 	build-plt: func [
 		target-arch [word!]
 		funcs [block!]
 		plt-address [integer!]
 		gotplt-address [integer!]
-		/local result slot disp target source
+		/local result slot disp target source low
 	][
+		if target-arch = 'ARM64 [
+			result: copy #{}
+			target: gotplt-address + 16
+			append result to-bin32 (to integer! #{A9BF7BF0})    ; STP x16, x30, [sp, #-16]!
+			append result to-bin32 encode-aarch64-adrp target plt-address + 4 16
+			low: target and 4095
+			append result to-bin32 (to integer! #{F9400211}) or (low * 128)
+			append result to-bin32 (to integer! #{91000210}) or (low * 1024)
+			append result to-bin32 (to integer! #{D61F0220})    ; BR x17
+			repeat i 3 [append result to-bin32 (to integer! #{D503201F})] ; NOP
+			slot: 0
+			foreach symbol funcs [
+				target: gotplt-address + (8 * (3 + slot))
+				source: plt-address + 32 + (16 * slot)
+				append result to-bin32 encode-aarch64-adrp target source 16
+				low: target and 4095
+				append result to-bin32 (to integer! #{F9400211}) or (low * 128)
+				append result to-bin32 (to integer! #{91000210}) or (low * 1024)
+				append result to-bin32 (to integer! #{D61F0220}) ; BR x17
+				slot: slot + 1
+			]
+			return result
+		]
 		result: copy #{}
 		target: gotplt-address + 8
 		source: plt-address + 6
@@ -1530,7 +1611,7 @@ context [
 		code [binary!]
 		relro-offset [integer! none!]
 		plt-offset [integer! none!]
-		/local rel disp index
+		/local rel disp index delta opcode
 	] [
 		foreach [libname libimports] job/sections/import/3 [
 			linker/check-dup-symbols job libimports
@@ -1544,10 +1625,19 @@ context [
 					disp: either issue? symbol [
 						relro-offset + ((size-of machine-word64) * (index - 1))
 					][
-						plt-offset + (16 * index)
+						plt-offset + either job/target = 'ARM64 [16 * (index + 1)][16 * index]
 					]
 					foreach callsite callsites [
-						change/part at code callsite to-bin32 disp - callsite - 3 4
+						either job/target = 'ARM64 [
+							delta: disp - (callsite - 1)
+							if any [not zero? delta // 4 delta < -134217728 delta > 134217724][
+								make error! "AArch64 import branch is out of range"
+							]
+							opcode: (to integer! #{94000000}) or (((delta / 4) and 67108863))
+							change/part at code callsite to-bin32 opcode 4
+						][
+							change/part at code callsite to-bin32 disp - callsite - 3 4
+						]
 					]
 				][
 					rel: make-struct machine-word none

@@ -861,7 +861,7 @@ struct-x64-local
 	--test-- "svb18"
 		nest3: declare nested3!
 
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			--assert 32 = size? nested3!
 		][
 			--assert 24 = size? nested3!
@@ -879,7 +879,7 @@ struct-x64-local
 		--assert nest3/sub/two = 777
 		--assert nest3/sub/three = 8.88
 
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			--assert (as int-ptr! nest3) + 2 = :nest3/sub
 		][
 			--assert (as int-ptr! nest3) + 1 = :nest3/sub
@@ -916,7 +916,7 @@ struct-x64-local
 	--test-- "svb19"
 		nest4: declare nested4!
 
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			--assert 48 = size? nested4!
 		][
 			--assert 40 = size? nested4!
@@ -940,7 +940,7 @@ struct-x64-local
 		--assert nest4/sub/w5 = 500
 		--assert nest4/sub/w6 = 600.0
 
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			--assert (as int-ptr! nest4) + 2 = :nest4/sub
 		][
 			--assert (as int-ptr! nest4) + 1 = :nest4/sub
@@ -974,7 +974,7 @@ struct-x64-local
 	--test-- "svb20"
 		nest5: declare nested5!
 
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			--assert 64 = size? nested5!
 		][
 			--assert 56 = size? nested5!
@@ -998,7 +998,7 @@ struct-x64-local
 		--assert nest5/sub/f5 = 5.0
 		--assert nest5/sub/f6 = 6.0
 
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			--assert (as int-ptr! nest5) + 2 = :nest5/sub
 		][
 			--assert (as int-ptr! nest5) + 1 = :nest5/sub
@@ -1346,7 +1346,7 @@ struct-x64-local
 				--assert nest2/f2 = 343434
 
 			--test-- "loc-svb18"
-				#either target = 'X86-64 [
+				#either any [target = 'X86-64 target = 'ARM64] [
 					--assert 32 = size? nested3!
 				][
 					--assert 24 = size? nested3!
@@ -1364,7 +1364,7 @@ struct-x64-local
 				--assert nest3/sub/two = 777
 				--assert nest3/sub/three = 8.88
 
-				#either target = 'X86-64 [
+				#either any [target = 'X86-64 target = 'ARM64] [
 					--assert (as int-ptr! nest3) + 2 = :nest3/sub
 				][
 					--assert (as int-ptr! nest3) + 1 = :nest3/sub
@@ -1399,7 +1399,7 @@ struct-x64-local
 				--assert nest3/f2 = 343434
 
 			--test-- "loc-svb19"
-				#either target = 'X86-64 [
+				#either any [target = 'X86-64 target = 'ARM64] [
 					--assert 48 = size? nested4!
 				][
 					--assert 40 = size? nested4!
@@ -1423,7 +1423,7 @@ struct-x64-local
 				--assert nest4/sub/w5 = 500
 				--assert nest4/sub/w6 = 600.0
 
-				#either target = 'X86-64 [
+				#either any [target = 'X86-64 target = 'ARM64] [
 					--assert (as int-ptr! nest4) + 2 = :nest4/sub
 				][
 					--assert (as int-ptr! nest4) + 1 = :nest4/sub
@@ -1455,7 +1455,7 @@ struct-x64-local
 				--assert nest4/g2 = 343434
 
 			--test-- "loc-svb20"
-				#either target = 'X86-64 [
+				#either any [target = 'X86-64 target = 'ARM64] [
 					--assert 64 = size? nested5!
 				][
 					--assert 56 = size? nested5!
@@ -1479,7 +1479,7 @@ struct-x64-local
 				--assert nest5/sub/f5 = 5.0
 				--assert nest5/sub/f6 = 6.0
 
-				#either target = 'X86-64 [
+				#either any [target = 'X86-64 target = 'ARM64] [
 					--assert (as int-ptr! nest5) + 2 = :nest5/sub
 				][
 					--assert (as int-ptr! nest5) + 1 = :nest5/sub
@@ -1545,7 +1545,7 @@ struct-x64-local
 				--assert nest2/f2 = 343434
 
 			--test-- "svb32"
-				#either target = 'X86-64 [
+				#either any [target = 'X86-64 target = 'ARM64] [
 					--assert 32 = size? nested3!
 				][
 					--assert 24 = size? nested3!
@@ -1563,7 +1563,7 @@ struct-x64-local
 				--assert nest3/sub/two = 777
 				--assert nest3/sub/three = 8.88
 
-				#either target = 'X86-64 [
+				#either any [target = 'X86-64 target = 'ARM64] [
 					--assert (as int-ptr! nest3) + 2 = :nest3/sub
 				][
 					--assert (as int-ptr! nest3) + 1 = :nest3/sub
@@ -1642,7 +1642,7 @@ struct-x64-local
 			   b   [c-string!]
 			   c   [struct! [d [integer!] e [float!]] value]
 			]
-			#either target = 'X86-64 [
+			#either any [target = 'X86-64 target = 'ARM64] [
 				--assert 32 = size? s4310
 			][
 				--assert 20 = size? s4310

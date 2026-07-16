@@ -9,7 +9,7 @@ Red/System [
 
 #include %../../../../quick-test/quick-test.reds
 
-#if any [target = 'IA-32 target = 'ARM target = 'X86-64] [
+#if any [target = 'IA-32 target = 'ARM target = 'X86-64 target = 'ARM64] [
 
 fixed-int-pair!: alias struct! [
 	s16 [int16!]
@@ -185,7 +185,7 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 
 ~~~start-file~~~ "fixed-int"
 
-#if any [target = 'IA-32 target = 'ARM target = 'X86-64] [
+#if any [target = 'IA-32 target = 'ARM target = 'X86-64 target = 'ARM64] [
 
 ===start-group=== "fixed integer sizes and aliases"
 
@@ -199,14 +199,14 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		--assert (size? integer!) = (size? int32!)
 
 	--test-- "fixed-int-struct-size-1"
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			--assert 32 = (size? fixed-int-struct!)
 		][
 			--assert 32 = (size? fixed-int-struct!)
 		]
 		--assert 8 = (size? fixed-int-layout!)
 		--assert 16 = (size? fixed-int-nested!)
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			--assert 64 = (size? fixed-int-mixed!)
 			--assert 80 = (size? fixed-int-mixed-nested!)
 		][
