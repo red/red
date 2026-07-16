@@ -735,7 +735,7 @@ static-link: context [
 	;-- bounds to enclose the template.
 	finalize-pe-tls-sections: func [
 		job [object!]
-		/local data name section obj a base objs
+		/local data name section obj a base objs ckey entry
 	][
 		if empty? tls-pe-sections [exit]
 		sort/skip tls-pe-sections 3
@@ -750,6 +750,20 @@ static-link: context [
 			append data reader/sec-data section
 			tls-end: length? data
 			reader/set-sec-base section 'data base
+			;-- a COMDAT .tls$ contribution was recorded as its group's
+			;-- anchor BEFORE layout (duplicate folding needs the key
+			;-- registered at merge time): patch the anchor now that the
+			;-- base is known -- 'tls matches register-symbol's mapping,
+			;-- so redirected relocations get the SECREL treatment
+			if all [
+				ckey: reader/sec-comdat-key section
+				entry: select comdat-keys ckey
+				same? obj entry/4
+				entry/1 = 'none
+			][
+				entry/1: 'tls
+				entry/2: base
+			]
 			unless find objs obj [append objs obj]
 		]
 		foreach obj objs [merge-sections job obj]
