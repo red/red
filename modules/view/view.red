@@ -401,16 +401,19 @@ link-tabs-to-parent: function [
 ]
 
 link-sub-to-parent: function ["Internal Use Only" face [object!] type [word!] old new][
+	if all [
+		object? old
+		parent: in old 'parent
+		block? parent: get parent
+	][
+		if found: find/same head parent face [remove found]
+	]
 	if object? new [
 		unless all [parent: in new 'parent block? get parent][
 			new/parent: make block! 4
 		]
-		new/parent: insert tail new/parent face
-		all [
-			object? old
-			parent: in old 'parent
-			block? parent: get parent
-			remove find/same head parent face
+		unless find/same head new/parent face [
+			new/parent: insert tail new/parent face
 		]
 	]
 ]
@@ -887,14 +890,7 @@ show: function [
 			face/state: reduce [handle 0 none false]
 
 			foreach field [para font][
-				if all [field: face/:field p: in field 'parent][
-					field/parent: tail either block? p: get p [
-						unless find/same head p face [append p face]
-						p
-					][
-						reduce [face]
-					]
-				]
+				link-sub-to-parent face field none face/:field
 			]
 			
 			switch face/type [
