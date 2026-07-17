@@ -49,6 +49,10 @@ unless #"b" = dynamic-case-result [fail rejoin ["dynamic select/case: " mold dyn
 dynamic-do: func [trace [logic!]][do/:trace [] does []]
 dynamic-do true
 
+syntax-error: try [load ")"]
+check error? syntax-error "syntax error value"
+check to logic! find form syntax-error "missing (" "deferred error stack trace"
+
 image: make image! [2x2 10.20.30]
 check 2x2 = image/size "WIC image allocation"
 check 10.20.30 = image/1 "WIC image pixel"

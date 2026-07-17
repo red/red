@@ -469,6 +469,9 @@ get-env: func [
 	len
 ]
 
+last-precise-day: -1
+last-precise-time: 0.0
+
 get-time: func [
 	utc?	 [logic!]
 	precise? [logic!]
@@ -476,18 +479,27 @@ get-time: func [
 	/local
 		time	[timeval! value]
 		tm		[tm!]
+		day		[integer!]
 		micro	[float!]
 		t		[float!]
 ][
 	gettimeofday time 0
 	tm: gmtime as int-ptr! time
+	t: as-float tm/hour * 3600 + (tm/min * 60) + tm/sec
 	micro: 0.0
 	if precise? [
 		micro: as-float time/tv_usec
 		micro: micro / 1E6
+		t: t + micro
+		day: tm/year * 366 + tm/yday
+		either day = last-precise-day [
+			if t < last-precise-time [t: last-precise-time]
+		][
+			last-precise-day: day
+		]
+		last-precise-time: t
 	]
-	t: as-float tm/hour * 3600 + (tm/min * 60) + tm/sec
-	t + micro
+	t
 ]
 
 get-timezone: func [

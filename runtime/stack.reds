@@ -115,6 +115,20 @@ stack: context [										;-- call stack
 		if zero? offset [return null]
 		bottom + (offset - 1)
 	]
+
+	store-frame: func [
+		ptr [call-frame!]
+		return: [integer!]
+	][
+		(as-integer (ptr - cbottom)) / (size? call-frame!)
+	]
+
+	get-frame: func [
+		offset [integer!]
+		return: [call-frame!]
+	][
+		cbottom + offset
+	]
 	
 	mark: func [
 		fun  [red-word!]
@@ -405,7 +419,7 @@ stack: context [										;-- call stack
 			base  [call-frame!]
 			sym	  [integer!]
 	][
-		top: as call-frame! stk
+		top: get-frame stk
 		base: cbottom
 		until [
 			sym: base/header >> 8 and FFFFh
@@ -433,7 +447,7 @@ stack: context [										;-- call stack
 			base  [call-frame!]
 			sym	  [integer!]
 	][
-		top: as call-frame! int/value
+		top: get-frame int/value
 		value: stack/push*
 		int: as red-integer! value
 		int/header: TYPE_INTEGER
@@ -473,7 +487,7 @@ stack: context [										;-- call stack
 		int: as red-integer! base + error/get-stack-id
 		if TYPE_OF(int) = TYPE_BLOCK [exit]				;-- call stack already captured
 		int/header: TYPE_INTEGER
-		int/value:  as-integer ctop
+		int/value: store-frame ctop
 	]
 	
 	throw-error: func [

@@ -129,6 +129,19 @@ Red/System [
 	]
 ]
 
+#if OS = 'Windows [
+	this!: alias struct! [vtbl [int-ptr!]]
+	com-ptr!: alias struct! [value [this!]]
+	POINT_2F: alias struct! [
+		x [float32!]
+		y [float32!]
+	]
+	tagPOINT: alias struct! [
+		x [integer!]
+		y [integer!]
+	]
+]
+
 #switch GUI-engine [
 	native [
 		#switch OS [
@@ -650,18 +663,6 @@ Red/System [
 	#define ENABLE_VIRTUAL_TERMINAL_PROCESSING	04h
 	#define DISABLE_NEWLINE_AUTO_RETURN 		08h
 
-	this!: alias struct! [vtbl [int-ptr!]]
-	com-ptr!: alias struct! [value [this!]]
-
-	POINT_2F: alias struct! [
-		x		[float32!]
-		y		[float32!]
-	]
-
-	tagPOINT: alias struct! [
-		x		[integer!]
-		y		[integer!]	
-	]
 ][
 	#define O_RDONLY	0
 	#define O_WRONLY	1
