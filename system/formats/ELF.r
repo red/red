@@ -819,6 +819,7 @@ context [
 				import-vars
 				import-funcs
 				get-data ".text"
+				get-address ".text"
 				relro-offset
 				plt-offset
 		]
@@ -1609,9 +1610,10 @@ context [
 		vars [block!]
 		funcs [block!]
 		code [binary!]
+		text-address [integer!]
 		relro-offset [integer! none!]
 		plt-offset [integer! none!]
-		/local rel disp index delta opcode
+		/local rel disp index delta opcode target-address
 	] [
 		foreach [libname libimports] job/sections/import/3 [
 			linker/check-dup-symbols job libimports
@@ -1627,16 +1629,33 @@ context [
 					][
 						plt-offset + either job/target = 'ARM64 [16 * (index + 1)][16 * index]
 					]
+					target-address: either job/PIC? [text-address + disp][disp]
 					foreach callsite callsites [
-						either job/target = 'ARM64 [
-							delta: disp - (callsite - 1)
-							if any [not zero? delta // 4 delta < -134217728 delta > 134217724][
-								make error! "AArch64 import branch is out of range"
+						case [
+							all [job/target = 'ARM64 issue? symbol] [
+								unless all [
+									block? callsite
+									2 <= length? callsite
+									integer? callsite/1
+									integer? callsite/2
+								][make error! "invalid AArch64 import data reference"]
+								linker/patch-arm64-page-ref
+									code callsite/1
+									(text-address + callsite/1 - 1)
+									target-address callsite/2
 							]
-							opcode: (to integer! #{94000000}) or (((delta / 4) and 67108863))
-							change/part at code callsite to-bin32 opcode 4
-						][
-							change/part at code callsite to-bin32 disp - callsite - 3 4
+							job/target = 'ARM64 [
+								delta: target-address - (text-address + callsite - 1)
+								if any [not zero? delta // 4 delta < -134217728 delta > 134217724][
+									make error! "AArch64 import branch is out of range"
+								]
+								opcode: (to integer! #{94000000}) or (((delta / 4) and 67108863))
+								change/part at code callsite to-bin32 opcode 4
+							]
+							true [
+								change/part at code callsite
+									to-bin32 (target-address - text-address - callsite - 3) 4
+							]
 						]
 					]
 				][

@@ -297,6 +297,11 @@ re-throw: func [/local id [integer!]][
 				***-on-quit code address
 		]
 	]
+	#if target = 'ARM64 [
+		***-on-div-error: func [code [integer!]][
+			***-on-quit code system/pc
+		]
+	]
 
 	***-on-quit: func [						;-- global exit handler
 		status  [integer!]
@@ -376,9 +381,20 @@ re-throw: func [/local id [integer!]][
 				print msg
 
 				#either debug? = yes [
-					if null? system/debug [__set-stack-on-crash]
-					__print-debug-line  addr
-					__print-debug-stack addr status
+					#either target = 'ARM64 [
+						;-- Synthetic division errors have no signal context to unwind.
+						either status = 13 [
+							print [lf "*** at: " addr "h" lf]
+						][
+							if null? system/debug [__set-stack-on-crash]
+							__print-debug-line addr
+							__print-debug-stack addr status
+						]
+					][
+						if null? system/debug [__set-stack-on-crash]
+						__print-debug-line addr
+						__print-debug-stack addr status
+					]
 				][
 					print [lf "*** at: " addr "h" lf]
 				]

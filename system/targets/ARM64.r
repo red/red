@@ -113,6 +113,9 @@ make-profilable make target-class [
 		spec: either block? name [name][all [word? name emitter/get-symbol-ref name]]
 		unless spec [compiler/throw-error ["unknown ARM64 symbol:" mold name]]
 		emit-page-ref spec reg
+		if spec/1 = 'import-var [
+			emit-i32 (to integer! #{F9400000}) or (reg * 32) or reg ; LDR xN, [xN]
+		]
 	]
 
 	wide-type?: func [type [block!]][
@@ -711,7 +714,7 @@ make-profilable make target-class [
 	emit-call-native: func [
 		args [block!] fspec [block!] spec [block!] attribs [block! none!]
 		/routine name [word!]
-		/local n target target-type path-target?
+		/local n target target-type path-target? call-reg
 	][
 		if all [compiler/variadic? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
 		n: call-arg-index
@@ -724,12 +727,13 @@ make-profilable make target-class [
 			]
 			if find form target slash [
 				emitter/access-path to path! target none
-				emit-i32 #{AA0003F0}                          ; MOV x16, x0
+				emit-i32 #{AA0003E9}                          ; MOV x9, x0
 				path-target?: yes
 			]
 		]
 		call-stack-slots: (prepare-call-args n) + call-extra-slots
 		either routine [
+			call-reg: either path-target? [9][16]
 			unless path-target? [
 				target-type: compiler/resolve-aliased compiler/get-type target
 				either emitter/local-offset? target [
@@ -738,7 +742,7 @@ make-profilable make target-class [
 					emit-load-global/reg target target-type 16
 				]
 			]
-			emit-i32 #{D63F0200}                              ; BLR x16
+			emit-i32 (to integer! #{D63F0000}) or (call-reg * 32) ; BLR xN
 		][
 			append spec/3 emitter/tail-ptr
 			unless empty? emitter/chunks/queue [
@@ -777,8 +781,8 @@ make-profilable make target-class [
 		/local type source-type literal-pointer? offset hfa field-size opcode i
 	][
 		if by-value [
-			if slots > 2 [exit]                          ; hidden return pointer was written by callee
 			hfa: homogeneous-aggregate? spec
+			if all [slots > 2 not hfa/1][exit]           ; hidden return pointer was written by callee
 			either offset: emitter/local-offset? name [
 			either hfa/1 [
 					field-size: either hfa/2 [4][8]
@@ -1157,8 +1161,8 @@ make-profilable make target-class [
 			'value = last compiler/last-type
 		][
 			slots: emitter/struct-slots? compiler/last-type
-			if slots > 2 [exit]                         ; callee wrote through the hidden destination
 			hfa: homogeneous-aggregate? compiler/last-type
+			if all [slots > 2 not hfa/1][exit]          ; callee wrote through the hidden destination
 			either hfa/1 [
 				repeat i hfa/3 [
 					emit-i32 (to integer! either hfa/2 [#{1E204008}][#{1E604008}])
@@ -1277,29 +1281,55 @@ make-profilable make target-class [
 	emit-push-struct: func [
 		slots [integer!]
 		/aggregate type [block!]
-		/local hfa field-type field-size i descriptor
+		/returned
+		/local hfa field-type field-size i descriptor register-result?
 	][
-		emit-i32 #{AA0003E3}                                  ; MOV x3, x0
 		hfa: homogeneous-aggregate? any [type compiler/last-type]
-		either hfa/1 [
-			field-type: reduce [either hfa/2 ['float32!]['float!]]
-			field-size: either hfa/2 [4][8]
-			for i hfa/3 1 -1 [
-				emit-load-memory field-type 3 (i - 1) * field-size
-				emit-i32 #{D10043FF}                          ; SUB sp, sp, #16
-				emit-i32 either hfa/2 [#{BC0003E0}][#{FC0003E0}]
-				descriptor: reduce [field-type/1 'arm64-aggregate 'hfa hfa/3 i]
-				append/only call-arg-types descriptor
-				call-arg-index: call-arg-index + 1
+		register-result?: all [returned any [hfa/1 slots <= 2]]
+		case [
+			all [register-result? hfa/1] [
+				field-type: reduce [either hfa/2 ['float32!]['float!]]
+				for i hfa/3 1 -1 [
+					emit-i32 #{D10043FF}                          ; SUB sp, sp, #16
+					emit-i32 (to integer! either hfa/2 [#{BC0003E0}][#{FC0003E0}])
+						or (i - 1)                                  ; STR sN/dN, [sp]
+					descriptor: reduce [field-type/1 'arm64-aggregate 'hfa hfa/3 i]
+					append/only call-arg-types descriptor
+					call-arg-index: call-arg-index + 1
+				]
 			]
-		][
-			for i slots 1 -1 [
-				emit-load-memory [uint64!] 3 (i - 1) * stack-width
-				emit-i32 #{D10043FF}                          ; SUB sp, sp, #16
-				emit-i32 #{F90003E0}                          ; STR x0, [sp]
-				descriptor: reduce ['uint64! 'arm64-aggregate 'integer slots i]
-				append/only call-arg-types descriptor
-				call-arg-index: call-arg-index + 1
+			register-result? [
+				for i slots 1 -1 [
+					emit-i32 #{D10043FF}                          ; SUB sp, sp, #16
+					emit-i32 (to integer! #{F90003E0}) or (i - 1) ; STR xN, [sp]
+					descriptor: reduce ['uint64! 'arm64-aggregate 'integer slots i]
+					append/only call-arg-types descriptor
+					call-arg-index: call-arg-index + 1
+				]
+			]
+			hfa/1 [
+				emit-i32 #{AA0003E3}                          ; MOV x3, x0
+				field-type: reduce [either hfa/2 ['float32!]['float!]]
+				field-size: either hfa/2 [4][8]
+				for i hfa/3 1 -1 [
+					emit-load-memory field-type 3 (i - 1) * field-size
+					emit-i32 #{D10043FF}                      ; SUB sp, sp, #16
+					emit-i32 either hfa/2 [#{BC0003E0}][#{FC0003E0}]
+					descriptor: reduce [field-type/1 'arm64-aggregate 'hfa hfa/3 i]
+					append/only call-arg-types descriptor
+					call-arg-index: call-arg-index + 1
+				]
+			]
+			true [
+				emit-i32 #{AA0003E3}                          ; MOV x3, x0
+				for i slots 1 -1 [
+					emit-load-memory [uint64!] 3 (i - 1) * stack-width
+					emit-i32 #{D10043FF}                      ; SUB sp, sp, #16
+					emit-i32 #{F90003E0}                      ; STR x0, [sp]
+					descriptor: reduce ['uint64! 'arm64-aggregate 'integer slots i]
+					append/only call-arg-types descriptor
+					call-arg-index: call-arg-index + 1
+				]
 			]
 		]
 	]
@@ -1331,20 +1361,43 @@ make-profilable make target-class [
 		call-arg-index: call-arg-index + 1
 	]
 
-	homogeneous-aggregate?: func [type [block!] /local resolved kind field-kind count valid? name field][
+	classify-hfa-member: func [type [block!] /local resolved][
 		resolved: compiler/resolve-aliased type
-		unless resolved/1 = 'struct! [return reduce [no no 0]]
+		case [
+			find [float! float64!] resolved/1 [reduce [yes no 1]]
+			resolved/1 = 'float32! [reduce [yes yes 1]]
+			all [find [struct! union!] resolved/1 'value = last type] [
+				classify-hfa-fields resolved
+			]
+			true [reduce [no no 0]]
+		]
+	]
+
+	classify-hfa-fields: func [
+		resolved [block!]
+		/local members union? kind count valid? name field nested
+	][
+		union?: resolved/1 = 'union!
+		members: resolved/2
+		if all [not empty? members block? members/1][members: next members]
+		if union? [members: compiler/union-members members]
 		kind: none
 		count: 0
 		valid?: yes
-		foreach [name field] resolved/2 [
-			unless all [block? field find [float! float64! float32!] field/1][valid?: no break]
-			field-kind: either field/1 = 'float32! ['float32!]['float!]
-			if all [kind kind <> field-kind][valid?: no break]
-			kind: field-kind
-			count: count + 1
+		foreach [name field] members [
+			nested: classify-hfa-member field
+			unless nested/1 [valid?: no break]
+			if all [logic? kind kind <> nested/2][valid?: no break]
+			kind: nested/2
+			count: either union? [max count nested/3][count + nested/3]
 		]
-		reduce [all [valid? count >= 1 count <= 4] kind = 'float32! count]
+		reduce [all [valid? count >= 1 count <= 4] any [kind no] count]
+	]
+
+	homogeneous-aggregate?: func [type [block!] /local resolved][
+		resolved: compiler/resolve-aliased type
+		unless find [struct! union!] resolved/1 [return reduce [no no 0]]
+		classify-hfa-fields resolved
 	]
 
 	emit-move-alt: func [wide? [logic!]][
@@ -1365,6 +1418,19 @@ make-profilable make target-class [
 			uint16! [opcode: #{53003C00}]                      ; UXTH wN, wN
 		]
 		if opcode [emit-i32 (opcode-int opcode) or bits]
+	]
+
+	emit-divide-by-zero-check: func [wide? [logic!] /local spec][
+		unless compiler/job/debug? [exit]
+		spec: emitter/symbols/***-on-div-error
+		emit-i32 either wide? [#{F100003F}][#{7100003F}] ; CMP x1/w1, #0
+		emit-i32 encode-branch 12 1                       ; B.NE divide
+		emit-mov-imm32 13                                 ; integer divide by zero
+		append spec/3 emitter/tail-ptr
+		unless empty? emitter/chunks/queue [
+			append/only second last emitter/chunks/queue back tail spec/3
+		]
+		emit-i32 #{94000000}                              ; BL ***-on-div-error
 	]
 
 	emit-load-alt: func [
@@ -1546,6 +1612,7 @@ make-profilable make target-class [
 
 		mod-kind: select mod-rem-func name
 		if any [name = divide-sym mod-kind][
+			emit-divide-by-zero-check wide?
 			if all [compiler/overflow-check? signed? width = 4][
 				emit-i32 #{3100043F}                          ; CMN w1, #1
 				emit-i32 encode-branch 16 1                  ; B.NE divide
@@ -1650,16 +1717,24 @@ make-profilable make target-class [
 		]
 		if all [compiler/overflow-check? find [+ - *] name][
 			case [
-				all [width = 4 name = '*][
+				all [find [4 8] width name = '*][
 					either signed? [
-						emit-i32 #{93407C01}                  ; SXTW x1, w0
+						emit-i32 either width = 8 [
+							#{937FFC01}                          ; ASR x1, x0, #63
+						][
+							#{93407C01}                          ; SXTW x1, w0
+						]
 						emit-i32 #{EB01005F}                  ; CMP x2, x1
 					][
-						emit-i32 #{EB00005F}                  ; CMP x2, x0
+						emit-i32 either width = 8 [
+							#{F100005F}                          ; CMP x2, #0
+						][
+							#{EB00005F}                          ; CMP x2, x0
+						]
 					]
-					emit-overflow-branch 1                       ; B.NE overflow
+					emit-overflow-branch 1                   ; B.NE overflow
 				]
-				width = 4 [
+				find [4 8] width [
 					emit-overflow-branch case [
 						signed? [6]                         ; B.VS
 						name = '+ [2]                       ; B.CS

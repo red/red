@@ -31,7 +31,7 @@ validate_relocations() {
 	file=$1
 	for type in $(readelf -rW "$file" | awk '$3 ~ /^R_AARCH64_/ {print $3}' | sort -u); do
 		case "$type" in
-			R_AARCH64_RELATIVE|R_AARCH64_JUMP_SLOT) ;;
+			R_AARCH64_RELATIVE|R_AARCH64_GLOB_DAT|R_AARCH64_JUMP_SLOT) ;;
 			*) fail "$file contains unexpected dynamic relocation $type" ;;
 		esac
 	done

@@ -18,6 +18,12 @@ Red/System [
 	]
 	return-pair: func [value [pair! value] return: [pair! value]][value]
 	return-quad: func [value [quad! value] return: [quad! value]][value]
+	forward-pair: func [value [pair! value] return: [integer!]][
+		value/left + value/right
+	]
+	forward-quad: func [value [quad! value] return: [integer!]][
+		value/a + value/b + value/c + value/d
+	]
 	return-local-pair: func [value [pair! value] return: [pair! value] /local tmp [pair! value]][
 		tmp/left: value/left + 1
 		tmp/right: value/right + 1
@@ -69,6 +75,8 @@ Red/System [
 	rq: return-quad q
 	if rq/a <> 1 [sys-exit 5]
 	if rq/d <> 8 [sys-exit 6]
+	if 42 <> forward-pair return-pair p [sys-exit 17]
+	if 15 <> forward-quad return-quad q [sys-exit 18]
 	rp: return-local-pair p
 	if rp/left <> 13 [sys-exit 10]
 	if rp/right <> 31 [sys-exit 11]

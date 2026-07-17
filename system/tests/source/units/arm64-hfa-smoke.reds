@@ -6,9 +6,28 @@ Red/System [
 	#syscall [sys-exit: 93 [status [integer!]]]
 
 	pair64!: alias struct! [x [float!] y [float!]]
+	triple64!: alias struct! [x [float!] y [float!] z [float!]]
+	quad64!: alias struct! [a [float!] b [float!] c [float!] d [float!]]
 	quad32!: alias struct! [a [float32!] b [float32!] c [float32!] d [float32!]]
+	hfa-box!: alias struct! [value [triple64! value]]
 
 	sum64: func [value [pair64! value] return: [float!]][value/x + value/y]
+	sum-triple64: func [value [triple64! value] return: [float!]][
+		value/x + value/y + value/z
+	]
+	return-triple64: func [return: [triple64! value] /local value [triple64! value]][
+		value/x: 1.0
+		value/y: 2.0
+		value/z: 3.0
+		value
+	]
+	return-quad64: func [return: [quad64! value] /local value [quad64! value]][
+		value/a: 1.0
+		value/b: 2.0
+		value/c: 3.0
+		value/d: 4.0
+		value
+	]
 	sum32: func [value [quad32! value] return: [float32!]][
 		value/a + value/b + value/c + value/d
 	]
@@ -39,11 +58,25 @@ Red/System [
 	]
 
 	p64: declare pair64!
+	t64: declare triple64!
+	q64: declare quad64!
 	p32: declare quad32!
+	hfa-box: declare hfa-box!
 	p64/x: as float! 1.25
 	p64/y: as float! 2.75
 	f: sum64 p64
 	if f <> as float! 4.0 [sys-exit 1]
+
+	t64: return-triple64
+	if t64/x <> 1.0 [sys-exit 5]
+	if t64/y <> 2.0 [sys-exit 6]
+	if t64/z <> 3.0 [sys-exit 7]
+	q64: return-quad64
+	if q64/a <> 1.0 [sys-exit 8]
+	if q64/d <> 4.0 [sys-exit 9]
+	if 6.0 <> sum-triple64 return-triple64 [sys-exit 10]
+	hfa-box/value: return-triple64
+	if hfa-box/value/z <> 3.0 [sys-exit 11]
 
 	p32/a: as float32! 1.0
 	p32/b: as float32! 2.0

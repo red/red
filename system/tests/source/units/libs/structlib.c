@@ -69,6 +69,24 @@ typedef struct paird {
 	double two;
 } paird;
 
+typedef struct tripled {
+	double one;
+	double two;
+	double three;
+} tripled;
+
+typedef struct quadd {
+	double one;
+	double two;
+	double three;
+	double four;
+} quadd;
+
+typedef struct nested_paird {
+	paird pair;
+	double three;
+} nested_paird;
+
 typedef struct quadf32 {
 	float one;
 	float two;
@@ -142,6 +160,21 @@ EXPORT paird returnPairD(void) {
 	return p;
 }
 
+EXPORT tripled returnTripleD(void) {
+	tripled t = { 10.0, 20.0, 30.0 };
+	return t;
+}
+
+EXPORT quadd returnQuadD(void) {
+	quadd q = { 1.0, 2.0, 3.0, 4.0 };
+	return q;
+}
+
+EXPORT nested_paird returnNestedPairD(void) {
+	nested_paird n = { { 10.0, 20.0 }, 30.0 };
+	return n;
+}
+
 EXPORT quadf32 returnQuadF32(void) {
 	quadf32 q = { 1.25f, 2.5f, 3.75f, 4.5f };
 	return q;
@@ -161,6 +194,23 @@ EXPORT int checkBig(big b) {
 
 EXPORT int checkPairD(paird p) {
 	return p.one == 12.5 && p.two == 29.5;
+}
+
+EXPORT int checkTripleD(tripled t) {
+	return t.one == 10.0 && t.two == 20.0 && t.three == 30.0;
+}
+
+EXPORT int checkQuadD(quadd q) {
+	return q.one == 1.0 && q.two == 2.0 && q.three == 3.0 && q.four == 4.0;
+}
+
+EXPORT int checkNestedPairD(nested_paird n) {
+	return n.pair.one == 10.0 && n.pair.two == 20.0 && n.three == 30.0;
+}
+
+EXPORT int callNestedPairDCallback(int (*callback)(nested_paird)) {
+	nested_paird n = { { 10.0, 20.0 }, 30.0 };
+	return callback(n);
 }
 
 EXPORT int checkQuadF32(quadf32 q) {

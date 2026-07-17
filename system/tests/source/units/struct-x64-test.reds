@@ -530,6 +530,9 @@ struct-x64-local
 	hugef32!: alias struct! [w1 [float32!] w2 [integer!] w3 [float32!] w4 [integer!] w5 [integer!] w6 [float32!]]
 	triple8!: alias struct! [one [byte!] two [byte!] three [byte!]]
 	paird!:   alias struct! [one [float!] two [float!]]
+	tripled!: alias struct! [one [float!] two [float!] three [float!]]
+	quadd!:   alias struct! [one [float!] two [float!] three [float!] four [float!]]
+	nested-paird!: alias struct! [pair [paird! value] three [float!]]
 	quadf32!: alias struct! [one [float32!] two [float32!] three [float32!] four [float32!]]
 	super!:   alias struct! [f1 [float!] f2 [float!] f3 [float!] f4 [float!] f5 [float!] f6 [float!]]
 
@@ -628,6 +631,23 @@ struct-x64-local
 		STRUCTLIB-file stdcall [
 			returnTriple8Std: "returnTriple8Std" [return: [triple8! value]]
 			checkTriple8Std:  "checkTriple8Std"  [t [triple8! value] bias [integer!] return: [integer!]]
+		]
+	]
+	#if target = 'ARM64 [
+		#import [
+			STRUCTLIB-file cdecl [
+				returnTripleD: "returnTripleD" [return: [tripled! value]]
+				returnQuadD: "returnQuadD" [return: [quadd! value]]
+				returnNestedPairD: "returnNestedPairD" [return: [nested-paird! value]]
+				checkTripleD: "checkTripleD" [value [tripled! value] return: [integer!]]
+				checkQuadD: "checkQuadD" [value [quadd! value] return: [integer!]]
+				checkNestedPairD: "checkNestedPairD" [
+					value [nested-paird! value] return: [integer!]
+				]
+				callNestedPairDCallback: "callNestedPairDCallback" [
+					callback [int-ptr!] return: [integer!]
+				]
+			]
 		]
 	]
 	s1: declare tiny!
@@ -732,6 +752,20 @@ struct-x64-local
 		return: [integer!]
 	][
 		either all [value/one = 10.5 value/two = 20.5 bias = 11][43][0]
+	]
+
+	#if target = 'ARM64 [
+		nested-paird-callback: func [
+			[cdecl]
+			value [nested-paird! value]
+			return: [integer!]
+		][
+			either all [
+				value/pair/one = 10.0
+				value/pair/two = 20.0
+				value/three = 30.0
+			][1][0]
+		]
 	]
 
 	big-return-metadata-callback: func [
@@ -848,6 +882,18 @@ struct-x64-local
 			1 1.5 2 2.5 3 3.5 4 4.5 5 5.5 6 6.5 7 7.5 8 8.5 9 9.5
 		#if target = 'ARM64 [
 			--assert 1 = callMixedExhaustionCallback as int-ptr! :mixed-exhaustion-callback
+			td: declare tripled!
+			qd: declare quadd!
+			npd: declare nested-paird!
+			td: returnTripleD
+			qd: returnQuadD
+			npd: returnNestedPairD
+			--assert 1 = checkTripleD td
+			--assert 1 = checkQuadD qd
+			--assert 1 = checkNestedPairD npd
+			--assert 1 = checkTripleD returnTripleD
+			--assert 1 = checkNestedPairD returnNestedPairD
+			--assert 1 = callNestedPairDCallback as int-ptr! :nested-paird-callback
 		]
 
 		t8: returnTriple8

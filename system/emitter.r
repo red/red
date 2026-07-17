@@ -1226,7 +1226,11 @@ emitter: make-profilable context [
 			target/emit-push-struct/sysv struct-slots?/direct spec/2 spec
 		][
 			either target/target = 'ARM64 [
-				target/emit-push-struct/aggregate struct-slots?/direct spec/2 spec
+				either block? compiler/unbox/deep expr [
+					target/emit-push-struct/aggregate/returned struct-slots?/direct spec/2 spec
+				][
+					target/emit-push-struct/aggregate struct-slots?/direct spec/2 spec
+				]
 			][
 				target/emit-push-struct struct-slots?/direct spec/2
 			]
