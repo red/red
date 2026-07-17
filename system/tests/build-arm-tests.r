@@ -73,9 +73,16 @@ compile-test: func [test-file [file!]] [
                     " -r -t " target " -o " exe " "
     				to-local-file test-file	
     			]
+	if exists? exe [delete exe]
     clear output
     compilation-status: call/output cmd output
-    if compilation-status <> 0 [ quit/return compilation-status ]
+	if any [
+		compilation-status <> 0
+		not exists? exe
+	][
+		print output
+		quit/return either compilation-status <> 0 [compilation-status][1]
+	]
     print output
 ]
 

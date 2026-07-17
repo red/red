@@ -16,7 +16,7 @@ generate-arm64-long-branch-smoke: func [output [file!] /local source iterations]
 		value: 0
 		if flag [
 }
-	repeat i iterations [append source "^t^t^tvalue: value + 1^/"]
+	repeat i iterations [append source "^-^-^-value: value + 1^/"]
 	append source rejoin [{		]
 		value
 	]
@@ -25,10 +25,10 @@ generate-arm64-long-branch-smoke: func [output [file!] /local source iterations]
 		value: 0
 		until [
 }]
-	repeat i iterations [append source "^t^t^tvalue: value + 1^/"]
+	repeat i iterations [append source "^-^-^-value: value + 1^/"]
 	append source rejoin [
-		"^t^t^tvalue = " iterations "^/"
-		{^t^t]
+		"^-^-^-value = " iterations "^/"
+		{^-^-]
 		value
 	]
 
