@@ -65,8 +65,16 @@ posix-startup-ctx: context [
 		code: info/code
 		
 		system/debug: declare __stack!			;-- allocate a __stack! struct
-		system/debug/frame: as int-ptr! UCTX_GET_STACK_FRAME(ctx)
-		system/debug/top: 	as int-ptr! UCTX_GET_STACK_TOP(ctx)
+		#switch target [
+			X86-64 [
+				system/debug/frame: UCTX_GET_STACK_FRAME(ctx)
+				system/debug/top: UCTX_GET_STACK_TOP(ctx)
+			]
+			#default [
+				system/debug/frame: as int-ptr! UCTX_GET_STACK_FRAME(ctx)
+				system/debug/top: as int-ptr! UCTX_GET_STACK_TOP(ctx)
+			]
+		]
 
 		error: switch signal [
 			SIGILL [

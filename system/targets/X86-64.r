@@ -1670,11 +1670,12 @@ make-profilable make target-class [
 	emit-integer-operation: func [
 		name [word!]
 		args [block!]
-		/local right right-source imm? type wide? right-block? right-last? right-type scale right-loaded? right-signed? left-type mod? signed-op? ptr-wide-imm? cast-width cast-mask cast-sign
+		/local right right-source imm? type wide? left-block? right-block? right-last? right-type scale right-loaded? right-signed? left-type mod? signed-op? ptr-wide-imm? cast-width cast-mask cast-sign
 	][
 		type: compiler/resolve-aliased compiler/resolve-expr-type args/1
 		if all [object? args/1 logic? args/1/keep?] [compiler/cast args/1]
 		set-width/type type/1
+		left-block?: block? compiler/unbox args/1
 		right: either all [object? args/2 logic? args/2/keep?] [
 			compiler/cast args/2
 		][
@@ -1712,8 +1713,10 @@ make-profilable make target-class [
 		signed?: compiler/signed-integer? type
 		wide?: find [pointer! c-string! function! subroutine! struct! union! any-pointer! int64! uint64!] type/1
 		ptr-wide-imm?: find [pointer! c-string! function! subroutine! struct! union! any-pointer!] type/1
-		if all [any [right-block? right-last?] not last-saved?][
-			emit either wide? [#{4889C1}][#{89C1}] ;-- MOV rcx/ecx, rax/eax
+		if any [right-block? right-last?][
+			unless all [left-block? last-saved?][
+				emit either wide? [#{4889C1}][#{89C1}] ;-- MOV rcx/ecx, rax/eax
+			]
 		]
 		last-saved?: no
 		emit-load args/1
