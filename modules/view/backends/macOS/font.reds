@@ -116,10 +116,7 @@ make-font: func [
 		int/value: as-integer hFont
 	]
 
-	if face <> null [
-		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
-		block/rs-append blk as red-value! face
-	]
+	link-font-to-face face font
 	hFont
 ]
 
@@ -151,6 +148,7 @@ get-font: func [
 	if TYPE_OF(font) <> TYPE_OBJECT [return as handle! default-font]
 	hFont: get-font-handle font 0
 	if null? hFont [hFont: make-font face font]
+	link-font-to-face face font
 	hFont
 ]
 

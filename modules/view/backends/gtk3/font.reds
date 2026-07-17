@@ -329,12 +329,7 @@ make-font: func [
 		h: handle/make-at as red-value! h as-integer attrs handle/CLASS_FONT
 	]
 	if attrs <> null [h/extID: externals/store attrs font-ext-type]
-
-	blk: as red-block! values + FONT_OBJ_PARENT
-	if all [face <> null TYPE_OF(blk) <> TYPE_BLOCK][
-		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
-		block/rs-append blk as red-value! face
-	]
+	link-font-to-face face font
 	attrs
 ]
 
@@ -375,6 +370,7 @@ get-font: func [
 	if TYPE_OF(font) <> TYPE_OBJECT [return null]
 	hFont: get-font-handle font 0
 	if null? hFont [hFont: make-font face font]
+	link-font-to-face face font
 	hFont
 ]
 

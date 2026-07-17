@@ -421,7 +421,7 @@ get-text-size: func [
 	if TYPE_OF(font) = TYPE_OBJECT [
 		state: as red-block! values + FONT_OBJ_STATE
 		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
-		if null? hFont [hFont: make-font face font]
+		if null? hFont [hFont: make-font null font]
 	]
 	if null? hFont [hFont: default-attrs]
 
@@ -818,6 +818,7 @@ init: func [/local disp [handle!]][
 	set-app-theme "box, button.text-button {min-width: 1px; min-height: 1px;}" yes
 	collector/register as int-ptr! :on-gc-mark
 	font-ext-type: externals/register "font" as-integer :delete-font
+	tb-ext-type: externals/register "text-layout" as-integer :release-text-layout
 
 	disp: gdk_display_get_default
 	gobj_signal_connect(disp "monitor-added" :monitor-changed null)
@@ -2930,16 +2931,20 @@ unlink-sub-obj: func [
 		values	[red-value!]
 		parent	[red-block!]
 		res		[red-value!]
+		empty?	[logic!]
 ][
 	values: object/get-values obj
 	parent: as red-block! values + field
 
 	if TYPE_OF(parent) = TYPE_BLOCK [
+		parent/head: 0
 		res: block/find parent as red-value! face null no no yes no null null no no no no
 		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null null]
+		empty?: block/rs-tail? parent
+		parent/head: block/rs-length? parent
 		if all [
 			field = FONT_OBJ_PARENT
-			block/rs-tail? parent
+			empty?
 		][
 			free-font obj
 		]

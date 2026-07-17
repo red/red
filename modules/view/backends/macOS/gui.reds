@@ -180,7 +180,7 @@ get-text-size: func [
 	if TYPE_OF(font) = TYPE_OBJECT [
 		state: as red-block! values + FONT_OBJ_STATE
 		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
-		if null? hFont [hFont: make-font face font]
+		if null? hFont [hFont: make-font null font]
 	]
 
 	size: declare tagSIZE
@@ -354,6 +354,7 @@ init: func [
 	vector/make-at as red-value! active-wins 8 TYPE_INTEGER 4
 	init-selectors
 	register-classes
+	tb-ext-type: externals/register "text-layout" as-integer :release-text-obj
 	nsview-id: objc_getClass "NSView"
 
 	NSApp: objc_msgSend [objc_getClass "RedApplication" sel_getUid "sharedApplication"]
@@ -2311,16 +2312,20 @@ unlink-sub-obj: func [
 		values [red-value!]
 		parent [red-block!]
 		res	   [red-value!]
+		empty?	[logic!]
 ][
 	values: object/get-values obj
 	parent: as red-block! values + field
 	
 	if TYPE_OF(parent) = TYPE_BLOCK [
+		parent/head: 0
 		res: block/find parent as red-value! face null no no yes no null null no no no no
 		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null null]
+		empty?: block/rs-tail? parent
+		parent/head: block/rs-length? parent
 		if all [
 			field = FONT_OBJ_PARENT
-			block/rs-tail? parent
+			empty?
 		][
 			free-font obj
 		]

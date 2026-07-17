@@ -19,6 +19,13 @@ Red/System [
 #define TBOX_METRICS_CHAR_INDEX?	5
 
 max-line-cnt:  0
+tb-ext-type:  -1
+
+release-text-obj: func [							;-- GC destructor for cached rich-text objects
+	obj [int-ptr!]
+][
+	objc_msgSend [as-integer obj sel_release]
+]
 
 OS-text-box-color: func [
 	dc		[handle!]
@@ -294,6 +301,7 @@ OS-text-box-layout: func [
 		cached?	[logic!]
 		pt		[red-point2D!]
 		sx sy	[float32!]
+		hndl	[red-handle!]
 ][
 	values: object/get-values box
 
@@ -345,8 +353,10 @@ OS-text-box-layout: func [
 		block/make-at state 6
 		integer/make-in state layout
 		integer/make-in state tc
-		integer/make-in state ts
-		integer/make-in state para
+		hndl: handle/make-in state ts handle/CLASS_RICHTEXT
+		hndl/extID: externals/store as int-ptr! ts tb-ext-type		;-- GC releases both with the face
+		hndl: handle/make-in state para handle/CLASS_RICHTEXT
+		hndl/extID: externals/store as int-ptr! para tb-ext-type
 		none/make-in state
 		logic/make-in state false
 	]

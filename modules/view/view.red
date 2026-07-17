@@ -401,16 +401,19 @@ link-tabs-to-parent: function [
 ]
 
 link-sub-to-parent: function ["Internal Use Only" face [object!] type [word!] old new][
+	if all [
+		object? old
+		parent: in old 'parent
+		block? parent: get parent
+	][
+		if found: find/same head parent face [remove found]
+	]
 	if object? new [
 		unless all [parent: in new 'parent block? get parent][
 			new/parent: make block! 4
 		]
-		new/parent: insert tail new/parent face
-		all [
-			object? old
-			parent: in old 'parent
-			block? parent: get parent
-			remove find/same head parent face
+		unless find/same head new/parent face [
+			new/parent: insert tail new/parent face
 		]
 	]
 ]
@@ -496,8 +499,8 @@ face!: object [				;-- keep in sync with facet! enum
 					modify new 'owned reduce [self word]
 				]
 			]
-			if word = 'font  [link-sub-to-parent self 'font old new]
-			if word = 'para  [link-sub-to-parent self 'para old new]
+			if all [state word = 'font][link-sub-to-parent self 'font old new]	;-- linked on realization otherwise
+			if all [state word = 'para][link-sub-to-parent self 'para old new]
 			
 			if find [field text] type [
 				if all [word = 'text any [not options not find options 'sync options/sync]][
@@ -573,7 +576,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 				tab "new  :" type? :new
 			]
 		]
-		if word <> 'state [
+		unless find [state parent] word [
 			if any [series? :old object? :old][modify old 'owned none]
 			if any [series? :new object? :new][modify new 'owned reduce [self word]]
 
@@ -587,7 +590,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 	on-deep-change*: function [owner word target action new index part][
 		if all [
 			state
-			word <> 'state
+			not find [state parent] word
 			not find [remove clear take] action
 		][
 			system/view/platform/update-font self (index? word) - 1
@@ -887,14 +890,7 @@ show: function [
 			face/state: reduce [handle 0 none false]
 
 			foreach field [para font][
-				if all [field: face/:field p: in field 'parent][
-					field/parent: tail either block? p: get p [
-						unless find/same head p face [append p face]
-						p
-					][
-						reduce [face]
-					]
-				]
+				link-sub-to-parent face field none face/:field
 			]
 			
 			switch face/type [

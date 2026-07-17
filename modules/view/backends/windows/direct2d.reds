@@ -24,6 +24,17 @@ dw-locale-name: as c-string! 0
 pfnDCompositionCreateDevice2: as int-ptr! 0
 
 dwrite-str-cache: as node! 0
+com-ext-type: -1
+
+release-com-object: func [
+	handle [int-ptr!]
+	/local
+		unknown [IUnknown]
+		this	[this!]
+][
+	this: as this! handle
+	COM_SAFE_RELEASE(unknown this)
+]
 
 #define D2D_MAX_BRUSHES 64
 
@@ -2182,7 +2193,10 @@ create-text-format: func [
 	format: 0
 	factory: as IDWriteFactory dwrite-factory/vtbl
 	factory/CreateTextFormat dwrite-factory name 0 weight style 5 size dw-locale-name :format
-	if save? [handle/make-at as red-value! h-font format handle/CLASS_FONT]
+	if save? [
+		h-font: handle/make-at as red-value! h-font format handle/CLASS_FONT
+		if format <> 0 [h-font/extID: externals/store as int-ptr! format com-ext-type]
+	]
 	format
 ]
 
@@ -2353,7 +2367,7 @@ draw-text-d2d: func [
 	this2: as this! brush/value
 	COM_SAFE_RELEASE(obj this2)
 	COM_SAFE_RELEASE(obj layout)
-	COM_SAFE_RELEASE(obj fmt)
+	if TYPE_OF(font) <> TYPE_OBJECT [COM_SAFE_RELEASE(obj fmt)]
 	rt/Release this
 ]
 
