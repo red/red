@@ -112,6 +112,8 @@ static-link: context [
 	etls-memsz:  0					;-- .tdata + .tbss
 	etls-align:  4
 
+	exidx-range: none				;-- merged EHABI index [.data-offset size], for PT_ARM_EXIDX
+
 	;-- ARM EHABI: .ARM.exidx unwind-index sections are deferred and merged
 	;-- as ONE table sorted by covered-function address (the unwinder
 	;-- binary-searches [__exidx_start, __exidx_end)). sh_link names each
@@ -849,7 +851,8 @@ static-link: context [
 			]
 			sort sorted
 			pad-to data 4
-			repend sym-addr ["__exidx_start" reduce ['data length? data false]]
+			start: length? data
+			repend sym-addr ["__exidx_start" reduce ['data start false]]
 			foreach entry sorted [
 				section: entry/3
 				base: length? data
@@ -858,6 +861,7 @@ static-link: context [
 				unless find objs entry/2 [append objs entry/2]
 			]
 			repend sym-addr ["__exidx_end" reduce ['data length? data false]]
+			exidx-range: reduce [start  (length? data) - start]
 		]
 		;-- TLS template: .tdata bytes then .tbss space; section bases are
 		;-- TEMPLATE-relative (kind 'tls), turned into GOT-pair constants and
@@ -1046,6 +1050,7 @@ static-link: context [
 		etls-memsz: 0
 		etls-align: 4
 		clear exidx-sections
+		exidx-range: none
 		ehframe-buf: make binary! 4096
 		ehframe-base: none
 		clear nlptr-sections
@@ -1506,7 +1511,7 @@ static-link: context [
 	;-- base and the build's peak alignment, then register defined externals.
 	merge-sections: func [
 		job [object!] obj [object!]
-		/local code data section kind a base sym sect ckey entry merged? idx common-live? r sec-kind
+		/local code data section kind a base sym sect ckey entry merged? idx common-live? r sec-kind pkey
 	][
 		code: job/sections/code/2
 		data: job/sections/data/2
@@ -1526,6 +1531,23 @@ static-link: context [
 			unless section-live? section [kind: none]
 			if section-merged? section [kind: none]
 			ckey: none
+			;-- An ASSOCIATIVE COMDAT's key is cleared by the reader: it
+			;-- follows its PARENT's fate instead of folding by its own key.
+			;-- When the parent's key is held by ANOTHER object, that parent
+			;-- copy gets folded away -- its children must go with it, or
+			;-- every duplicate's .CRT$XCU entry re-runs the initializer and
+			;-- .xdata of discarded code leaks into the image.
+			if all [
+				kind
+				sect: reader/sec-assoc section
+				sect > 0
+				sect <= length? obj/sections
+				pkey: reader/sec-comdat-key pick obj/sections sect
+				entry: select comdat-keys pkey
+				not same? obj entry/4
+			][
+				kind: none
+			]
 			if kind [
 				;; COMDAT / SHT_GROUP: drop a section whose key was already
 				;; pulled FROM ANOTHER OBJECT, leaving base-kind='none --
@@ -3298,12 +3320,12 @@ static-link: context [
 		code: job/sections/code/2
 		data: job/sections/data/2
 		crodata: all [find job/sections 'crodata  job/sections/crodata/2]
+		cafter:  all [find job/sections 'cafter   job/sections/cafter/2]
 		write-got-slots job code-base data-base image-base
 
 		;-- Fill the read-only-after-init pointer slots with their no-op
 		;-- stub's VA (page-isolated cafter section; see cafter-buf).
 		if all [cafter-base  not empty? cafter-fills][
-			cafter: job/sections/cafter/2
 			foreach [off tramp] cafter-fills [
 				change at cafter (off + 1) le32 (code-base + tramp)
 			]
@@ -3335,12 +3357,14 @@ static-link: context [
 					buf: case [
 						sec-kind = 'code     [code]
 						sec-kind = 'crodata  [crodata]
+						sec-kind = 'cafter   [cafter]
 						sec-kind = 'eh-frame [ehframe-buf]
 						true                 [data]
 					]
 					buf-base: case [
 						sec-kind = 'code     [code-base]
 						sec-kind = 'crodata  [crodata-base]
+						sec-kind = 'cafter   [cafter-base]
 						sec-kind = 'eh-frame [ehframe-base]
 						true                 [data-base]
 					]

@@ -53,6 +53,7 @@ context [
 		pt-tls			7			;; thread-local storage template
 		pt-GNU-stack	1685382481	;; GNU stack flags
 		pt-gnu-relro	1685382482	;; read-only after relocation (6474e552h)
+		pt-arm-exidx	1879048193	;; ARM EHABI unwind-index table (70000001h)
 
 		pf-x			1			;; executable segment
 		pf-w			2			;; writable segment
@@ -298,6 +299,7 @@ context [
 
 		segment "relro"				[gnu-relro	[r]					byte] ;-- covers .rodata (patched post-layout)
 		segment "tls"				[tls		[r]					word] ;-- static-link TLS template inside .data (patched post-layout)
+		segment "arm-exidx"			[arm-exidx	[r]					word] ;-- static-link EHABI index inside .data (patched post-layout)
 
 		section ".stab"				[progbits	[]					word]
 		section ".stabstr"			[strtab		[]					byte]
@@ -367,6 +369,10 @@ context [
 
 		unless all [static-link/etls-off  static-link/etls-memsz > 0][
 			remove-elements structure ["tls"]			;-- no PT_TLS without a template
+		]
+
+		unless all [job/target = 'ARM  static-link/exidx-range][
+			remove-elements structure ["arm-exidx"]		;-- no PT_ARM_EXIDX without a merged index
 		]
 
 		if job/OS <> 'NetBSD [
@@ -445,6 +451,7 @@ context [
 			"phdr"			size [program-header	length? segments]
 			"relro"			size 0					;-- overlaps .rodata; address/size patched post-layout
 			"tls"			size 0					;-- overlaps .data; location patched post-layout
+			"arm-exidx"		size 0					;-- overlaps .data; location patched post-layout
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		size [elf-symbol		1 + (length? imports) + ((length? exports) / 2)]
 			".rel.text"		size [elf-relocation	(length? imports) + (length? data-reloc) + (length? rodata-reloc) + ((length? data-imports) / 3)]
@@ -506,6 +513,17 @@ context [
 			pos/address: (get-address ".data") + static-link/etls-off
 			pos/offset:  (get-offset ".data") + static-link/etls-off
 			pos/size:    static-link/etls-filesz
+		]
+
+		;; PT_ARM_EXIDX publishes the merged EHABI index, so phdr-walking
+		;; unwinders (dl_iterate_phdr in cross-image unwinds: libgcc_s
+		;; forced unwinds, pthread cancellation) can find it -- the
+		;; statically-linked libgcc_eh path binary-searches the same table
+		;; through __exidx_start/__exidx_end.
+		if all [static-link/exidx-range  pos: select layout "arm-exidx"][
+			pos/address: (get-address ".data") + static-link/exidx-range/1
+			pos/offset:  (get-offset ".data") + static-link/exidx-range/1
+			pos/size:    static-link/exidx-range/2
 		]
 
 		set-data "ehdr" [
