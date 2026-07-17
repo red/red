@@ -228,7 +228,7 @@ context [
 		]
 		foreach refs disallowed [
 			if all refs [
-				return make error! rejoin [
+				do make error! rejoin [
 					"Cannot use /" refs/1 " and /" refs/2 " refinements together"
 				]
 			]
@@ -244,6 +244,7 @@ context [
 		line: make block! 20
 		value: make string! 200
 		record: none
+		line-no: 1
 
 		; -- parse rules
 		newline: [crlf | lf | cr]
@@ -289,7 +290,7 @@ context [
 				length: length? line
 				if zero? longest [longest: length]		; first line
 				if all [strict? longest <> length][
-					return make error! non-aligned
+					do make error! non-aligned
 				]
 				if longest < length [longest: length]
 				either as-records [
@@ -313,6 +314,7 @@ context [
 					]
 				]
 			)
+			(line-no: line-no + 1)
 			init
 		]
 		line-rule: [end | values [newline | end] add-line]
@@ -324,6 +326,7 @@ context [
 				if (header) 
 				values newline
 				(header: copy line)
+				(line-no: line-no + 1)
 				init
 			]
 			mark: (
@@ -342,6 +345,10 @@ context [
 			|	init values add-line
 			]
 			any newline
+		]
+
+		unless parsed? [
+			do make error! rejoin ["Invalid CSV data near line " line-no]
 		]
 
 		; -- adjust output when needed
