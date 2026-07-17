@@ -756,4 +756,39 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "float32 cast arguments"
+	;-- a float!-to-float32! cast in ARGUMENT position must stage the
+	;-- CONVERTED 4-byte value: the raw 8-byte double used to be pushed
+	;-- instead (conversion emitted dead), shifting every later stack
+	;-- slot -- and misaligning SP on ARM (AAPCS) for the whole callee.
+
+	--test-- "f32arg-1"							;-- narrowing cast on a variable
+		f32a-take: func [f [float32!] i [integer!] return: [integer!]][
+			either all [f = as float32! 1.5  i = 42][1][0]
+		]
+		f32a-d: 1.5
+		--assert 1 = f32a-take as float32! f32a-d 42
+
+	--test-- "f32arg-2"							;-- narrowing cast on a literal
+		--assert 1 = f32a-take as float32! 1.5 42
+
+	--test-- "f32arg-3"							;-- narrowing cast on a call result
+		f32a-dbl: func [return: [float!]][1.5]
+		--assert 1 = f32a-take as float32! f32a-dbl 42
+
+	--test-- "f32arg-4"							;-- widening cast argument stays intact
+		f32a-wide: func [f [float!] i [integer!] return: [integer!]][
+			either all [f = 2.5  i = 7][1][0]
+		]
+		f32a-s: as float32! 2.5
+		--assert 1 = f32a-wide as float! f32a-s 7
+
+	--test-- "f32arg-5"							;-- narrowing cast in a middle slot
+		f32a-mix: func [a [integer!] f [float32!] b [integer!] return: [integer!]][
+			either all [a = 1  f = as float32! 2.5  b = 3][1][0]
+		]
+		--assert 1 = f32a-mix 1 as float32! (f32a-d + 1.0) 3
+
+===end-group===
+
 ~~~end-file~~~

@@ -50,6 +50,7 @@ context [
 		pt-interp		3			;; dynamic linker ("interpreter") path name
 		pt-note			4			;; vendor-specific note segment
 		pt-phdr			6			;; program header table
+		pt-tls			7			;; thread-local storage template
 		pt-GNU-stack	1685382481	;; GNU stack flags
 		pt-gnu-relro	1685382482	;; read-only after relocation (6474e552h)
 
@@ -296,6 +297,7 @@ context [
 		]
 
 		segment "relro"				[gnu-relro	[r]					byte] ;-- covers .rodata (patched post-layout)
+		segment "tls"				[tls		[r]					word] ;-- static-link TLS template inside .data (patched post-layout)
 
 		section ".stab"				[progbits	[]					word]
 		section ".stabstr"			[strtab		[]					byte]
@@ -361,6 +363,10 @@ context [
 
 		if job/target <> 'ARM [
 			remove-elements structure [".ARM.attributes"]
+		]
+
+		unless all [static-link/etls-off  static-link/etls-memsz > 0][
+			remove-elements structure ["tls"]			;-- no PT_TLS without a template
 		]
 
 		if job/OS <> 'NetBSD [
@@ -438,6 +444,7 @@ context [
 			"ehdr"			size elf-header
 			"phdr"			size [program-header	length? segments]
 			"relro"			size 0					;-- overlaps .rodata; address/size patched post-layout
+			"tls"			size 0					;-- overlaps .data; location patched post-layout
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		size [elf-symbol		1 + (length? imports) + ((length? exports) / 2)]
 			".rel.text"		size [elf-relocation	(length? imports) + (length? data-reloc) + (length? rodata-reloc) + ((length? data-imports) / 3)]
@@ -490,6 +497,15 @@ context [
 			relro-entry/address: get-address ".rodata"
 			relro-entry/offset:  get-offset ".rodata"
 			relro-entry/size:    defs/page-size * round/ceiling (get-size ".rodata") / defs/page-size
+		]
+
+		;; PT_TLS covers the static linker's TLS template inside .data;
+		;; p_memsz (template + .tbss) and p_align come from static-link in
+		;; build-phdr -- only the file location is known here.
+		if all [static-link/etls-off  pos: select layout "tls"][
+			pos/address: (get-address ".data") + static-link/etls-off
+			pos/offset:  (get-offset ".data") + static-link/etls-off
+			pos/size:    static-link/etls-filesz
 		]
 
 		set-data "ehdr" [
@@ -653,7 +669,11 @@ context [
 		eh/ident-data:		defs/elfdata2lsb
 		eh/ident-version:	defs/ev-current
 		eh/version:			defs/ev-current
-		eh/entry:			either target-type = 'exe [text-address][0]
+		;; C++ static links enter through the linker's ctor-walk stub, which
+		;; falls into Red's own entry (text-address) once initializers ran.
+		eh/entry:			either target-type = 'exe [
+			text-address + any [static-link/cpp-entry 0]
+		][0]
 		eh/phoff:			phdr-offset
 		eh/shoff:			shdr-offset
 		eh/flags:			0
@@ -701,6 +721,11 @@ context [
 			ph/memsz:		segment/size
 			ph/flags:		lookup-flags "pf-" segment/meta/flags
 			ph/align:		lookup-align segment/meta/align
+			if segment/meta/type = 'tls [
+				;-- p_filesz = template bytes; p_memsz adds .tbss
+				ph/memsz:	static-link/etls-memsz
+				ph/align:	static-link/etls-align
+			]
 			ph
 		]
 	]
