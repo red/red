@@ -3407,10 +3407,7 @@ make-profilable make target-class [
 		]
 		case [
 			find comparison-op name [emit-comparison-op name a b args]
-			find math-op	   name	[
-				emit-math-op name a b args
-				emit-normalize-fixed-int-result
-			]
+			find math-op	   name	[emit-math-op name a b args]
 			find bitwise-op	   name	[
 				emit-bitwise-op name a b args
 				emit-normalize-fixed-int-result
@@ -3439,10 +3436,23 @@ make-profilable make target-class [
 					]
 				]
 			][											;-- width = 1 (byte!) or 2 (int16!)
-				emit-op-imm32 #{e3500000} (shift/left 1 8 * width) - 1	;-- CMP r0, #(2^bits - 1)
-				emit-overflow-branch #{80}				;-- BHI ovf  (unsigned higher: r0 > max)
+				either signed? [
+					either width = 1 [
+						emit-i32 #{e1a03c00}				;-- MOV r3, r0, LSL #24
+						emit-i32 #{e1a03c43}				;-- MOV r3, r3, ASR #24
+					][
+						emit-i32 #{e1a03800}				;-- MOV r3, r0, LSL #16
+						emit-i32 #{e1a03843}				;-- MOV r3, r3, ASR #16
+					]
+					emit-i32 #{e1500003}					;-- CMP r0, r3
+					emit-overflow-branch #{10}				;-- BNE ovf
+				][
+					emit-op-imm32 #{e3500000} (shift/left 1 8 * width) - 1	;-- CMP r0, #(2^bits - 1)
+					emit-overflow-branch #{80}				;-- BHI ovf  (unsigned higher: r0 > max)
+				]
 			]
 		]
+		if find math-op name [emit-normalize-fixed-int-result]
 	]
 	
 	emit-vfp-casting: func [value [object!] /right [logic!] /local type][

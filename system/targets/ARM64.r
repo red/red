@@ -886,7 +886,9 @@ make-profilable make target-class [
 					either emitter/local-offset? raw [
 						emit-load-local/reg raw source-type 1
 					][
-						raw: compiler/resolve-ns raw
+						unless select emitter/symbols raw [
+							raw: compiler/resolve-ns raw
+						]
 						emit-load-global/reg raw source-type 1
 					]
 				]
@@ -929,9 +931,11 @@ make-profilable make target-class [
 	emit-int-to-float: func [
 		from-type to-type [block!]
 		/reg index [integer!]
+		/from source-index [integer!]
 		/local wide? single? signed-cast? opcode
 	][
 		index: any [index 0]
+		source-index: any [source-index index]
 		from-type: compiler/resolve-aliased from-type
 		to-type: compiler/resolve-aliased to-type
 		wide?: compiler/int64? from-type
@@ -950,7 +954,7 @@ make-profilable make target-class [
 				either single? [#{1E230000}][#{1E630000}]
 			]
 		]
-		emit-i32 (opcode-int opcode) or (index * 33)
+		emit-i32 (opcode-int opcode) or index or (source-index * 32)
 	]
 
 	emit-float-operation: func [
@@ -979,7 +983,7 @@ make-profilable make target-class [
 			object? args/2
 			compiler/integer-type? source-type: compiler/resolve-expr-type args/2/data
 		][
-			emit-int-to-float/reg source-type op-type either saved? [1][0]
+			emit-int-to-float/reg/from source-type op-type either saved? [1][0] 0
 		]
 		if all [
 			nested-left?
@@ -1519,7 +1523,9 @@ make-profilable make target-class [
 				either emitter/local-offset? raw [
 					emit-load-local/reg raw load-type 1
 				][
-					raw: compiler/resolve-ns raw
+					unless select emitter/symbols raw [
+						raw: compiler/resolve-ns raw
+					]
 					emit-load-global/reg raw load-type 1
 				]
 			]
