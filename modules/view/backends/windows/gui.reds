@@ -1538,9 +1538,11 @@ OS-show-window: func [
 	/local
 		face	[red-object!]
 ][
-	if prev-captured <> null [ReleaseCapture]
-	check-base-capture
-	ShowWindow as handle! hWnd SW_SHOWDEFAULT
+	if not IsWindowVisible as handle! hWnd [		;-- 1st show only: a window opened from an
+		if prev-captured <> null [ReleaseCapture]	;-- on-down handler may run a modal loop
+		check-base-capture							;-- eating the pending WM_LBUTTONUP (#5083);
+	]												;-- re-showing a visible one (set-focus, any
+	ShowWindow as handle! hWnd SW_SHOWDEFAULT		;-- facet write) must not unbalance capture
 	UpdateWindow as handle! hWnd
 	unless win8+? [
 		update-layered-window as handle! hWnd null null null -1
@@ -2857,6 +2859,9 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_IMAGE <> 0 [
 		change-image hWnd values type
+	]
+	if flags and FACET_FLAG_OPTIONS <> 0 [				;-- e.g. cursor: changed at runtime
+		parse-common-opts hWnd as red-block! values + FACE_OBJ_OPTIONS
 	]
 	
 	int/value: 0										;-- reset flags
