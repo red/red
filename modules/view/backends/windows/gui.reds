@@ -2853,6 +2853,9 @@ OS-update-view: func [
 	if flags and FACET_FLAG_IMAGE <> 0 [
 		change-image hWnd values type
 	]
+	if flags and FACET_FLAG_OPTIONS <> 0 [				;-- e.g. cursor: changed at runtime
+		parse-common-opts hWnd as red-block! values + FACE_OBJ_OPTIONS
+	]
 	
 	int/value: 0										;-- reset flags
 ]
