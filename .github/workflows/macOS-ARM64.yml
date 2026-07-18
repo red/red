@@ -11,7 +11,6 @@ jobs:
       uses: actions/checkout@v6
 
     - name: Setup Rebol
-      shell: powershell
       run: |
         $url = "https://static.red-lang.org/build/rebview.exe"
         $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
@@ -61,7 +60,7 @@ jobs:
         retention-days: 3
 
   Run-macOS-ARM64-Tests:
-    runs-on: macos-15
+    runs-on: macos-latest
     timeout-minutes: 30
     needs: Build-macOS-ARM64-Tests
     steps:
