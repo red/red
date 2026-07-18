@@ -1786,6 +1786,7 @@ parse-common-opts: func [
 		cur		[c-string!]
 		hcur	[integer!]
 		nsimg	[integer!]
+		win		[integer!]
 		btn?	[logic!]
 		pt		[CGPoint! value]
 ][
@@ -1830,7 +1831,13 @@ parse-common-opts: func [
 								hcur: objc_msgSend [objc_getClass "NSCursor" sel_getUid cur]
 							]
 						]
-						if hcur <> 0 [objc_setAssociatedObject hWnd RedCursorKey hcur OBJC_ASSOCIATION_ASSIGN]
+						if hcur <> 0 [
+							objc_setAssociatedObject hWnd RedCursorKey hcur OBJC_ASSOCIATION_ASSIGN
+							win: objc_msgSend [hWnd sel_getUid "window"]	;-- rebuild the cached
+							if win <> 0 [									;-- cursor rects so a runtime
+								objc_msgSend [win sel_getUid "invalidateCursorRectsForView:" hWnd]	;-- change shows now
+							]
+						]
 					]
 					sym = _class [
 						w: word + 1
@@ -2299,6 +2306,9 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_IMAGE <> 0 [
 		change-image hWnd as red-image! values + FACE_OBJ_IMAGE type
+	]
+	if flags and FACET_FLAG_OPTIONS <> 0 [				;-- e.g. cursor: changed at runtime
+		parse-common-opts hWnd as red-block! values + FACE_OBJ_OPTIONS type
 	]
 
 	int/value: 0										;-- reset flags

@@ -13,6 +13,8 @@ Red/System [
 ;; ===== Extra slots usage in Window structs =====
 ;;
 ;;		-60  :							<- TOP
+;;		-48  : window: just revealed from hidden (balance capture once)
+;;		-44  : owned cursor HICON (from an image cursor, 0 = none / shared)
 ;;		-40  : base: draw-ctx! pointer
 ;;		-36  : Direct2D render target
 ;;		-32	 : base: mouse capture count
@@ -33,7 +35,9 @@ Red/System [
 ;;		  12 : |
 ;;		  16 : FACE_OBJ_FLAGS        <- BOTTOM
 
-#define OFFSET_DRAW_CTX	[wc-offset - 40]
+#define OFFSET_DRAW_CTX		[wc-offset - 40]
+#define OFFSET_CURSOR_ICON	[wc-offset - 44]		;-- owned HICON to DestroyIcon on replace
+#define OFFSET_REVEALED		[wc-offset - 48]		;-- window revealed from hidden: balance capture once
 
 #define IS_D2D_FACE(sym) [
 	any [sym = base sym = rich-text sym = window sym = panel]
@@ -756,6 +760,9 @@ free-faces: func [
 		SetWindowLong handle wc-offset - 4 -1
 	]
 
+	flags: GetWindowLong handle OFFSET_CURSOR_ICON		;-- release an owned image cursor HICON
+	if flags <> 0 [DestroyIcon flags]
+
 	references/remove GetWindowLong handle wc-offset
 	SetWindowLong handle wc-offset 0
 	state: values + FACE_OBJ_STATE
@@ -1411,8 +1418,14 @@ parse-common-opts: func [
 		len		[integer!]
 		sym		[integer!]
 		bitmap	[integer!]
+		prev	[integer!]
 		lock	[com-ptr! value]
 ][
+	prev: GetWindowLong hWnd OFFSET_CURSOR_ICON		;-- a prior image cursor we own: destroy it
+	if prev <> 0 [									;-- before the slot is overwritten, else each
+		DestroyIcon prev							;-- runtime options update leaks one HICON
+		SetWindowLong hWnd OFFSET_CURSOR_ICON 0
+	]
 	SetWindowLong hWnd wc-offset - 28 0
 	if TYPE_OF(options) = TYPE_BLOCK [
 		word: as red-word! block/rs-head options
@@ -1431,6 +1444,7 @@ parse-common-opts: func [
 							GdipCreateHICONFromBitmap bitmap :sym
 							OS-image/release-gpbitmap bitmap :lock
 							SetWindowLong hWnd wc-offset - 28 sym
+							SetWindowLong hWnd OFFSET_CURSOR_ICON sym	;-- we own this HICON
 						][
 							if TYPE_OF(w) = TYPE_WORD [
 								sym: symbol/resolve w/symbol
@@ -1538,11 +1552,15 @@ OS-show-window: func [
 	/local
 		face	[red-object!]
 ][
-	if not IsWindowVisible as handle! hWnd [		;-- 1st show only: a window opened from an
-		if prev-captured <> null [ReleaseCapture]	;-- on-down handler may run a modal loop
-		check-base-capture							;-- eating the pending WM_LBUTTONUP (#5083);
-	]												;-- re-showing a visible one (set-focus, any
-	ShowWindow as handle! hWnd SW_SHOWDEFAULT		;-- facet write) must not unbalance capture
+	if any [										;-- balance capture on a genuine presentation only:
+		not IsWindowVisible as handle! hWnd			;--   a fresh window (make-view left it hidden),
+		0 <> GetWindowLong as handle! hWnd OFFSET_REVEALED	;-- or THIS window revealed by change-visible
+	][												;--   (visible?: yes from an on-down/on-up handler);
+		if prev-captured <> null [ReleaseCapture]	;-- such a present may run a modal loop eating the
+		check-base-capture							;-- pending WM_LBUTTONUP (#5083). Re-showing an
+	]												;-- already-visible window (set-focus, any facet
+	SetWindowLong as handle! hWnd OFFSET_REVEALED 0	;-- write) must NOT unbalance the capture counter
+	ShowWindow as handle! hWnd SW_SHOWDEFAULT
 	UpdateWindow as handle! hWnd
 	unless win8+? [
 		update-layered-window as handle! hWnd null null null -1
@@ -2366,6 +2384,13 @@ change-visible: func [
 		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
 	][
 		either show? [update-caret hWnd values][DestroyCaret]
+	]
+	if all [									;-- a window going hidden -> visible is a genuine
+		show?									;-- presentation; flag THIS window so the following
+		type = window							;-- OS-show-window balances the capture counter
+		not IsWindowVisible hWnd				;-- even though ShowWindow below flips visibility
+	][											;-- true before OS-show-window's own check runs
+		SetWindowLong hWnd OFFSET_REVEALED 1
 	]
 	value: either show? [either type = base [SW_SHOWNA][SW_SHOW]][SW_HIDE]
 	ShowWindow hWnd value

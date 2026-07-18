@@ -2194,6 +2194,8 @@ parse-common-opts: func [
 		pixbuf	[handle!]
 		display	[handle!]
 		owner	[handle!]
+		win		[handle!]
+		parent	[handle!]
 		x		[integer!]
 		y		[integer!]
 ][
@@ -2231,7 +2233,15 @@ parse-common-opts: func [
 								hcur: gdk_cursor_new_from_name display cur
 							]
 						]
-						if hcur <> null [SET-CURSOR(widget hcur)]
+						if hcur <> null [
+							SET-CURSOR(widget hcur)
+							win: gtk_widget_get_window widget		;-- if already realized, apply
+							if null? win [							;-- now (widget-realize handles the
+								parent: gtk_widget_get_parent widget	;-- not-yet-realized case)
+								unless null? parent [win: gtk_widget_get_window parent]
+							]
+							unless null? win [gdk_window_set_cursor win hcur]
+						]
 					]
 					sym = caret [
 						obj: as red-object! word + 1
@@ -2914,6 +2924,9 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_IMAGE <> 0 [
 		change-image widget as red-image! values + FACE_OBJ_IMAGE type
+	]
+	if flags and FACET_FLAG_OPTIONS <> 0 [				;-- e.g. cursor: changed at runtime
+		parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS type
 	]
 
 	;; update-view at least ask for this
