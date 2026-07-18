@@ -1788,9 +1788,21 @@ parse-common-opts: func [
 		nsimg	[integer!]
 		win		[integer!]
 		btn?	[logic!]
+		owned?	[logic!]
 		pt		[CGPoint! value]
 ][
 	btn?: yes
+	;-- the RETAIN association owns the cursor: storing nil (or a new one
+	;-- below) releases the previous cursor, and so does the view's dealloc
+	objc_setAssociatedObject hWnd RedCursorKey 0 OBJC_ASSOCIATION_RETAIN
+	win: either 0 = objc_msgSend [					;-- hWnd may be the WINDOW itself (make-view
+		hWnd sel_getUid "respondsToSelector:" sel_getUid "window"	;-- runs this for every face):
+	][0][											;-- only views respond to `window`
+		objc_msgSend [hWnd sel_getUid "window"]
+	]
+	if win <> 0 [									;-- rects are cached: rebuild them so a
+		objc_msgSend [win sel_getUid "invalidateCursorRectsForView:" hWnd]	;-- removed cursor stops showing
+	]
 	if TYPE_OF(options) = TYPE_BLOCK [
 		word: as red-word! block/rs-head options
 		len: block/rs-length? options
@@ -1801,6 +1813,8 @@ parse-common-opts: func [
 				case [
 					sym = _cursor [
 						w: word + 1
+						hcur: 0
+						owned?: no
 						either TYPE_OF(w) = TYPE_IMAGE [
 							img: as red-image! w
 							nsimg: objc_msgSend [
@@ -1814,6 +1828,7 @@ parse-common-opts: func [
 								sel_getUid "initWithImage:hotSpot:" nsimg pt/x pt/y
 							]
 							objc_msgSend [nsimg sel_release]
+							owned?: yes				;-- alloc/init: we hold a +1 reference
 						][
 							if TYPE_OF(w) = TYPE_WORD [
 								sym: symbol/resolve w/symbol
@@ -1832,9 +1847,11 @@ parse-common-opts: func [
 							]
 						]
 						if hcur <> 0 [
-							objc_setAssociatedObject hWnd RedCursorKey hcur OBJC_ASSOCIATION_ASSIGN
-							win: objc_msgSend [hWnd sel_getUid "window"]	;-- rebuild the cached
-							if win <> 0 [									;-- cursor rects so a runtime
+							objc_setAssociatedObject hWnd RedCursorKey hcur OBJC_ASSOCIATION_RETAIN
+							if owned? [					;-- hand our +1 over: the association
+								objc_msgSend [hcur sel_release]	;-- is now the only owner
+							]
+							if win <> 0 [				;-- rebuild the cached cursor rects so a
 								objc_msgSend [win sel_getUid "invalidateCursorRectsForView:" hWnd]	;-- change shows now
 							]
 						]

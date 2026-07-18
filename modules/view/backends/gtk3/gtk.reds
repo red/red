@@ -670,6 +670,12 @@ GPtrArray!: alias struct! [
 			quark		[integer!]
 			data		[int-ptr!]
 		]
+		g_object_set_qdata_full: "g_object_set_qdata_full" [
+			object		[int-ptr!]
+			quark		[integer!]
+			data		[int-ptr!]
+			destroy		[integer!]						;-- GDestroyNotify, ran on replace and finalize
+		]
 		g_object_get_qdata: "g_object_get_qdata" [
 			object		[int-ptr!]
 			quark		[integer!]

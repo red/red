@@ -2176,6 +2176,12 @@ update-rich-text: func [
 	TYPE_OF(state) <> TYPE_BLOCK
 ]
 
+;-- GDestroyNotify for the owned cursor qdata: called by GLib when the
+;-- stored value is replaced and when the widget is finalized
+free-cursor: func [[cdecl] data [int-ptr!]][
+	g_object_unref data
+]
+
 parse-common-opts: func [
 	widget		[handle!]
 	face		[red-object!]
@@ -2199,6 +2205,16 @@ parse-common-opts: func [
 		x		[integer!]
 		y		[integer!]
 ][
+	win: gtk_widget_get_window widget			;-- the widget's OWN GdkWindow: null while
+	unless null? win [							;-- unrealized, and a no-window child returns
+		parent: gtk_widget_get_parent widget	;-- its parent's window - never touch that one,
+		if all [								;-- widget-realize owns those cases
+			not null? parent
+			win = gtk_widget_get_window parent
+		][win: null]
+	]
+	g_object_set_qdata_full widget cursor-id null 0		;-- releases a removed/replaced cursor
+	unless null? win [gdk_window_set_cursor win null]	;-- back to the default pointer
 	if TYPE_OF(options) = TYPE_BLOCK [
 		word: as red-word! block/rs-head options
 		len: block/rs-length? options
@@ -2222,7 +2238,7 @@ parse-common-opts: func [
 							hcur: gdk_cursor_new_from_pixbuf display pixbuf x y
 							;g_object_unref pixbuf
 						][
-							if TYPE_OF(word) = TYPE_WORD [
+							if TYPE_OF(w) = TYPE_WORD [
 								sym: symbol/resolve w/symbol
 								cur: case [
 									sym = _I-beam	["text"]
@@ -2233,14 +2249,11 @@ parse-common-opts: func [
 								hcur: gdk_cursor_new_from_name display cur
 							]
 						]
-						if hcur <> null [
-							SET-CURSOR(widget hcur)
-							win: gtk_widget_get_window widget		;-- if already realized, apply
-							if null? win [							;-- now (widget-realize handles the
-								parent: gtk_widget_get_parent widget	;-- not-yet-realized case)
-								unless null? parent [win: gtk_widget_get_window parent]
+						if hcur <> null [			;-- owned: unref'd when replaced or widget dies
+							g_object_set_qdata_full widget cursor-id hcur as-integer :free-cursor
+							unless null? win [		;-- realized: show it now (the window refs it);
+								gdk_window_set_cursor win hcur	;-- else widget-realize applies it
 							]
-							unless null? win [gdk_window_set_cursor win hcur]
 						]
 					]
 					sym = caret [
