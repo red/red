@@ -2205,12 +2205,13 @@ parse-common-opts: func [
 		x		[integer!]
 		y		[integer!]
 ][
-	win: gtk_widget_get_window widget			;-- the widget's OWN GdkWindow: null while
-	unless null? win [							;-- unrealized, and a no-window child returns
-		parent: gtk_widget_get_parent widget	;-- its parent's window - never touch that one,
-		if all [								;-- widget-realize owns those cases
-			not null? parent
-			win = gtk_widget_get_window parent
+	win: gtk_widget_get_window widget			;-- the face's own GdkWindow: null while
+	unless null? win [							;-- unrealized; a no-window child returns its
+		parent: gtk_widget_get_parent widget	;-- parent's window - shared with siblings, so
+		if all [								;-- hands off (widget-realize owns those), EXCEPT
+			not null? parent					;-- for text faces: that parent is the label's
+			win = gtk_widget_get_window parent	;-- dedicated event box, the valid cursor target
+			type <> text
 		][win: null]
 	]
 	g_object_set_qdata_full widget cursor-id null 0		;-- releases a removed/replaced cursor
