@@ -5,6 +5,7 @@ failures=0;
 passed=0;
 total=0;
 platform=`uname -s`;
+architecture=`uname -m`;
 if [ -f structlib.c ]; then
   if [ "$platform" = "Darwin" ]; then
     structlib=libstructlib.dylib;
@@ -28,9 +29,16 @@ fi
 if [ "$platform" = "Darwin" ]; then
   export DYLD_LIBRARY_PATH="$PWD${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}";
   for library in *.dylib; do
-    if [ -f "$library" ] && ! codesign --force --sign - "$library"; then
-      echo "****** failed to sign $library *****";
-      exit 1;
+    if [ -f "$library" ]; then
+      if [ "$architecture" = "arm64" ]; then
+        if ! codesign --verify --strict --verbose=4 "$library"; then
+          echo "****** invalid code signature on $library *****";
+          exit 1;
+        fi
+      elif ! codesign --force --sign - "$library"; then
+        echo "****** failed to sign $library *****";
+        exit 1;
+      fi
     fi
   done
 fi
@@ -43,7 +51,12 @@ for exe in *;
      total=$((total + 1));
      chmod +x "$exe";
      if [ "$platform" = "Darwin" ]; then
-       if ! codesign --force --sign - "$exe"; then
+       if [ "$architecture" = "arm64" ]; then
+         if ! codesign --verify --strict --verbose=4 "$exe"; then
+           echo "****** invalid code signature on $exe *****";
+           exit 1;
+         fi
+       elif ! codesign --force --sign - "$exe"; then
          echo "****** failed to sign $exe *****";
          exit 1;
        fi

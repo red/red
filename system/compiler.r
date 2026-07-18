@@ -12,7 +12,9 @@ profiler/active?: no
 
 do-cache %system/utils/r2-forward.r
 do-cache %system/utils/int-to-bin.r
+do-cache %system/utils/sha256.r
 do-cache %system/utils/IEEE-754.r
+do-cache %system/formats/Mach-O-sign.r
 do-cache %system/utils/virtual-struct.r
 do-cache %system/utils/secure-clean-path.r
 do-cache %system/utils/unicode.r

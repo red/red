@@ -3,13 +3,19 @@ echo "\nstarting Red tests\n"
 echo "Red test log\n" > quick-test.log
 failures=0;
 platform=`uname -s`;
+architecture=`uname -m`;
 for exe in *;
  do
   if [ "$exe" != "run-all.sh" ] && [ "$exe" != "quick-test.log" ]
    then
      chmod +x "$exe";
      if [ "$platform" = "Darwin" ]; then
-       if ! codesign --force --sign - "$exe"; then
+       if [ "$architecture" = "arm64" ]; then
+         if ! codesign --verify --strict --verbose=4 "$exe"; then
+           echo "****** invalid code signature on $exe *****";
+           exit 1;
+         fi
+       elif ! codesign --force --sign - "$exe"; then
          echo "****** failed to sign $exe *****";
          exit 1;
        fi

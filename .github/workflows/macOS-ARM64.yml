@@ -4,16 +4,22 @@ on: [push, pull_request]
 
 jobs:
   Build-macOS-ARM64-Tests:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 60
     steps:
     - name: Checkout
       uses: actions/checkout@v6
 
+    - name: Setup Rebol
+      shell: powershell
+      run: |
+        $url = "http://static.red-lang.org/build/rebview.exe"
+        $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
+        (New-Object System.Net.WebClient).DownloadFile($url, $output)
+
     - name: Build macOS ARM64 tests
-      uses: ./CI/Linux-32
-      with:
-        command: rebol -qws system/tests/build-arm-tests.r -t Darwin-ARM64 && rebol -qws tests/build-arm-tests.r -t Darwin-ARM64
+      shell: cmd
+      run: rebview.exe -qws system\tests\sha256-test.r && rebview.exe -qws system\tests\build-arm-tests.r -t Darwin-ARM64 && rebview.exe -qws tests\build-arm-tests.r -t Darwin-ARM64
 
     - name: Validate macOS ARM64 test package
       shell: bash

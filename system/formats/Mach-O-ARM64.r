@@ -526,6 +526,7 @@ context [
 			exports tables symbols indirect strings stubs bind-info rebase-info export-trie linkedit
 			data-relocs rodata-relocs rebase-offset bind-offset symbol-offset
 			export-offset indirect-offset string-offset dylib-size id-file id-name id-size linkedit-size
+			signature-file signature-id signature-offset signature-size signature
 			dll? lifecycle init-spec term-spec data-segment-index data-section-index
 			file-type header-flags
 	][
@@ -559,9 +560,14 @@ context [
 			rejoin ["@rpath/" form id-file]
 		][""]
 		id-size: either dll? [round/to/ceiling (24 + 1 + length? id-name) 8][0]
-		command-count: (either dll? [7][9]) + length? libraries
+		signature-file: copy last split-path job/build-basename
+		if all [dll? (suffix? signature-file) <> defs/extensions/dll][
+			append signature-file defs/extensions/dll
+		]
+		signature-id: form signature-file
+		command-count: 1 + (either dll? [7][9]) + length? libraries
 		command-size: text-command-size + data-command-size + 72
-			+ 48 + 24 + 80 + dylib-size + either dll? [id-size][128]
+			+ 48 + 24 + 80 + 16 + dylib-size + either dll? [id-size][128]
 		header-size: 32 + command-size
 		text-offset: round/to/ceiling (header-size + 64) 16
 		stub-offset: round/to/ceiling (text-offset + length? code) 4
@@ -647,7 +653,10 @@ context [
 		align-buffer linkedit 4
 		string-offset: linkedit-offset + length? linkedit
 		append linkedit strings
-		linkedit-size: length? linkedit
+		align-buffer linkedit 16
+		signature-offset: linkedit-offset + length? linkedit
+		signature-size: macho-code-sign/size? signature-offset signature-id
+		linkedit-size: (length? linkedit) + signature-size
 
 		commands: make binary! command-size
 		unless dll? [append commands build-segment "__PAGEZERO" 0 reduce [0 1] 0 0 0 0 0 0]
@@ -685,6 +694,7 @@ context [
 			string-offset length? strings
 		append commands build-dysymtab-command length? exports length? imports indirect-offset
 			((length? functions) + length? imports)
+		append commands macho-code-sign/build-load-command signature-offset signature-size
 		either dll? [
 			append commands build-dylib/id id-name
 		][
@@ -721,5 +731,14 @@ context [
 		append out rodata
 		insert/dup tail out #{00} linkedit-offset - length? out
 		append out linkedit
+		if (length? out) <> signature-offset [
+			linker/throw-error "invalid ARM64 Mach-O code signature offset"
+		]
+		signature: macho-code-sign/build out signature-offset signature-id
+			text-file-size not dll?
+		if (length? signature) <> signature-size [
+			linker/throw-error "invalid ARM64 Mach-O code signature size"
+		]
+		append out signature
 	]
 ]

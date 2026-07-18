@@ -149,27 +149,28 @@ mkdir canonical
 tar -xf canonical-tests.tar -C canonical
 cd canonical
 clang -arch arm64 -dynamiclib -O2 -Wall -Wextra -o libstructlib.dylib structlib.c
-codesign --force --sign - libstructlib.dylib
+codesign --verify --strict --verbose=4 libstructlib.dylib
 export DYLD_LIBRARY_PATH="`$PWD"
 canonical_failures=0
 canonical_passed=0
 for suite in $($canonicalExecutables -join ' '); do
   chmod +x "`$suite"
-  codesign --force --sign - "`$suite"
-  if report=`$(./"`$suite" 2>&1); then
+  codesign --verify --strict --verbose=4 "`$suite"
+  if ./"`$suite" > .suite-report 2>&1; then
     status=0
   else
     status=`$?
   fi
-  if [ "`$status" -eq 0 ] && printf '%s' "`$report" | grep -q 'Number of Assertions Failed:    0'; then
+  if [ "`$status" -eq 0 ] && grep -q 'Number of Assertions Failed:    0' .suite-report; then
     echo "`$suite passed"
     canonical_passed=`$((canonical_passed + 1))
   else
     echo "****** `$suite failed (exit `$status) *****"
-    printf '%s\n' "`$report"
+    cat .suite-report
     canonical_failures=1
   fi
 done
+rm -f .suite-report
 echo "Canonical Red/System suites: `$canonical_passed/$($canonicalExecutables.Count) passed"
 test "`$canonical_failures" -eq 0
 cd ..
@@ -186,7 +187,7 @@ for smoke in $($smokes -join ' '); do
   otool -hv "`$smoke"
   otool -l "`$smoke" | grep -q LC_MAIN
   dyld_info -validate_only "`$smoke"
-  codesign --force --sign - "`$smoke"
+  codesign --verify --strict --verbose=4 "`$smoke"
   ./"`$smoke"
 done
 for smoke in $($runtimeSmokes -join ' '); do
@@ -195,18 +196,18 @@ for smoke in $($runtimeSmokes -join ' '); do
   otool -hv "`$smoke"
   otool -l "`$smoke" | grep -q LC_MAIN
   dyld_info -validate_only "`$smoke"
-  codesign --force --sign - "`$smoke"
+  codesign --verify --strict --verbose=4 "`$smoke"
   ./"`$smoke" probe-arg
 done
 clang -arch arm64 -dynamiclib -O2 -Wall -Wextra \
   -o libdarwin-arm64-abi-helper.dylib darwin-arm64-abi-helper.c
-codesign --force --sign - libdarwin-arm64-abi-helper.dylib
+codesign --verify --strict --verbose=4 libdarwin-arm64-abi-helper.dylib
 for smoke in $($abiSmokes -join ' '); do
   chmod +x "`$smoke"
   file "`$smoke"
   otool -l "`$smoke" | grep -q LC_MAIN
   dyld_info -validate_only "`$smoke"
-  codesign --force --sign - "`$smoke"
+  codesign --verify --strict --verbose=4 "`$smoke"
   ./"`$smoke"
 done
 file darwin-arm64-shared.dylib
@@ -215,10 +216,10 @@ otool -D darwin-arm64-shared.dylib | grep -q '^@rpath/darwin-arm64-shared.dylib`
 nm -gU darwin-arm64-shared.dylib | grep -q ' _foo`$'
 nm -gU darwin-arm64-shared.dylib | grep -q ' _i`$'
 dyld_info -validate_only darwin-arm64-shared.dylib
-codesign --force --sign - darwin-arm64-shared.dylib
+codesign --verify --strict --verbose=4 darwin-arm64-shared.dylib
 clang -arch arm64 -O2 -Wall -Wextra \
   -o darwin-arm64-dylib-loader darwin-arm64-dylib-loader.c
-codesign --force --sign - darwin-arm64-dylib-loader
+codesign --verify --strict --verbose=4 darwin-arm64-dylib-loader
 ./darwin-arm64-dylib-loader ./darwin-arm64-shared.dylib
 $canonicalCommand
 "@

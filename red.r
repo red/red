@@ -20,6 +20,8 @@ unless all [value? 'red object? :red][
 redc: context [
 	crush-lib:		none								;-- points to compiled crush library
 	crush-compress: none								;-- compression function
+	sha256-lib:		none								;-- native host-side SHA-256 helper
+	sha256-digest-pages: none
 	win-version:	none								;-- Windows version extracted from "ver" command
 	SSE3?:			yes
 
@@ -354,7 +356,77 @@ redc: context [
 			] crush-lib "crush/compress"
 		]
 	]
-	
+
+	build-sha256-lib: has [script basename filename text opts src input output result][
+		src: %system/utils/sha256-native.reds
+
+		basename: either encap? [
+			unless exists? temp-dir [make-dir temp-dir]
+			script: temp-dir/sha256-native.reds
+			decorate-name %sha256-native
+		][
+			temp-dir: %./
+			script: %sha256-native.reds
+			copy %sha256-native
+		]
+		filename: append temp-dir/:basename get-lib-suffix
+
+		if any [
+			not exists? filename
+			all [not encap? (modified? filename) < modified? src]
+		][
+			if sha256-lib [
+				free sha256-lib
+				sha256-lib: none
+			]
+			text: copy read-cache src
+			append text " #export [sha256-native/digest-pages]"
+			write script text
+			unless encap? [basename: head insert basename %../]
+
+			opts: make system-dialect/options-class [
+				link?: yes
+				config-name: to word! default-target
+				build-basename: basename
+				build-prefix: temp-dir
+				dev-mode?: no
+			]
+			opts: make opts select load-targets opts/config-name
+			opts/type: 'dll
+			if opts/OS <> 'Windows [opts/PIC?: yes]
+			add-legacy-flags opts
+
+			print "Compiling native SHA-256 helper..."
+			unless encap? [
+				change-dir %system/
+				script: head insert script %../
+			]
+			system-dialect/compile/options script opts
+			delete script
+			unless encap? [change-dir %../]
+		]
+
+		unless sha256-lib [
+			sha256-lib: load/library filename
+			sha256-digest-pages: make routine! [
+				in		[binary!]
+				size	[integer!]
+				page	[integer!]
+				out		[binary!]
+				return: [integer!]
+			] sha256-lib "sha256-native/digest-pages"
+			input: #{616263}
+			output: make binary! 32
+			insert/dup tail output #{00} 32
+			result: sha256-digest-pages input 3 3 output
+			unless all [
+				result = 1
+				output = #{BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD}
+			][fail-cmd "native SHA-256 helper self-test failed"]
+			sha256/use-native :sha256-digest-pages
+		]
+	]
+
 	build-libRedRT: func [opts [object!] /local script result file path saved][
 		print "Compiling libRedRT..."
 		file: libRedRT/lib-file
@@ -675,6 +747,10 @@ redc: context [
 		print [	"Compiling" to-local-file src "..."]
 
 		data: read src
+		if all [
+			load-lib?
+			find [Darwin-ARM64 Darwin-ARM64-SO macOS-ARM64] opts/config-name
+		][build-sha256-lib]
 		unless rs?: red-system? data [
 			unless red? data [fail "*** Syntax Error: Invalid Red program"]
 
