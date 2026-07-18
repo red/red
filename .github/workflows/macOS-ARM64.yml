@@ -13,7 +13,7 @@ jobs:
     - name: Setup Rebol
       shell: powershell
       run: |
-        $url = "http://static.red-lang.org/build/rebview.exe"
+        $url = "https://static.red-lang.org/build/rebview.exe"
         $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
         (New-Object System.Net.WebClient).DownloadFile($url, $output)
 
