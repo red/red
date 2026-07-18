@@ -1914,9 +1914,7 @@ OS-draw-font: func [
 		]
 	]
 
-	if null? hFont [
-		hFont: OS-make-font get-face-obj ctx/hwnd font no
-	]
+	if null? hFont [hFont: OS-make-font null font no]
 
 	SelectObject ctx/dc hFont
 	update-gdiplus-font ctx

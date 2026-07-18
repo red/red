@@ -19,6 +19,13 @@ Red/System [
 #define TBOX_METRICS_CHAR_INDEX?	5
 
 max-line-cnt:  0
+tb-ext-type:  -1
+
+release-text-obj: func [							;-- GC destructor for cached rich-text objects
+	obj [int-ptr!]
+][
+	objc_msgSend [as Cocoa-handle! obj sel_release]
+]
 
 get-text-box-state-handle: func [
 	state	[red-block!]
@@ -29,7 +36,7 @@ get-text-box-state-handle: func [
 		int  [red-integer!]
 ][
 	cell: block/rs-head state + index
-	#either ABI = 'apple-aarch64 [
+	either TYPE_OF(cell) = TYPE_HANDLE [
 		get-cocoa-handle as red-handle! cell
 	][
 		int: as red-integer! cell
@@ -40,14 +47,20 @@ get-text-box-state-handle: func [
 append-text-box-state-handle: func [
 	state	[red-block!]
 	value	[Cocoa-handle!]
+	owned?	[logic!]
 	/local
 		result [red-handle!]
 ][
 	#either ABI = 'apple-aarch64 [
 		result: handle/make-in state as integer! value handle/CLASS_RICHTEXT
-		set-cocoa-handle result value
+		result/extID: externals/store as int-ptr! value either owned? [tb-ext-type][cocoa-handle-ext-type]
 	][
-		integer/make-in state as integer! value
+		either owned? [
+			result: handle/make-in state as integer! value handle/CLASS_RICHTEXT
+			result/extID: externals/store as int-ptr! value tb-ext-type
+		][
+			integer/make-in state as integer! value
+		]
 	]
 ]
 
@@ -310,6 +323,7 @@ OS-text-box-layout: func [
 		cached?	[logic!]
 		pt		[red-point2D!]
 		sx sy	[float32!]
+		hndl	[red-handle!]
 ][
 	values: object/get-values box
 
@@ -359,10 +373,10 @@ OS-text-box-layout: func [
 		objc_msgSend [para sel_getUid "setTabStops:" objc_msgSend [objc_getClass "NSArray" sel_getUid "array"]]
 
 		block/make-at state 6
-		append-text-box-state-handle state layout
-		append-text-box-state-handle state tc
-		append-text-box-state-handle state ts
-		append-text-box-state-handle state para
+		append-text-box-state-handle state layout no
+		append-text-box-state-handle state tc no
+		append-text-box-state-handle state ts yes
+		append-text-box-state-handle state para yes
 		none/make-in state
 		logic/make-in state false
 	]

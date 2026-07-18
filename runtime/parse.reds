@@ -565,7 +565,7 @@ parser: context [
 		either not max? [min <= cnt][all [min <= cnt cnt <= max]]
 	]
 
-	loop-char: func [									;-- optimized bitset matching loop
+	loop-char: func [									;-- optimized char! matching loop
 		input	[red-series!]
 		char	[red-char!]
 		comp-op	[integer!]
@@ -637,6 +637,7 @@ parser: context [
 						if max? [if cnt >= max [break]]
 						p4 = as int-ptr! ptail
 					]
+					p: as byte-ptr! p4					;-- sync p back for input/head adjusting
 				]
 			]
 		][
@@ -688,6 +689,7 @@ parser: context [
 						if max? [if cnt >= max [break]]
 						p4 = as int-ptr! ptail
 					]
+					p: as byte-ptr! p4					;-- sync p back for input/head adjusting
 				]
 			]
 		]

@@ -406,6 +406,7 @@ init: func [
 	vector/make-at as red-value! active-wins 8 TYPE_INTEGER #either ABI = 'apple-aarch64 [8][4]
 	init-selectors
 	register-classes
+	tb-ext-type: externals/register "text-layout" as int-ptr! :release-text-obj
 	nsview-id: objc_getClass "NSView"
 
 	NSApp: objc_msgSend [objc_getClass "RedApplication" sel_getUid "sharedApplication"]
@@ -1843,10 +1844,24 @@ parse-common-opts: func [
 		cur		[c-string!]
 		hcur	[Cocoa-handle!]
 		nsimg	[Cocoa-handle!]
+		win		[Cocoa-handle!]
 		btn?	[logic!]
+		owned?	[logic!]
 		pt		[CGPoint! value]
 ][
 	btn?: yes
+	;-- the RETAIN association owns the cursor: storing nil (or a new one
+	;-- below) releases the previous cursor, and so does the view's dealloc
+	objc_setAssociatedObject hWnd RedCursorKey 0 OBJC_ASSOCIATION_RETAIN
+	win: 0											;-- hWnd may be the WINDOW itself (make-view
+	if 0 <> objc_msgSend [						;-- runs this for every face): only views
+		hWnd sel_getUid "respondsToSelector:" sel_getUid "window"	;-- respond to `window`
+	][
+		win: objc_msgSend [hWnd sel_getUid "window"]
+	]
+	if win <> 0 [									;-- rects are cached: rebuild them so a
+		objc_msgSend [win sel_getUid "invalidateCursorRectsForView:" hWnd]	;-- removed cursor stops showing
+	]
 	if TYPE_OF(options) = TYPE_BLOCK [
 		word: as red-word! block/rs-head options
 		len: block/rs-length? options
@@ -1857,6 +1872,8 @@ parse-common-opts: func [
 				case [
 					sym = _cursor [
 						w: word + 1
+						hcur: 0
+						owned?: no
 						either TYPE_OF(w) = TYPE_IMAGE [
 							img: as red-image! w
 							nsimg: objc_msgSend [
@@ -1870,6 +1887,7 @@ parse-common-opts: func [
 								sel_getUid "initWithImage:hotSpot:" nsimg pt/x pt/y
 							]
 							objc_msgSend [nsimg sel_release]
+							owned?: yes				;-- alloc/init: we hold a +1 reference
 						][
 							if TYPE_OF(w) = TYPE_WORD [
 								sym: symbol/resolve w/symbol
@@ -1887,7 +1905,15 @@ parse-common-opts: func [
 								hcur: objc_msgSend [objc_getClass "NSCursor" sel_getUid cur]
 							]
 						]
-						if hcur <> 0 [objc_setAssociatedObject hWnd RedCursorKey hcur OBJC_ASSOCIATION_ASSIGN]
+						if hcur <> 0 [
+							objc_setAssociatedObject hWnd RedCursorKey hcur OBJC_ASSOCIATION_RETAIN
+							if owned? [					;-- hand our +1 over: the association
+								objc_msgSend [hcur sel_release]	;-- is now the only owner
+							]
+							if win <> 0 [				;-- rebuild the cached cursor rects so a
+								objc_msgSend [win sel_getUid "invalidateCursorRectsForView:" hWnd]	;-- change shows now
+							]
+						]
 					]
 					sym = _class [
 						w: word + 1
@@ -2359,6 +2385,9 @@ OS-update-view: func [
 	if flags and FACET_FLAG_IMAGE <> 0 [
 		change-image hWnd as red-image! values + FACE_OBJ_IMAGE type
 	]
+	if flags and FACET_FLAG_OPTIONS <> 0 [				;-- e.g. cursor: changed at runtime
+		parse-common-opts hWnd as red-block! values + FACE_OBJ_OPTIONS type
+	]
 
 	int/value: 0										;-- reset flags
 ]
@@ -2371,16 +2400,20 @@ unlink-sub-obj: func [
 		values [red-value!]
 		parent [red-block!]
 		res	   [red-value!]
+		empty?	[logic!]
 ][
 	values: object/get-values obj
 	parent: as red-block! values + field
 	
 	if TYPE_OF(parent) = TYPE_BLOCK [
+		parent/head: 0
 		res: block/find parent as red-value! face null no no yes no null null no no no no
 		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null null]
+		empty?: block/rs-tail? parent
+		parent/head: block/rs-length? parent
 		if all [
 			field = FONT_OBJ_PARENT
-			block/rs-tail? parent
+			empty?
 		][
 			free-font obj
 		]

@@ -474,6 +474,7 @@ libc-exports: context [
 		"__clock_settime64" "__clone" "__close" "__close_nocancel" "__cmsg_nxthdr" "__cnd_timedwait64" "__confstr_chk" "__connect"
 		"__copy_grp" "__ctime64" "__ctime64_r" "__ctype32_b" "__ctype32_tolower" "__ctype32_toupper" "__ctype_b" "__ctype_b_loc"
 		"__ctype_get_mb_cur_max" "__ctype_init" "__ctype_tolower" "__ctype_tolower_loc" "__ctype_toupper" "__ctype_toupper_loc" "__curbrk" "__cxa_atexit"
+		"___tls_get_addr" "__tls_get_addr"
 		"__cxa_at_quick_exit" "__cxa_finalize" "__cxa_thread_atexit_impl" "__cyg_profile_func_enter" "__cyg_profile_func_exit" "__daylight" "__dcgettext" "__default_morecore"
 		"__deregister_frame" "__deregister_frame_info" "__deregister_frame_info_bases" "__dgettext" "__difftime64" "__divdi3" "__dn_comp" "__dn_expand"
 		"__dn_skipname" "__dprintf_chk" "__dup2" "__duplocale" "__endmntent" "__environ" "__epoll_pwait2_time64" "__errno_location"
@@ -755,5 +756,13 @@ libc-exports: context [
 		"_thread_db_pthread_nextevent" 12 "__realloc_hook" 4 "argp_program_version" 4 "svc_max_pollfd" 4
 		"sys_sigabbrev" 128 "error_print_progname" 4 "_thread_db_pthread_key_data_data" 12
 	]
-	macos: linux		;-- libSystem approximated by the glibc set
+	macos: append copy linux [	;-- libSystem approximated by the glibc set
+		;-- the unwinder API (libunwind, reexported by libSystem) -- C++
+		;-- cleanups in statically-linked objects call it directly
+		"_Unwind_Resume" "_Unwind_RaiseException" "_Unwind_DeleteException"
+		"_Unwind_GetIP" "_Unwind_SetIP" "_Unwind_SetGR" "_Unwind_GetGR"
+		"_Unwind_GetRegionStart" "_Unwind_GetDataRelBase" "_Unwind_GetTextRelBase"
+		"_Unwind_GetLanguageSpecificData" "_Unwind_GetCFA" "_Unwind_ForcedUnwind"
+		"_Unwind_Resume_or_Rethrow" "_Unwind_Backtrace" "_Unwind_FindEnclosingFunction"
+	]
 ]

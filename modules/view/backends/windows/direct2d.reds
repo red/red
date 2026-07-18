@@ -24,7 +24,17 @@ dw-locale-name: as c-string! 0
 pfnDCompositionCreateDevice2: as int-ptr! 0
 
 dwrite-str-cache: 0
-dwrite-font-ext-type: -1
+com-ext-type: -1
+
+release-com-object: func [
+	handle [int-ptr!]
+	/local
+		unknown [IUnknown]
+		this	[this!]
+][
+	this: as this! handle
+	COM_SAFE_RELEASE(unknown this)
+]
 
 #define D2D_MAX_BRUSHES 64
 
@@ -2211,7 +2221,7 @@ create-text-format: func [
 	if save? [
 		h-font: handle/make-at as red-value! h-font as-integer format/value handle/CLASS_FONT
 		if not null? format/value [
-			h-font/extID: externals/store format/value dwrite-font-ext-type
+			h-font/extID: externals/store format/value com-ext-type
 		]
 	]
 	format/value
@@ -2387,7 +2397,7 @@ draw-text-d2d: func [
 	this2: as this! brush/value
 	COM_SAFE_RELEASE(obj this2)
 	COM_SAFE_RELEASE(obj layout)
-	COM_SAFE_RELEASE(obj fmt)
+	if TYPE_OF(font) <> TYPE_OBJECT [COM_SAFE_RELEASE(obj fmt)]
 	rt/Release this
 ]
 

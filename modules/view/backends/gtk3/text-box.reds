@@ -23,6 +23,13 @@ Red/System [
 #define PANGO_MAX_SIZE				16777216
 
 max-line-cnt:  0
+tb-ext-type:  -1
+
+release-text-layout: func [							;-- GC destructor for cached rich-text layouts
+	layout [int-ptr!]
+][
+	g_object_unref layout
+]
 
 utf8-to-bytes: func [
 	text		[c-string!]
@@ -447,6 +454,7 @@ OS-text-box-layout: func [
 		tab-count [integer!]
 		tab-array [handle!]
 		i		[integer!]
+		hndl	[red-handle!]
 ][
 	values: object/get-values box
 
@@ -473,7 +481,8 @@ OS-text-box-layout: func [
 		layout: pango_layout_new pango-context
 
 		block/make-at state 4
-		integer/make-in state as integer! layout
+		hndl: handle/make-in state as integer! layout handle/CLASS_RICHTEXT
+		hndl/extID: externals/store layout tb-ext-type	;-- GC releases the layout with the face
 		integer/make-in state as integer! para
 		none/make-in state
 		logic/make-in state false

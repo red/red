@@ -152,12 +152,7 @@ OS-make-font: func [
 		if hFont <> null [h/extID: externals/store hFont font-ext-type]
 	]
 
-	blk: as red-block! values + FONT_OBJ_PARENT
-	if all [face <> null TYPE_OF(blk) <> TYPE_BLOCK][
-		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
-		block/rs-append blk as red-value! face
-		blk/head: 1
-	]
+	link-font-to-face face font
 	hFont
 ]
 
@@ -182,6 +177,7 @@ set-font: func [
 	][
 		make-font face font
 	]
+	link-font-to-face face font
 	SendMessageNative hWnd WM_SETFONT win-wparam-from-handle hFont win-lparam-from-integer 0
 ]
 
@@ -226,6 +222,7 @@ get-hfont: func [				;-- get or create a HFONT handle from font! object
 	if TYPE_OF(font) <> TYPE_OBJECT [return null]
 	hFont: get-font-handle font 0
 	if null? hFont [hFont: make-font face font]
+	link-font-to-face face font
 	hFont
 ]
 
@@ -240,17 +237,25 @@ free-font: func [
 		h	  [red-handle!]
 		hFont [handle!]
 		h2	  [handle!]
+		this  [this!]
+		obj   [IUnknown]
 		n	  [integer!]
 		free? [logic!]
 ][
+	free?: no
 	unless winxp? [
 		h: get-font-handle-slot font 1
-		if all [not null? h h/extID >= 0][
-			h/extID: externals/remove h/extID yes
+		if h <> null [
+			this: as this! get-win-handle h
+			either h/extID >= 0 [
+				h/extID: externals/remove h/extID yes
+			][
+				COM_SAFE_RELEASE(obj this)
+			]
+			free?: yes
 		]
 	]
 	n: 0
-	free?: no
 	h2: null
 	loop 2 [
 		hFont: get-font-handle font n

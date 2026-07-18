@@ -16,8 +16,18 @@ put system/codecs 'redbin context [
 	mime-type: []
 	suffixes:  [%.redbin]
 	
-	encode: routine [data [any-type!] where [any-type!]][
-		stack/set-last as red-value! redbin/encode data
+	compact?: yes										;-- format used by `save`: yes = compact, no = default
+
+	encode: function [data [any-type!] where [any-type!]][
+		encode* data compact?
+	]
+
+	encode*: routine [data [any-type!] compact? [logic!]][
+		either compact? [
+			stack/set-last as red-value! redbin/encode-cp data
+		][
+			stack/set-last as red-value! redbin/encode data
+		]
 	]
 	
 	decode: routine [
@@ -37,11 +47,11 @@ put system/codecs 'redbin context [
 		
 		bin: as red-binary! payload
 		assert TYPE_OF(bin) = TYPE_BINARY
-		if 16 >= binary/rs-length? bin [fire [TO_ERROR(script invalid-data) payload]]
+		if 10 >= binary/rs-length? bin [fire [TO_ERROR(script invalid-data) payload]]	;-- compact header can be as small as 11 bytes
 		
 		blk: block/push-only* 0
 		redbin/codec?: yes
-		redbin/decode binary/rs-head bin blk yes
+		redbin/decode binary/rs-head bin blk yes binary/rs-length? bin
 		if 1 = block/rs-length? blk [blk: as red-block! block/rs-head blk]
 		
 		SET_RETURN(blk)

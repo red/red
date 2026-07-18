@@ -26,6 +26,8 @@ elf-obj: context [
 	SHT_STRTAB:		3				;-- string table
 	SHT_NOBITS:		8				;-- uninitialized data (.bss)
 	SHT_REL:		9				;-- relocations without addends
+	SHT_INIT_ARRAY:	14				;-- C++ dynamic-initializer fn pointers
+	SHT_FINI_ARRAY:	15				;-- C++ finalizer fn pointers
 	SHT_GROUP:		17				;-- COMDAT / section group
 
 	GRP_COMDAT:		1				;-- group is a COMDAT (drop duplicates)
@@ -33,10 +35,12 @@ elf-obj: context [
 	SHF_WRITE:		1
 	SHF_ALLOC:		2
 	SHF_EXECINSTR:	4
+	SHF_TLS:		1024			;-- thread-local section (.tdata/.tbss)
 
 	STB_LOCAL:		0
 	STB_GLOBAL:		1
 	STB_WEAK:		2
+	STB_GNU_UNIQUE:	10				;-- gcc vague-linkage globals (act as GLOBAL)
 
 	SHN_LORESERVE:	65280			;-- 0xFF00 — indices >= this are reserved
 
@@ -48,6 +52,18 @@ elf-obj: context [
 	R_386_GOTOFF:	9				;-- symbol offset from GOT base
 	R_386_GOTPC:	10				;-- GOT base relative to PC
 	R_386_GOT32X:	43				;-- relaxed GOT entry offset
+
+	;-- i386 TLS relocations. The output is an EXECUTABLE (ELF TLS module 1),
+	;-- so every form resolves statically: GD/LDM point at GOT {dtpmod dtpoff}
+	;-- pairs the linker fills with constants, IE/GOTIE at a tpoff slot, and
+	;-- LE/LDO are immediate offsets. ___tls_get_addr binds to the dynamic
+	;-- loader at run time.
+	R_386_TLS_IE:	15				;-- absolute VA of a GOT tpoff slot
+	R_386_TLS_GOTIE: 16				;-- GOT-relative offset of a tpoff slot
+	R_386_TLS_LE:	17				;-- negative tpoff immediate
+	R_386_TLS_GD:	18				;-- GOT-relative offset of a {mod off} pair
+	R_386_TLS_LDM:	19				;-- GOT-relative offset of the {1 0} pair
+	R_386_TLS_LDO_32: 32			;-- offset within the module's TLS block
 
 	R_ARM_NONE:			0
 	R_ARM_PC24:			1			;-- 24-bit branch immediate (legacy)
@@ -64,6 +80,19 @@ elf-obj: context [
 	R_ARM_THM_JUMP24:		30		;-- Thumb-2 B  24-bit immediate
 	R_ARM_THM_MOVW_ABS_NC:	47		;-- Thumb-2 MOVW: bits[15:0]  of (S + A)
 	R_ARM_THM_MOVT_ABS:		48		;-- Thumb-2 MOVT: bits[31:16] of (S + A)
+
+	;-- C++ substrate (EHABI + GOT + TLS) relocations
+	R_ARM_BASE_PREL:	25			;-- GOT base - place (= i386 GOTPC)
+	R_ARM_GOT_BREL:		26			;-- GOT-entry offset from GOT base (= i386 GOT32)
+	R_ARM_PREL31:		42			;-- 31-bit place-relative (.ARM.exidx/.extab)
+	R_ARM_TARGET2:		41			;-- platform-defined: GOT_PREL on GNU/Linux
+	R_ARM_TLS_GD32:		104			;-- GD {mod off} GOT pair, place-relative
+	R_ARM_TLS_LDM32:	105			;-- LD {mod 0} GOT pair, place-relative
+	R_ARM_TLS_LDO32:	106			;-- offset within the module's TLS block
+	R_ARM_TLS_IE32:		107			;-- tpoff GOT slot, place-relative
+	R_ARM_TLS_LE32:		108			;-- tpoff immediate (variant 1: TCB + 8)
+
+	SHT_ARM_EXIDX:	1879048193		;-- 70000001h — EHABI unwind index table
 
 	;-- e_machine of the most recently parsed object (EM_386 | EM_ARM). The
 	;-- relocation type numbers overlap between the two architectures, so
@@ -104,16 +133,24 @@ elf-obj: context [
 	section-kind: func [sh-type [integer!] sh-flags [integer!]][
 		case [
 			sh-type = SHT_NOBITS [
-				either (sh-flags and SHF_ALLOC) <> 0 ['bss][none]
+				case [
+					(sh-flags and SHF_ALLOC) = 0	[none]
+					(sh-flags and SHF_TLS) <> 0		['tls-bss]	;-- .tbss
+					true							['bss]
+				]
 			]
 			sh-type = SHT_PROGBITS [
 				case [
 					(sh-flags and SHF_ALLOC) = 0       [none]	;-- .comment, debug, ...
+					(sh-flags and SHF_TLS) <> 0        ['tls-data]	;-- .tdata
 					(sh-flags and SHF_EXECINSTR) <> 0  ['code]
 					(sh-flags and SHF_WRITE) <> 0      ['data]
 					true                               ['rdata]
 				]
 			]
+			sh-type = SHT_INIT_ARRAY ['init-array]			;-- C++ static ctors
+			sh-type = SHT_FINI_ARRAY [none]					;-- dtors-at-exit: not run (parity w/ PE)
+			sh-type = SHT_ARM_EXIDX  ['arm-exidx]			;-- EHABI unwind index
 			true [none]										;-- symtab/strtab/rel/note/...
 		]
 	]
@@ -138,6 +175,15 @@ elf-obj: context [
 				]                         ['arm-thm-call]
 				type = R_ARM_THM_MOVW_ABS_NC ['arm-thm-movw]
 				type = R_ARM_THM_MOVT_ABS    ['arm-thm-movt]
+				type = R_ARM_GOT_BREL     ['got32]			;-- same GOT-base-relative form
+				type = R_ARM_BASE_PREL    ['gotpc]			;-- GOT base - place
+				type = R_ARM_PREL31       ['prel31]
+				type = R_ARM_TARGET2      ['got-prel]		;-- GNU/Linux: GOT slot, place-relative
+				type = R_ARM_TLS_GD32     ['tls-gd-prel]
+				type = R_ARM_TLS_LDM32    ['tls-ldm-prel]
+				type = R_ARM_TLS_LDO32    ['tls-ldo]
+				type = R_ARM_TLS_IE32     ['tls-ie-prel]
+				type = R_ARM_TLS_LE32     ['tls-le]
 				any [type = R_ARM_NONE  type = R_ARM_V4BX]  ['none]
 				true                      ['unsupported]
 			]
@@ -150,6 +196,12 @@ elf-obj: context [
 				type = R_386_GOT32X ['got32]
 				type = R_386_GOTOFF ['gotoff]
 				type = R_386_GOTPC  ['gotpc]
+				type = R_386_TLS_GD     ['tls-gd]
+				type = R_386_TLS_LDM    ['tls-ldm]
+				type = R_386_TLS_LDO_32 ['tls-ldo]
+				type = R_386_TLS_IE     ['tls-ie]
+				type = R_386_TLS_GOTIE  ['tls-gotie]
+				type = R_386_TLS_LE     ['tls-le]
 				type = R_386_NONE   ['none]
 				true                ['unsupported]
 			]
@@ -218,7 +270,10 @@ elf-obj: context [
 		shstr:    pick headers (e-shstrndx + 1)
 		shstrtab: copy/part at bin (shstr/4 + 1) shstr/5
 
-		;-- Build the section list (index i == ELF header i-1)
+		;-- Build the section list (index i == ELF header i-1). Slots 10/11
+		;-- are the linker's live/merged flags; slot 12 keeps sh_link -- the
+		;-- unwind-index (.ARM.exidx) sections name their covered text
+		;-- section there, which orders the merged EHABI table.
 		sections: copy []
 		foreach h headers [
 			name: read-cstring shstrtab (h/1 + 1)
@@ -228,6 +283,7 @@ elf-obj: context [
 			][make binary! 0]
 			append/only sections reduce [
 				name kind (max 1 h/8) data h/5 (make block! 4) 'none 0  none
+				false false h/6
 			]
 		]
 
@@ -272,9 +328,18 @@ elf-obj: context [
 						n-grp: to integer! (h/5 - 4) / 4
 						j: 0
 						while [j < n-grp][
-							sec-idx: u32-le bin (h/4 + (j + 1) * 4 + 1)
-							member-sec: pick sections (sec-idx + 1)
-							if member-sec [poke member-sec 9 key]
+							;-- entry j sits at sh_offset + 4 (flag) + j*4;
+							;-- Rebol evaluates math L2R, so parenthesize fully
+							sec-idx: u32-le bin (h/4 + 5 + (j * 4))
+							either any [sec-idx < 0  sec-idx >= e-shnum][
+								print [
+									"*** ELF group entry out of range:" sec-idx
+									"of" e-shnum "in" path "-- corrupt group?"
+								]
+							][
+								member-sec: pick sections (sec-idx + 1)
+								if member-sec [poke member-sec 9 key]
+							]
 							j: j + 1
 						]
 					]
@@ -312,12 +377,37 @@ elf-obj: context [
 		]
 	]
 
+	;-- Explain why load-from-bin returned NONE for a buffer. The static
+	;-- linker aborts with this diagnosis -- an unlinkable object names its
+	;-- actual format instead of surfacing later as missing symbols.
+	reject-reason: func [bin [binary!] /local machine][
+		if (length? bin) < 52 [return "truncated or empty object"]
+		if #{4243C0DE} = copy/part bin 4 [
+			return "LLVM bitcode (compiled with -flto); rebuild without link-time optimization"
+		]
+		unless #{7F454C46} = copy/part bin 4 [
+			return "not an ELF object; this build links ELF objects"
+		]
+		if 2 = byte-at bin 5 [
+			return "64-bit ELF object; this build targets a 32-bit CPU"
+		]
+		if ET_REL <> u16-le bin 17 [
+			return "not a relocatable ELF object (an executable or shared library?)"
+		]
+		machine: u16-le bin 19
+		case [
+			machine = 62  ["x86-64 ELF object; this build targets a 32-bit CPU"]
+			machine = 183 ["AArch64 ELF object; this build targets a 32-bit CPU"]
+			true [rejoin ["ELF machine type " machine " does not match the build target"]]
+		]
+	]
+
 	;-- Load an ELF32 i386 object file from disk. Halts on invalid input.
 	load: func [path [file!] /local bin obj][
 		bin: read/binary path
 		obj: load-from-bin bin path
 		if none? obj [
-			print ["*** Linker Error: not a supported ELF32 object (i386 or ARM):" path]
+			print ["*** Linker Error: cannot link" path "--" reject-reason bin]
 			halt
 		]
 		obj
@@ -334,6 +424,12 @@ elf-obj: context [
 	sec-base-kind:   func [s [block!]][s/7]
 	sec-base-offset: func [s [block!]][s/8]
 	sec-comdat-key:  func [s [block!]][s/9]		;-- group key (string) or none
+	sec-selection:   func [s [block!]][none]	;-- COFF-only concepts
+	sec-assoc:       func [s [block!]][none]
+	sec-link:        func [s [block!]][s/12]	;-- sh_link (1-based +1 by caller)
+	;-- COMDAT-equivalent: a SHT_GROUP member (carries a group key). Plain
+	;-- sections of a pulled member are unconditionally live, like ld.
+	sec-comdat?:     func [s [block!]][found? s/9]
 
 	set-sec-base: func [s [block!] kind [word!] offset [integer!]][
 		poke s 7 kind
@@ -351,11 +447,18 @@ elf-obj: context [
 	;-- TRUE if the symbol is a weak definition (STB_WEAK).
 	sym-weak?: func [sym [block!]][STB_WEAK = shift/logical sym/4 4]
 
-	;-- A defined external: global/weak binding, bound to a real section.
+	;-- ELF weak symbols are definitions in their own right -- there is no
+	;-- COFF-style undefined-with-default form, so no fallback name.
+	sym-weak-default: func [sym [block!]][none]
+
+	;-- A defined external: global/weak/gnu-unique binding, bound to a real
+	;-- section. STB_GNU_UNIQUE (gcc vague linkage) acts as STB_GLOBAL here:
+	;-- uniqueness across dlopen scopes is a dynamic-loader concern that a
+	;-- fully-merged static image satisfies by construction.
 	is-defined-external?: func [sym [block!] /local bind][
 		bind: sym-bind sym
 		all [
-			any [bind = STB_GLOBAL  bind = STB_WEAK]
+			any [bind = STB_GLOBAL  bind = STB_WEAK  bind = STB_GNU_UNIQUE]
 			(sym/3) > 1										;-- section-idx 1 == SHN_UNDEF
 			(sym/3) <= SHN_LORESERVE
 		]
@@ -365,7 +468,7 @@ elf-obj: context [
 	is-undefined-external?: func [sym [block!] /local bind][
 		bind: sym-bind sym
 		all [
-			any [bind = STB_GLOBAL  bind = STB_WEAK]
+			any [bind = STB_GLOBAL  bind = STB_WEAK  bind = STB_GNU_UNIQUE]
 			(sym/3) = 1										;-- section-idx 1 == SHN_UNDEF
 		]
 	]

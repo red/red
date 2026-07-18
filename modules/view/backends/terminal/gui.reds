@@ -256,14 +256,8 @@ make-font: func [
 	face	[red-object!]
 	font	[red-object!]
 	return: [handle!]
-	/local
-		blk	[red-block!]
 ][
-	blk: as red-block! (object/get-values font) + FONT_OBJ_PARENT
-	if face <> null [
-		if TYPE_OF(blk) <> TYPE_BLOCK [blk: block/make-at blk 4]
-		block/rs-append blk as red-value! face
-	]
+	link-font-to-face face font
 	OS-make-font font
 ]
 
@@ -435,16 +429,20 @@ unlink-sub-obj: func [
 		values [red-value!]
 		parent [red-block!]
 		res	   [red-value!]
+		empty?	[logic!]
 ][
 	values: object/get-values obj
 	parent: as red-block! values + field
 
 	if TYPE_OF(parent) = TYPE_BLOCK [
+		parent/head: 0
 		res: block/find parent as red-value! face null no no yes no null null no no no no
 		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null null]
+		empty?: block/rs-tail? parent
+		parent/head: block/rs-length? parent
 		if all [
 			field = FONT_OBJ_PARENT
-			block/rs-tail? parent
+			empty?
 		][
 			free-font obj
 		]

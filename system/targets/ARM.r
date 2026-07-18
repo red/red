@@ -2798,6 +2798,11 @@ make-profilable make target-class [
 						find [float! float64! float32!] type/1
 						value/type/1 = 'integer!
 					]
+					all [							;-- float! -> float32! narrowing: load and
+						value/type/1 = 'float32!	;-- convert, then push the 4-byte result --
+						find [float! float64!] type/1	;-- pushing the raw double shifts every later
+						not decimal? value/data		;-- stack slot (and misaligns SP per AAPCS);
+					]								;-- literals fold in the decimal! branch below
 				]
 				all [
 					conv-int-float?

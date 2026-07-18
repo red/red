@@ -120,10 +120,7 @@ make-font: func [
 		set-cocoa-handle handle-value hFont
 	]
 
-	if face <> null [
-		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
-		block/rs-append blk as red-value! face
-	]
+	link-font-to-face face font
 	hFont
 ]
 
@@ -155,6 +152,7 @@ get-font: func [
 	if TYPE_OF(font) <> TYPE_OBJECT [return default-font]
 	hFont: get-font-handle font 0
 	if hFont = 0 [hFont: make-font face font]
+	link-font-to-face face font
 	hFont
 ]
 

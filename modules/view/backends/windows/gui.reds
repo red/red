@@ -34,7 +34,9 @@ Red/System [
 #define SLOT_AUX					[WINDOW_LONG_SLOT(14)]	;-- class-scoped pointer, handle, count, or sentinel
 #define SLOT_FACE_REFERENCE		[WINDOW_LONG_SLOT(15)]	;-- signed 32-bit node reference
 #define SLOT_FACE_FLAGS			[WINDOW_LONG_SLOT(19)]	;-- 32-bit facet flags
-#define WINDOW_LONG_SLOT_COUNT	20
+#define SLOT_CURSOR_OWNED		[WINDOW_LONG_SLOT(20)]	;-- owned image-cursor HICON
+#define SLOT_REVEALED			[WINDOW_LONG_SLOT(21)]	;-- hidden-to-visible presentation marker
+#define WINDOW_LONG_SLOT_COUNT	22
 
 #define IS_D2D_FACE(sym) [
 	any [sym = base sym = rich-text sym = window sym = panel]
@@ -383,7 +385,7 @@ get-text-size: func [
 		if TYPE_OF(font) = TYPE_OBJECT [
 			state: as red-block! values + FONT_OBJ_STATE
 			if TYPE_OF(state) = TYPE_BLOCK [hFont: get-font-handle font 0]
-			if null? hFont [hFont: make-font face font]
+			if null? hFont [hFont: make-font null font]
 		]
 		if null? hFont [hFont: default-font]
 
@@ -736,6 +738,7 @@ free-faces: func [
 		cam		[camera!]
 		handle	[handle!]
 		hFont	[handle!]
+		owned	[handle!]
 ][
 	handle: face-handle? face
 	#if debug? = yes [if null? handle [probe "VIEW: WARNING: free null window handle!"]]
@@ -789,6 +792,12 @@ free-faces: func [
 		state: values + FACE_OBJ_SELECTED
 		state/header: TYPE_NONE
 		SetWindowLongPtr handle SLOT_AUX -1
+	]
+
+	owned: win-long-ptr-to-handle GetWindowLongPtr handle SLOT_CURSOR_OWNED
+	if owned <> null [
+		DestroyIcon owned
+		SetWindowLongPtr handle SLOT_CURSOR_OWNED 0
 	]
 
 	references/remove win-slot-reference GetWindowLongPtr handle SLOT_FACE_REFERENCE
@@ -1024,7 +1033,7 @@ init: func [
 	collector/register as int-ptr! :on-gc-mark
 	time-meter/start _time_meter	
 	font-ext-type: externals/register "font" as int-ptr! :delete-font
-	dwrite-font-ext-type: externals/register "dwrite-font" as int-ptr! :delete-text-format
+	com-ext-type: externals/register "com-object" as int-ptr! :release-com-object
 	win-handle-ext-type: externals/register "win-handle" null
 ]
 
@@ -1145,7 +1154,9 @@ transparent-win?: func [
 		assert (SLOT_POSITION + WIN_LONG_PTR_BYTES) = SLOT_AUX
 		assert (SLOT_AUX + WIN_LONG_PTR_BYTES) = SLOT_FACE_REFERENCE
 		assert (SLOT_FACE_REFERENCE + WIN_LONG_PTR_BYTES) <= SLOT_FACE_FLAGS
-		assert (SLOT_FACE_FLAGS + WIN_LONG_PTR_BYTES) <= wc-extra
+		assert (SLOT_FACE_FLAGS + WIN_LONG_PTR_BYTES) = SLOT_CURSOR_OWNED
+		assert (SLOT_CURSOR_OWNED + WIN_LONG_PTR_BYTES) = SLOT_REVEALED
+		assert (SLOT_REVEALED + WIN_LONG_PTR_BYTES) <= wc-extra
 
 		#either target = 'X86-64 [
 			first:  1234567876543210h
@@ -1510,8 +1521,16 @@ parse-common-opts: func [
 		len		[integer!]
 		sym		[integer!]
 		bitmap	[integer!]
+		prev	[handle!]
+		cursor	[handle!]
+		native	[win-native-value! value]
 		lock	[com-ptr! value]
 ][
+	prev: win-long-ptr-to-handle GetWindowLongPtr hWnd SLOT_CURSOR_OWNED
+	if prev <> null [
+		DestroyIcon prev
+		SetWindowLongPtr hWnd SLOT_CURSOR_OWNED 0
+	]
 	SetWindowLongPtr hWnd SLOT_CURSOR 0
 	if TYPE_OF(options) = TYPE_BLOCK [
 		word: as red-word! block/rs-head options
@@ -1531,9 +1550,12 @@ parse-common-opts: func [
 							][
 								bitmap: OS-image/to-gpbitmap img :lock
 							]
-							GdipCreateHICONFromBitmap bitmap :sym
+							native/pointer: null
+							GdipCreateHICONFromBitmap bitmap as int-ptr! :native
+							cursor: native/handle
 							#if draw-engine <> 'GDI+ [OS-image/release-gpbitmap bitmap :lock]
-							SetWindowLongPtr hWnd SLOT_CURSOR sym
+							SetWindowLongPtr hWnd SLOT_CURSOR win-long-ptr-from-handle cursor
+							SetWindowLongPtr hWnd SLOT_CURSOR_OWNED win-long-ptr-from-handle cursor
 						][
 							if TYPE_OF(w) = TYPE_WORD [
 								sym: symbol/resolve w/symbol
@@ -1548,8 +1570,8 @@ parse-common-opts: func [
 									]					[32644]
 									true				[IDC_ARROW]
 								]
-								sym: as-integer LoadCursor null sym
-								SetWindowLongPtr hWnd SLOT_CURSOR sym
+								cursor: LoadCursor null sym
+								SetWindowLongPtr hWnd SLOT_CURSOR win-long-ptr-from-handle cursor
 							]
 						]
 					]
@@ -1641,8 +1663,14 @@ OS-show-window: func [
 	/local
 		face	[red-object!]
 ][
-	if prev-captured <> null [ReleaseCapture]
-	check-base-capture
+	if any [										;-- balance capture on a genuine presentation only:
+		not IsWindowVisible hWnd						;--   a fresh window (make-view left it hidden),
+		0 <> GetWindowLongPtr hWnd SLOT_REVEALED		;-- or THIS window revealed by change-visible
+	][												;--   (visible?: yes from an on-down/on-up handler);
+		if prev-captured <> null [ReleaseCapture]	;-- such a present may run a modal loop eating the
+		check-base-capture							;-- pending WM_LBUTTONUP (#5083). Re-showing an
+	]												;-- already-visible window (set-focus, any facet
+	SetWindowLongPtr hWnd SLOT_REVEALED 0			;-- write) must NOT unbalance the capture counter
 	ShowWindow hWnd SW_SHOWDEFAULT
 	UpdateWindow hWnd
 	unless win8+? [
@@ -2472,6 +2500,13 @@ change-visible: func [
 	][
 		either show? [update-caret hWnd values][DestroyCaret]
 	]
+	if all [									;-- a window going hidden -> visible is a genuine
+		show?									;-- presentation; flag THIS window so the following
+		type = window							;-- OS-show-window balances the capture counter
+		not IsWindowVisible hWnd				;-- even though ShowWindow below flips visibility
+	][											;-- true before OS-show-window's own check runs
+		SetWindowLongPtr hWnd SLOT_REVEALED 1
+	]
 	value: either show? [either type = base [SW_SHOWNA][SW_SHOW]][SW_HIDE]
 	ShowWindow hWnd value
 	unless win8+? [update-layered-window hWnd null null null -1]
@@ -2825,16 +2860,20 @@ unlink-sub-obj: func [
 		values [red-value!]
 		parent [red-block!]
 		res	   [red-value!]
+		empty?	[logic!]
 ][
 	values: object/get-values obj
 	parent: as red-block! values + field
 	
 	if TYPE_OF(parent) = TYPE_BLOCK [
+		parent/head: 0
 		res: block/find parent as red-value! face null no no yes no null null no no no no
 		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null null]
+		empty?: block/rs-tail? parent
+		parent/head: block/rs-length? parent
 		if all [
 			field = FONT_OBJ_PARENT
-			block/rs-tail? parent
+			empty?
 		][
 			free-font obj
 		]
@@ -2964,6 +3003,9 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_IMAGE <> 0 [
 		change-image hWnd values type
+	]
+	if flags and FACET_FLAG_OPTIONS <> 0 [				;-- e.g. cursor: changed at runtime
+		parse-common-opts hWnd as red-block! values + FACE_OBJ_OPTIONS
 	]
 	
 	int/value: 0										;-- reset flags

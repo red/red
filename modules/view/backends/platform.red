@@ -688,6 +688,30 @@ system/view/platform: context [
 				assert false
 			]
 
+			link-font-to-face: func [
+				face	[red-object!]
+				font	[red-object!]
+				/local
+					parent	[red-block!]
+					found	[red-value!]
+			][
+				if any [
+					face = null
+					TYPE_OF(face) <> TYPE_OBJECT
+					TYPE_OF(font) <> TYPE_OBJECT
+				][exit]
+
+				parent: as red-block! (object/get-values font) + FONT_OBJ_PARENT
+				either TYPE_OF(parent) = TYPE_BLOCK [
+					parent/head: 0
+				][
+					parent: block/make-at parent 4
+				]
+				found: block/find parent as red-value! face null no no yes no null null no no no no
+				if TYPE_OF(found) = TYPE_NONE [block/rs-append parent as red-value! face]
+				parent/head: block/rs-length? parent
+			]
+
 			#include %keycodes.reds
 			#switch GUI-engine [
 				native [

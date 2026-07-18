@@ -53,8 +53,10 @@ context [
 		pt-interp		3			;; dynamic linker ("interpreter") path name
 		pt-note			4			;; vendor-specific note segment
 		pt-phdr			6			;; program header table
+		pt-tls			7			;; thread-local storage template
 		pt-GNU-stack	1685382481	;; GNU stack flags
 		pt-gnu-relro	1685382482	;; read-only after relocation (6474e552h)
+		pt-arm-exidx	1879048193	;; ARM EHABI unwind-index table (70000001h)
 
 		pf-x			1			;; executable segment
 		pf-w			2			;; writable segment
@@ -412,6 +414,8 @@ context [
 		]
 
 		segment "relro"				[gnu-relro	[r]					byte] ;-- covers .rodata (patched post-layout)
+		segment "tls"				[tls		[r]					word] ;-- static-link TLS template inside .data (patched post-layout)
+		segment "arm-exidx"			[arm-exidx	[r]					word] ;-- static-link EHABI index inside .data (patched post-layout)
 
 		section ".stab"				[progbits	[]					word]
 		section ".stabstr"			[strtab		[]					byte]
@@ -508,6 +512,14 @@ context [
 			remove-elements structure [".ARM.attributes"]
 		]
 
+		unless all [static-link/etls-off  static-link/etls-memsz > 0][
+			remove-elements structure ["tls"]			;-- no PT_TLS without a template
+		]
+
+		unless all [job/target = 'ARM  static-link/exidx-range][
+			remove-elements structure ["arm-exidx"]		;-- no PT_ARM_EXIDX without a merged index
+		]
+
 		if job/OS <> 'NetBSD [
 			remove-elements structure [
 				".note.netbsd.ident"
@@ -591,6 +603,8 @@ context [
 			"ehdr"			size (size-of ehdr-struct)
 			"phdr"			size [(phdr-struct)		length? segments]
 			"relro"			size 0					;-- overlaps .rodata; address/size patched post-layout
+			"tls"			size 0					;-- overlaps .data; location patched post-layout
+			"arm-exidx"		size 0					;-- overlaps .data; location patched post-layout
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		size [(symbol-struct)	1 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		align (either elf64-target? job/target [8][4])
@@ -666,6 +680,26 @@ context [
 			relro-entry/address: get-address ".rodata"
 			relro-entry/offset:  get-offset ".rodata"
 			relro-entry/size:    defs/page-size * round/ceiling (get-size ".rodata") / defs/page-size
+		]
+
+		;; PT_TLS covers the static linker's TLS template inside .data;
+		;; p_memsz (template + .tbss) and p_align come from static-link in
+		;; build-phdr -- only the file location is known here.
+		if all [static-link/etls-off  pos: select layout "tls"][
+			pos/address: (get-address ".data") + static-link/etls-off
+			pos/offset:  (get-offset ".data") + static-link/etls-off
+			pos/size:    static-link/etls-filesz
+		]
+
+		;; PT_ARM_EXIDX publishes the merged EHABI index, so phdr-walking
+		;; unwinders (dl_iterate_phdr in cross-image unwinds: libgcc_s
+		;; forced unwinds, pthread cancellation) can find it -- the
+		;; statically-linked libgcc_eh path binary-searches the same table
+		;; through __exidx_start/__exidx_end.
+		if all [static-link/exidx-range  pos: select layout "arm-exidx"][
+			pos/address: (get-address ".data") + static-link/exidx-range/1
+			pos/offset:  (get-offset ".data") + static-link/exidx-range/1
+			pos/size:    static-link/exidx-range/2
 		]
 
 		set-data "ehdr" [
@@ -878,7 +912,11 @@ context [
 		eh/ident-data:		defs/elfdata2lsb
 		eh/ident-version:	defs/ev-current
 		eh/version:			defs/ev-current
-		eh/entry:			either target-type = 'exe [text-address][0]
+		;; C++ static links enter through the linker's ctor-walk stub, which
+		;; falls into Red's own entry (text-address) once initializers ran.
+		eh/entry:			either target-type = 'exe [
+			text-address + any [static-link/cpp-entry 0]
+		][0]
 		eh/phoff:			phdr-offset
 		eh/shoff:			shdr-offset
 		eh/flags:			0
@@ -933,6 +971,11 @@ context [
 			ph/memsz:		segment/size
 			ph/flags:		lookup-flags "pf-" segment/meta/flags
 			ph/align:		lookup-align segment/meta/align
+			if segment/meta/type = 'tls [
+				;-- p_filesz = template bytes; p_memsz adds .tbss
+				ph/memsz:	static-link/etls-memsz
+				ph/align:	static-link/etls-align
+			]
 			ph
 		]
 	]

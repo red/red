@@ -296,7 +296,6 @@ OS-text-box-layout: func [
 	catch?	[logic!]
 	return: [this!]
 	/local
-		IUnk	[IUnknown]
 		hWnd	[handle!]
 		values	[red-value!]
 		str		[red-string!]
@@ -318,21 +317,23 @@ OS-text-box-layout: func [
 		para	[integer!]
 		fmt		[this!]
 		layout	[this!]
+		old-layout [this!]
 		pt		[red-point2d!]
+		hndl	[red-handle!]
+		ext-id	[integer!]
 ][
 	values: object/get-values box
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
 	font: as red-object! values + FACE_OBJ_FONT
-	fmt: as this! create-text-format font box
+	fmt: as this! create-text-format font null
 
 	if null? target [
 		hWnd: face-handle? box
 		if null? hWnd [
 			if null? hidden-hwnd [
 				hidden-hwnd: CreateWindowEx WS_EX_TOOLWINDOW #u16 "RedBaseInternal" null WS_POPUP 0 0 2 2 null null hInstance null
-				store-face-to-hWnd hidden-hwnd box
 			]
 			hWnd: hidden-hwnd
 		]
@@ -340,13 +341,15 @@ OS-text-box-layout: func [
 	]
 
 	pval: null
+	ext-id: -1
+	old-layout: null
 	para: either sym = rich-text [
 		state: as red-block! values + FACE_OBJ_EXT3
 		either TYPE_OF(state) = TYPE_BLOCK [
 			pval: block/rs-head state
-			native: as red-handle! pval
-			layout: as this! get-win-handle native
-			COM_SAFE_RELEASE(IUnk layout)		;-- release previous text layout
+			hndl: as red-handle! pval
+			if TYPE_OF(hndl) = TYPE_HANDLE [ext-id: hndl/extID]
+			old-layout: as this! get-win-handle hndl
 			bool: as red-logic! pval + 3
 			bool/value: false
 		][
@@ -381,7 +384,17 @@ OS-text-box-layout: func [
 
 	if pval <> null [copy-cell as red-value! str pval + 2]		;-- save text
 	layout: create-text-layout str fmt w h
-	if pval <> null [make-win-handle-at pval as handle! layout handle/CLASS_RICHTEXT]
+	if TYPE_OF(font) <> TYPE_OBJECT [release-com-object as int-ptr! fmt]
+	if pval <> null [
+		hndl: handle/make-at pval as-integer layout handle/CLASS_RICHTEXT
+		either ext-id >= 0 [							;-- track the layout so GC releases it with the face
+			externals/replace ext-id as int-ptr! layout
+			hndl/extID: ext-id
+		][
+			if old-layout <> null [release-com-object as int-ptr! old-layout]
+			hndl/extID: externals/store as int-ptr! layout com-ext-type
+		]
+	]
 	;-- base font foreground; data ranges layer above
 	if TYPE_OF(font) = TYPE_OBJECT [
 		fcolor: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR

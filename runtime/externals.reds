@@ -167,27 +167,51 @@ externals: context [
 		rec/handle
 	]
 	
-	release: func [										;-- release an external resource by calling its destructor
-		rec [record!]
+	release-handle: func [
+		header [integer!]
+		handle [int-ptr!]
+		node   [node-handle!]
 		/local
 			ext  [ext-type!]
 			type [integer!]
 	][
-		type: rec/header and ext-type-mask
+		type: header and ext-type-mask
 		assert type < (as-integer top - types)
 		if type > 0 [									;-- if type id defined, call destructor
 			ext: types + (type - 1)						;-- 1-based value
 			#if debug? = yes [if verbose > 0 [print-line ["destructor: " ext/destructor]]]
 			if ext/destructor <> null [
 				either ext/node? [
-					(as node-destructor! ext/destructor) rec/node
+					(as node-destructor! ext/destructor) node
 				][
-					(as destructor! ext/destructor) rec/handle
+					(as destructor! ext/destructor) handle
 				]
 			]
 		]
 	]
+
+	release: func [										;-- release an external resource by calling its destructor
+		rec [record!]
+	][
+		release-handle rec/header rec/handle rec/node
+	]
 	
+	replace: func [									;-- replace and release the resource handle of a live record
+		idx		[integer!]								;-- record index
+		handle	[int-ptr!]								;-- new resource handle
+		/local
+			rec [record!]
+			old [int-ptr!]
+	][
+		assert idx >= 0
+		assert idx < size
+		rec: list + idx
+		assert rec/header and flag-free = 0
+		old: rec/handle
+		rec/handle: handle
+		if old <> rec/handle [release-handle rec/header old 0]
+	]
+
 	remove: func [										;-- remove a record directly
 		idx		[integer!]								;-- record index
 		call?	[logic!]								;-- YES: call destructor also

@@ -421,7 +421,7 @@ get-text-size: func [
 	if TYPE_OF(font) = TYPE_OBJECT [
 		state: as red-block! values + FONT_OBJ_STATE
 		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
-		if null? hFont [hFont: make-font face font]
+		if null? hFont [hFont: make-font null font]
 	]
 	if null? hFont [hFont: default-attrs]
 
@@ -818,6 +818,7 @@ init: func [/local disp [handle!]][
 	set-app-theme "box, button.text-button {min-width: 1px; min-height: 1px;}" yes
 	collector/register as int-ptr! :on-gc-mark
 	font-ext-type: externals/register "font" as int-ptr! :delete-font
+	tb-ext-type: externals/register "text-layout" as int-ptr! :release-text-layout
 
 	disp: gdk_display_get_default
 	gobj_signal_connect(disp "monitor-added" :monitor-changed null)
@@ -2175,6 +2176,12 @@ update-rich-text: func [
 	TYPE_OF(state) <> TYPE_BLOCK
 ]
 
+;-- GDestroyNotify for the owned cursor qdata: called by GLib when the
+;-- stored value is replaced and when the widget is finalized
+free-cursor: func [[cdecl] data [int-ptr!]][
+	g_object_unref data
+]
+
 parse-common-opts: func [
 	widget		[handle!]
 	face		[red-object!]
@@ -2193,9 +2200,22 @@ parse-common-opts: func [
 		pixbuf	[handle!]
 		display	[handle!]
 		owner	[handle!]
+		win		[handle!]
+		parent	[handle!]
 		x		[integer!]
 		y		[integer!]
 ][
+	win: gtk_widget_get_window widget			;-- the face's own GdkWindow: null while
+	unless null? win [							;-- unrealized; a no-window child returns its
+		parent: gtk_widget_get_parent widget	;-- parent's window - shared with siblings, so
+		if all [								;-- hands off (widget-realize owns those), EXCEPT
+			not null? parent					;-- for text faces: that parent is the label's
+			win = gtk_widget_get_window parent	;-- dedicated event box, the valid cursor target
+			type <> text
+		][win: null]
+	]
+	g_object_set_qdata_full widget cursor-id null 0		;-- releases a removed/replaced cursor
+	unless null? win [gdk_window_set_cursor win null]	;-- back to the default pointer
 	if TYPE_OF(options) = TYPE_BLOCK [
 		word: as red-word! block/rs-head options
 		len: block/rs-length? options
@@ -2219,7 +2239,7 @@ parse-common-opts: func [
 							hcur: gdk_cursor_new_from_pixbuf display pixbuf x y
 							;g_object_unref pixbuf
 						][
-							if TYPE_OF(word) = TYPE_WORD [
+							if TYPE_OF(w) = TYPE_WORD [
 								sym: symbol/resolve w/symbol
 								cur: case [
 									sym = _I-beam	["text"]
@@ -2230,7 +2250,12 @@ parse-common-opts: func [
 								hcur: gdk_cursor_new_from_name display cur
 							]
 						]
-						if hcur <> null [SET-CURSOR(widget hcur)]
+						if hcur <> null [			;-- owned: unref'd when replaced or widget dies
+							g_object_set_qdata_full widget cursor-id hcur as-integer :free-cursor
+							unless null? win [		;-- realized: show it now (the window refs it);
+								gdk_window_set_cursor win hcur	;-- else widget-realize applies it
+							]
+						]
 					]
 					sym = caret [
 						obj: as red-object! word + 1
@@ -2914,6 +2939,9 @@ OS-update-view: func [
 	if flags and FACET_FLAG_IMAGE <> 0 [
 		change-image widget as red-image! values + FACE_OBJ_IMAGE type
 	]
+	if flags and FACET_FLAG_OPTIONS <> 0 [				;-- e.g. cursor: changed at runtime
+		parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS type
+	]
 
 	;; update-view at least ask for this
 	;if main-window = widget [
@@ -2930,16 +2958,20 @@ unlink-sub-obj: func [
 		values	[red-value!]
 		parent	[red-block!]
 		res		[red-value!]
+		empty?	[logic!]
 ][
 	values: object/get-values obj
 	parent: as red-block! values + field
 
 	if TYPE_OF(parent) = TYPE_BLOCK [
+		parent/head: 0
 		res: block/find parent as red-value! face null no no yes no null null no no no no
 		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null null]
+		empty?: block/rs-tail? parent
+		parent/head: block/rs-length? parent
 		if all [
 			field = FONT_OBJ_PARENT
-			block/rs-tail? parent
+			empty?
 		][
 			free-font obj
 		]

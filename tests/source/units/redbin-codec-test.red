@@ -45,7 +45,12 @@ Red [
 			]
 		]
 	]
-	
+
+	saved-compact?: system/codecs/redbin/compact?		;-- restored after the loop
+
+	loop 2 [											;-- run every group inline under both Redbin formats
+	print ["^/=== Redbin format:" either system/codecs/redbin/compact? ["compact"]["default"] "===^/"]
+
 	===start-group=== "values"
 		--test-- "unset"
 			--assert () == test ()
@@ -96,6 +101,11 @@ Red [
 			--assert 1.#INF == test 1.#INF
 			--assert -1.#INF == test -1.#INF
 			
+			;-- near-integer floats must survive the whole-number short form bit-exactly
+			--assert (to binary! 1.000000000000001)  = to binary! test 1.000000000000001
+			--assert (to binary! 2.0000000000000004) = to binary! test 2.0000000000000004
+			--assert (to binary! -0.0)               = to binary! test -0.0
+
 			loop 10 [
 				value: random 1'000'000'000'000
 				value: value * random/only [-1 +1]
@@ -326,6 +336,12 @@ Red [
 			
 			forall objectz [--assert objectz/1 == test objectz/1]
 		
+		--test-- "object-class-id-reset"			;-- untrusted decode must not import the object's stored class id (concurrent class IDs)
+			o1: make object! [a: 1]
+			o2: test o1
+			--assert -1 = reflect o2 'class			;-- checked before any field access forces a fresh id
+			--assert 1 = o2/a
+
 		--test-- "error"
 			errors: reduce [
 				try [1 / 0]
@@ -478,14 +494,14 @@ Red [
 	
 	===start-group=== "Cycles & References"
 		--test-- "cycle-1"
-			block: [@ block]
+			block: copy [@ block]						;-- copy: inline mutates it into a cycle (idempotent across passes)
 			block: test inline block
 			
 			--assert "[[...]]" = mold block
 			--assert block/1/1 =? block
 		
 		--test-- "cycle-2"
-			block: [@ block we need to go deeper @ block]
+			block: copy [@ block we need to go deeper @ block]
 			block: test inline block
 			
 			--assert "[[...] we need to go deeper [...]]" = mold block
@@ -497,7 +513,7 @@ Red [
 			--assert block/7/7/7/1/1/1/2 == 'deeper
 		
 		--test-- "cycle-3"
-			map: test put map: #[] 'map map
+			map: test put map: copy #[] 'map map
 			
 			--assert "#[map: #[...]]" = mold/flat map
 			--assert map/map/map/map =? map
@@ -517,8 +533,8 @@ Red [
 			--assert path/1/1 =? path
 		
 		--test-- "cycle-6"
-			ping: [pong @ pong]
-			pong: [ping @ ping]
+			ping: copy [pong @ pong]
+			pong: copy [ping @ ping]
 			
 			inline ping
 			inline pong
@@ -800,7 +816,23 @@ Red [
 		--test-- "errors-3" --assert error? try [test :>>]
 		--test-- "errors-4" --assert error? try [test :as-ipv4]
 		--test-- "errors-5" --assert error? try [load/as #{52454442494E0202840400000000000000040000} 'redbin]
-	
+		--test-- "errors-6" --assert error? try [load/as #{52454442494E02010104FFA08D06} 'redbin]	;-- compact reference waypoint count (100000) over the anti-DoS cap
+		--test-- "errors-7"  --assert error? try [load/as #{52454442494E020101020703} 'redbin]			;-- string unit=8 (invalid UCS unit)
+		--test-- "errors-8"  --assert error? try [load/as #{52454442494E0201010607FCFFFFFF07} 'redbin]		;-- string char-count << unit overflow
+		--test-- "errors-9"  --assert error? try [load/as #{52454442494E020101072300FFFFFFFF07} 'redbin]		;-- vector count << unit overflow
+		--test-- "errors-10" --assert error? try [load/as #{52454442494E0201010605FFFFFFFF07} 'redbin]		;-- block element count unbounded
+		--test-- "errors-11" --assert error? try [load/as #{52454442494E0201010624FFFFFFFF07} 'redbin]		;-- hash element count unbounded
+		--test-- "errors-12" --assert error? try [load/as #{52454442494E0201010735808002808001} 'redbin]		;-- image width*height*4 overflow
+		--test-- "errors-13" --assert error? try [load/as #{52454442494E0201010629FFFFFFFF07} 'redbin]		;-- binary size over-read
+		--test-- "errors-14" --assert error? try [load/as #{52454442494E020501020102FFFFFF7F41001400} 'redbin]	;-- symbol string offset outside the blob
+		--test-- "errors-15" --assert error? try [load/as #{52454442494E02010103FF0105} 'redbin]			;-- reference waypoint indexes past series
+		--test-- "errors-16" --assert error? try [load/as #{52454442494E0201016480} 'redbin]				;-- records len overruns the buffer
+		--test-- "errors-17" --assert error? try [load/as #{52454442494E0205010180808080010080} 'redbin]		;-- symbol table nsyms<<2 / region overruns
+		--test-- "errors-18" --assert error? try [load/as #{52454442494E0200000000} 'redbin]				;-- fat header short-input over-read
+		--test-- "errors-19" --assert error? try [load/as #{52454442494E0201018080808008} 'redbin]		;-- sign-overflowed (bit-31) records length
+		--test-- "errors-20" --assert error? try [load/as #{52454442494E0201020581C1050100} 'redbin]		;-- hdr: 02=count,05=len; recs 81(int)+C1 05 01 00(block-ref→root[0]): scalar target, no series node
+		--test-- "errors-21" --assert error? try [load/as #{52454442494E0201020D330000000000000000C1050100} 'redbin]	;-- recs 33(point2D!)+8 coord bytes, then block-ref→root[0]: data2 is a coord, not a series node
+
 	===end-group===
 	
 	===start-group=== "Symbols"
@@ -811,17 +843,23 @@ Red [
 				--assert a == b
 			]
 		
-		--test-- "symbols-2"
+		--test-- "symbols-2"							;-- symbol table layout, per format
 			symbols: save/as none [foo :foo 'foo foo: /foo #foo] 'redbin
-			table:   skip symbols 16				;-- skip header
-			buffer:  skip table 4					;-- skip # of entries
-			string:  skip buffer 8					;-- skip buffer size and single entry
-			
-			--assert 4 == symbols/8										;-- symbol table is present
-			--assert 1 == to integer! reverse copy/part table 4			;-- single entry
-			--assert 8 == to integer! reverse copy/part buffer 4		;-- buffer 8 bytes in size
-			--assert "foo^@^@^@^@^@" == to string! copy/part string 8	;-- NUL padding is present
-			
+			either system/codecs/redbin/compact? [
+				--assert 1 = (symbols/8 and 1)							;-- compact flag is set
+				--assert 4 = (symbols/8 and 4)							;-- symbol table is present
+				--assert not none? find symbols to binary! "foo^@"		;-- single NUL-terminated symbol
+				--assert none? find symbols to binary! "foo^@^@"		;-- no 64-bit NUL padding
+			][
+				table:   skip symbols 16								;-- skip header
+				buffer:  skip table 4									;-- skip # of entries
+				string:  skip buffer 8									;-- skip buffer size and single entry
+				--assert 4 == symbols/8									;-- symbol table is present
+				--assert 1 == to integer! reverse copy/part table 4		;-- single entry
+				--assert 8 == to integer! reverse copy/part buffer 4	;-- buffer 8 bytes in size
+				--assert "foo^@^@^@^@^@" == to string! copy/part string 8	;-- NUL padding is present
+			]
+
 	===end-group===
 
 	===start-group=== "Stress tests"
@@ -850,5 +888,10 @@ Red [
 			recycle
 
 	===end-group===
+
+	system/codecs/redbin/compact?: not system/codecs/redbin/compact?	;-- flip format for the next pass
+	]												;-- end of loop 2
+
+	system/codecs/redbin/compact?: saved-compact?	;-- restore original default format
 
 ~~~end-file~~~

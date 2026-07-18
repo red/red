@@ -364,6 +364,8 @@ write %build/bin/sources.r set-cache [
 			%PE.r
 			%crt-helpers.r
 			%libc-exports.r
+			%mac-cxx-exports.r
+			%mac-libsystem.r
 			%win32-exports.r
 		]
 		%targets/ [

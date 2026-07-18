@@ -1961,6 +1961,10 @@ XFORM!: alias struct! [
 			hWnd		[handle!]
 			return:		[logic!]
 		]
+		DestroyIcon: "DestroyIcon" [
+			hIcon		[handle!]
+			return:		[logic!]
+		]
 		LoadIcon: "LoadIconW" [
 			hInstance	[handle!]
 			lpIconName	[c-string!]
