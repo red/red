@@ -3665,7 +3665,7 @@ make-profilable make target-class [
 	emit-AAPCS-header: func [
 		args [block!] fspec [block!] attribs [block! none!]
 		/calc
-		/local reg bits offset type size stk freg cconv types nb armhf? struct? r t by-val? body
+		/local reg bits offset type size stk freg cconv types nb fixed-left armhf? struct? r t by-val? body
 	][
 		either args/1 = #custom [
 			unless calc [
@@ -3696,6 +3696,7 @@ make-profilable make target-class [
 			args: reverse copy args					;-- arguments are on stack in reverse order
 			
 			if block? types/1 [types: next types]
+			fixed-left: fspec/1
 			
 			if hidden-ptr? fspec [
 				args: next args
@@ -3707,7 +3708,7 @@ make-profilable make target-class [
 			foreach arg args [
 				if arg <> #_ [						;-- bypass place-holder marker
 					type: any [
-						types/2
+						all [positive? fixed-left types/2]
 						compiler/get-type arg		;-- fallback for [variadic]
 					]
 					either all [
@@ -3765,7 +3766,10 @@ make-profilable make target-class [
 						]
 						either by-val? [emitter/foreach-member t/2 body][do body]
 					]
-					types: skip types 2
+					if positive? fixed-left [
+						fixed-left: fixed-left - 1
+						types: skip types 2
+					]
 				]
 			]
 			stk										;-- return extra args on stack count
