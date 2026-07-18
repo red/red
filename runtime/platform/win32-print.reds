@@ -310,26 +310,46 @@ prin*: func [
 ]
 
 prin-int*: func [i [integer!] return: [integer!]][
-	wflush swprintf [cbuffer #u16 "%i" i]
+	wflush swprintf [
+		as pointer! [uint16!] cbuffer
+		as pointer! [uint16!] #u16 "%i"
+		i
+	]
 	i
 ]
 
 prin-2hex*: func [i [integer!] return: [integer!]][
-	wflush swprintf [cbuffer #u16 "%02X" i]
+	wflush swprintf [
+		as pointer! [uint16!] cbuffer
+		as pointer! [uint16!] #u16 "%02X"
+		i
+	]
 	i
 ]
 
 prin-hex*: func [i [integer!] return: [integer!]][
-	wflush swprintf [cbuffer #u16 "%08X" i]
+	wflush swprintf [
+		as pointer! [uint16!] cbuffer
+		as pointer! [uint16!] #u16 "%08X"
+		i
+	]
 	i
 ]
 
 prin-float*: func [f [float!] return: [float!]][
-	wflush swprintf [cbuffer #u16 "%.16g" f]
+	wflush swprintf [
+		as pointer! [uint16!] cbuffer
+		as pointer! [uint16!] #u16 "%.16g"
+		f
+	]
 	f
 ]
 
 prin-float32*: func [f [float32!] return: [float32!]][
-	wflush swprintf [cbuffer #u16 "%.7g" as-float f]
+	wflush swprintf [
+		as pointer! [uint16!] cbuffer
+		as pointer! [uint16!] #u16 "%.7g"
+		as-float f
+	]
 	f
 ]
