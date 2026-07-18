@@ -340,7 +340,7 @@ make-profilable make target-class [
 						emit-load-float-literal raw type
 					]
 					all [find [int64! uint64!] type/1 any [integer? raw issue? raw]] [
-					emit-mov-imm64 raw type/1
+						emit-mov-imm64 raw type/1
 					]
 					true [
 						emit-load raw
@@ -545,11 +545,7 @@ make-profilable make target-class [
 			emit-i32 either float32-type? arg-type [#{BC0003E0}][#{FC0003E0}] ; STUR s0/d0, [sp]
 		][
 			unless value = <last> [
-				either all [
-					object? arg
-					compiler/find-attribute fspec/4 'typed
-					find [int64! uint64!] arg-type/1
-				][emit-load arg][emit-load value]
+				either object? arg [emit-load arg][emit-load value]
 			]
 			emit-i32 #{D10043FF}                              ; SUB sp, sp, #16
 			emit-i32 #{F90003E0}                              ; STR x0, [sp]
@@ -890,6 +886,7 @@ make-profilable make target-class [
 					either emitter/local-offset? raw [
 						emit-load-local/reg raw source-type 1
 					][
+						raw: compiler/resolve-ns raw
 						emit-load-global/reg raw source-type 1
 					]
 				]
@@ -977,8 +974,19 @@ make-profilable make target-class [
 			compiler/resolve-aliased compiler/get-type args/2/data
 		][right-type]
 
-		if all [object? args/2 compiler/integer-type? source-type: compiler/resolve-expr-type args/2/data][
-			emit-int-to-float source-type op-type
+		if all [
+			nested-right?
+			object? args/2
+			compiler/integer-type? source-type: compiler/resolve-expr-type args/2/data
+		][
+			emit-int-to-float/reg source-type op-type either saved? [1][0]
+		]
+		if all [
+			nested-left?
+			object? args/1
+			compiler/integer-type? left-source-type
+		][
+			emit-int-to-float left-source-type op-type
 		]
 		if all [nested-left? compiler/any-float? left-source-type][
 			emit-float-register-cast left-source-type op-type 0
@@ -1143,8 +1151,8 @@ make-profilable make target-class [
 	]
 
 	emit-move-path-alt: func [/pair /with type [block!] /local resolved][
-		resolved: compiler/resolve-aliased any [type compiler/last-type]
-		either compiler/any-float? resolved [
+		resolved: compiler/resolve-aliased/silent any [type compiler/last-type]
+		either all [resolved compiler/any-float? resolved] [
 			emit-i32 either float32-type? resolved [#{1E204002}][#{1E604002}] ; FMOV s2/d2, s0/d0
 		][
 			emit-i32 #{AA0003E2}                              ; MOV x2, x0
@@ -1511,6 +1519,7 @@ make-profilable make target-class [
 				either emitter/local-offset? raw [
 					emit-load-local/reg raw load-type 1
 				][
+					raw: compiler/resolve-ns raw
 					emit-load-global/reg raw load-type 1
 				]
 			]
@@ -1546,7 +1555,7 @@ make-profilable make target-class [
 
 	emit-integer-operation: func [
 		name [word!] args [block!]
-		/local type right-type right imm? wide? opcode mod-kind scale pointer-op? limit op-key
+		/local type right-type right left nested-right? nested-left? saved? imm? wide? opcode mod-kind scale pointer-op? limit op-key
 	][
 		type: compiler/resolve-aliased compiler/resolve-expr-type args/1
 		right-type: compiler/resolve-aliased compiler/resolve-expr-type args/2
@@ -1554,6 +1563,9 @@ make-profilable make target-class [
 		signed?: compiler/signed-integer? type
 		wide?: wide-type? type
 		right: compiler/unbox args/2
+		left: compiler/unbox args/1
+		nested-right?: any [block? right right = <last>]
+		nested-left?: any [block? left left = <last>]
 		if any [char? right logic? right][right: to integer! right]
 		imm?: integer? right
 		if object? args/2 [imm?: no]
@@ -1573,14 +1585,17 @@ make-profilable make target-class [
 			if imm? [right: right * scale]
 		]
 
-		if any [block? right right = <last>][
-			unless last-saved? [emit-move-alt wide?]
+		saved?: last-saved?
+		if all [nested-right? object? args/2][emit-casting args/2 saved?]
+		if nested-right? [
+			unless saved? [emit-move-alt wide?]
 		]
 		last-saved?: no
 
-		unless any [block? compiler/unbox args/1 compiler/unbox args/1 = <last>][
+		unless nested-left? [
 			emit-load args/1
 		]
+		if all [nested-left? object? args/1][emit-casting args/1 no]
 
 		;-- A64 arithmetic immediates are unsigned 12-bit values. Other operators
 		;-- use the same register path as non-literal right operands.
@@ -1678,13 +1693,14 @@ make-profilable make target-class [
 						emit-i32 #{2A0003E3}                  ; MOV w3, w0
 					]
 					either name = '* [
-					;-- Keep the full product in x2 for system/cpu/overflow?.
+					;-- Keep the full product in x3 for system/cpu/overflow?.
+					;-- x2 is used to preserve left operands while evaluating expressions.
 					either wide? [
-						emit-i32 either signed? [#{9B417C02}][#{9BC17C02}] ; SMULH/UMULH x2
+						emit-i32 either signed? [#{9B417C03}][#{9BC17C03}] ; SMULH/UMULH x3
 						emit-i32 #{9B017C00}                  ; MUL x0, x0, x1
 					][
-						emit-i32 either signed? [#{9B217C02}][#{9BA17C02}] ; SMULL/UMULL x2
-						emit-i32 #{2A0203E0}                  ; MOV w0, w2
+						emit-i32 either signed? [#{9B217C03}][#{9BA17C03}] ; SMULL/UMULL x3
+						emit-i32 #{2A0303E0}                  ; MOV w0, w3
 					]
 				][
 					op-key: either all [find [>>] name not signed?][first [-**]][name]
@@ -1724,12 +1740,12 @@ make-profilable make target-class [
 						][
 							#{93407C01}                          ; SXTW x1, w0
 						]
-						emit-i32 #{EB01005F}                  ; CMP x2, x1
+						emit-i32 #{EB01007F}                  ; CMP x3, x1
 					][
 						emit-i32 either width = 8 [
-							#{F100005F}                          ; CMP x2, #0
+							#{F100007F}                          ; CMP x3, #0
 						][
-							#{EB00005F}                          ; CMP x2, x0
+							#{EB00007F}                          ; CMP x3, x0
 						]
 					]
 					emit-overflow-branch 1                   ; B.NE overflow
@@ -1947,16 +1963,17 @@ make-profilable make target-class [
 				either last-math-wide? [
 					either last-math-signed? [
 						emit-i32 #{937FFC01}                  ; ASR x1, x0, #63
-						emit-i32 #{EB01005F}                  ; CMP x2, x1
+						emit-i32 #{EB01007F}                  ; CMP x3, x1
 					][
-						emit-i32 #{F100005F}                  ; CMP x2, #0
+						emit-i32 #{F100007F}                  ; CMP x3, #0
 					]
 				][
 					either last-math-signed? [
-						emit-i32 #{93407C01}                  ; SXTW x1, w0
-						emit-i32 #{EB01005F}                  ; CMP x2, x1
+						emit-i32 #{93407C61}                  ; SXTW x1, w3
+						emit-i32 #{EB01007F}                  ; CMP x3, x1
 					][
-						emit-i32 #{EB00005F}                  ; CMP x2, x0
+						emit-i32 #{2A0303E1}                  ; MOV w1, w3
+						emit-i32 #{EB01007F}                  ; CMP x3, x1
 					]
 				]
 				emit-cset 1                                  ; NE
@@ -2088,6 +2105,7 @@ make-profilable make target-class [
 	]
 
 	emit-open-catch: func [body-size [integer!] global? [logic!]][
+		global?: all [global? not compiler/job/need-main?]
 		either global? [
 			emit-i32 #{A9BF7BFD}                              ; STP x29, x30, [sp, #-16]!
 			emit-i32 #{910003FD}                              ; MOV x29, sp
@@ -2110,11 +2128,17 @@ make-profilable make target-class [
 
 	emit-close-catch: func [
 		offset [integer!] level [integer!] global? [logic!] callback? [logic!]
+		/local frame-size stack-offset
 	][
+		global?: all [global? not compiler/job/need-main?]
 		either global? [
 			emit-i32 #{910003BF}                              ; MOV sp, x29
 			emit-i32 #{A8C17BFD}                              ; LDP x29, x30, [sp], #16
 		][
+			frame-size: round/to/ceiling locals-offset + offset 16
+			stack-offset: frame-size + ((level + 1) * 16)
+			emit-i32 #{910003BF}                              ; MOV sp, x29
+			emit-adjust-stack stack-offset no
 			emit-i32 #{A8C10FE2}                              ; LDP x2, x3, [sp], #16
 			emit-frame-insn #{F8000000} -8 2                 ; STUR x2, [x29, #-8]
 			emit-frame-insn #{F8000000} -16 3                ; STUR x3, [x29, #-16]
@@ -2490,6 +2514,8 @@ make-profilable make target-class [
 		emit-i32 #{5AC01000}                                  ; CLZ w0, w0
 		emit-mov-imm32/reg 31 1
 		emit-i32 #{4B000020}                                  ; SUB w0, w1, w0
+		call-arg-index: call-arg-index - 1
+		take/last call-arg-types
 	]
 	emit-access-register: func [reg [word!] set? [logic!] value /local name kind number opcode][
 		if verbose >= 3 [print [">>>emitting ACCESS-REGISTER" reg]]
@@ -2512,6 +2538,9 @@ make-profilable make target-class [
 		emit-i32 (opcode-int opcode) or either set? [number][number * 65536]
 	]
 	emit-alloc-stack: func [zeroed? [logic!]][
+		emit-i32 #{91000400}                                  ; ADD x0, x0, #1
+		emit-i32 #{D341FC00}                                  ; LSR x0, x0, #1
+		emit-i32 #{D37FF800}                                  ; LSL x0, x0, #1 (round slots to even)
 		if zeroed? [emit-i32 #{AA0003E1}]                    ; MOV x1, x0
 		emit-i32 #{CB206FFF}                                  ; SUB sp, sp, x0, LSL #3
 		if zeroed? [
@@ -2523,6 +2552,9 @@ make-profilable make target-class [
 		]
 	]
 	emit-free-stack: does [
+		emit-i32 #{91000400}                                  ; ADD x0, x0, #1
+		emit-i32 #{D341FC00}                                  ; LSR x0, x0, #1
+		emit-i32 #{D37FF800}                                  ; LSL x0, x0, #1 (round slots to even)
 		emit-i32 #{8B206FFF}                                  ; ADD sp, sp, x0, LSL #3
 	]
 	emit-read-io: :unsupported-port-io

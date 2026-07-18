@@ -16,7 +16,7 @@ Red/System [
 
 #define RTLD_LAZY	1
 
-#either target = 'X86-64 [
+#either any [target = 'X86-64 target = 'ARM64] [
 	timeval!: alias struct! [
 		tv_sec		 [integer!]	;-- low 32 bits of time_t
 		tv_sec-high [integer!]
@@ -41,9 +41,9 @@ tm!: alias struct! [
 	yday	[integer!]		;-- Days in year[0-365]
 	isdst	[integer!]		;-- DST			[-1/0/1]
 
-	#if target = 'X86-64 [gmtoff-pad [integer!]]
+	#if any [target = 'X86-64 target = 'ARM64] [gmtoff-pad [integer!]]
 	gmtoff	[integer!]		;-- Seconds east of UTC, low 32 bits of long
-	#if target = 'X86-64 [gmtoff-high [integer!]]
+	#if any [target = 'X86-64 target = 'ARM64] [gmtoff-high [integer!]]
 	zone	[c-string!]		;-- Timezone abbreviation
 ]
 

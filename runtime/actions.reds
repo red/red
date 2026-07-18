@@ -546,6 +546,7 @@ actions: context [
 		op		[comparison-op!]
 		return: [integer!]
 		/local
+			bool1 bool2 [red-logic!]
 			action-compare res
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/compare-value"]]
@@ -553,7 +554,11 @@ actions: context [
 		action-compare: DISPATCH_COMPARE(value1)
 
 		switch TYPE_OF(value1) [
-			TYPE_LOGIC	 [res: value1/data1 - value2/data1]
+			TYPE_LOGIC	 [
+				bool1: as red-logic! value1
+				bool2: as red-logic! value2
+				res: (as-integer bool1/value) - (as-integer bool2/value)
+			]
 			TYPE_NATIVE
 			TYPE_ACTION
 			TYPE_OP		 [res: SIGN_COMPARE_RESULT(value1/data1 value2/data1)]

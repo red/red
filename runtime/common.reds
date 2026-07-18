@@ -177,7 +177,7 @@ report: func [
 	stack/unwind
 ]
 
-#either target = 'X86-64 [
+#either any [target = 'X86-64 target = 'ARM64] [
 	literal-c-string: func [value [c-string!] return: [c-string!]][value]
 	literal-c-string-array: func [
 		value	[pointer! [c-string!]]
@@ -325,9 +325,9 @@ call-with-array*: func [
 	call: as function! [[custom] return: [integer!]] p/id
 	xcode: as int-ptr! p/id
 
-	#either target = 'X86-64 [
+	#either any [target = 'X86-64 target = 'ARM64] [
 		assert size <= 16
-		loop 16 [push -1]
+		loop 16 [push NATIVE_SLOT_NONE]
 	][
 		loop size [push -1]
 	]
@@ -348,7 +348,7 @@ call-with-array*: func [
 		count: count - 4
 		zero? count
 	]
-	#either target = 'X86-64 [
+	#either any [target = 'X86-64 target = 'ARM64] [
 		system/stack/top: as int-ptr! ref-array
 		callx64: as function! [
 			a1  [integer!] a2  [integer!] a3  [integer!] a4  [integer!]
@@ -379,7 +379,7 @@ call-with-array*: func [
 				as-integer ref-array/15 as-integer ref-array/16
 		]
 	][
-		system/stack/top: ref-array
+		system/stack/top: vararg-to-int-pointer ref-array
 		if native? [push yes]
 		call size
 	]

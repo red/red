@@ -12,8 +12,16 @@ Red/System [
 
 #define OS_TYPE		2
 
+#either target = 'ARM64 [
+	#define SYSCALL_WRITE 64
+	#define SYSCALL_EXIT  93
+][
+	#define SYSCALL_WRITE 4
+	#define SYSCALL_EXIT  1
+]
+
 #syscall [
-	write: 4 [
+	write: SYSCALL_WRITE [
 		fd		[integer!]
 		buffer	[c-string!]
 		count	[integer!]
@@ -23,7 +31,7 @@ Red/System [
 
 #if use-natives? = yes [
 	#syscall [
-		quit: 1 [							;-- "exit" syscall
+		quit: SYSCALL_EXIT [				;-- "exit" syscall
 			status	[integer!]
 		]
 	]

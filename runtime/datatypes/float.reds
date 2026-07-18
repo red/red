@@ -770,7 +770,7 @@ float: context [
 
 		if DBL_EPSILON > abs left - right [return true] ;-- check if the numbers are really close, use an absolute epsilon
 
-		#if target = 'X86-64 [
+		#if any [target = 'X86-64 target = 'ARM64] [
 			if any [special? left special? right][
 				return any [
 					all [left = 1.#INF right = 1.7976931348623157e308]

@@ -117,24 +117,28 @@ linker: context [
 		/high
 			base-address-high [integer!]
 		/local
-			spec bits-offset struct-offset field-offset
+			spec bits-offset struct-offset field-offset image-base
 	][
 		unless job/runtime? [exit]
 		bits-offset: second second find job/symbols '***-ptr-bitmaps
 		spec: find job/symbols '***-exec-image
 		struct-offset: either target-64? job/target [8][4]
+		;-- ARM64 PIC startup derives the load base from this struct's runtime address.
+		image-base: either all [job/PIC? job/target = 'ARM64][
+			data-offset + spec/2/2 + struct-offset
+		][base-address]
 		field-offset: struct-offset
 		either target-64? job/target [
 			change/part
 				at job/sections/data/2 spec/2/2 + field-offset + 1
 				rejoin [
-					to-bin32 base-address
+					to-bin32 image-base
 					to-bin32 any [base-address-high 0]
 				]
 				8
 			field-offset: field-offset + 8
 		][
-			set-integer-at job spec/2/2 + field-offset base-address
+			set-integer-at job spec/2/2 + field-offset image-base
 			field-offset: field-offset + 4
 		]
 		set-integer-at job spec/2/2 + field-offset      code-offset

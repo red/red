@@ -697,7 +697,7 @@ Red/System [
 			#define O_APPEND	1024
 			#define	O_NONBLOCK	2048
 			#define	O_CLOEXEC	524288
-			#either target = 'ARM [
+			#either any [target = 'ARM target = 'ARM64] [
 				#define O_DIRECTORY 4000h
 			][
 				#define O_DIRECTORY 00010000h

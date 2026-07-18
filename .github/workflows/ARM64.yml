@@ -12,7 +12,7 @@ jobs:
     - name: Build Linux ARM64 tests
       uses: ./CI/Linux-32
       with:
-        command: rebol -qws system/tests/build-arm-tests.r -t Linux-ARM64
+        command: rebol -qws system/tests/build-arm-tests.r -t Linux-ARM64 && rebol -qws tests/build-arm-tests.r -t Linux-ARM64
 
     - name: Validate ARM64 test package
       shell: bash
@@ -25,12 +25,16 @@ jobs:
         test "$actual" -eq "$expected"
         sh "$package/validate-arm64-elf.sh" \
           "$package/array-test" "$package/libtest-dll1.so"
+        test -f quick-test/runnable/arm-tests/red/run-all-comp1
+        test -f quick-test/runnable/arm-tests/red/run-all-comp2
+        test -f quick-test/runnable/arm-tests/red/run-all-interp
+        test -f quick-test/runnable/arm-tests/red/run-all.sh
 
     - name: Upload ARM64 test package
       uses: actions/upload-artifact@v7
       with:
-        name: arm64-system-tests
-        path: quick-test/runnable/arm-tests/system/
+        name: arm64-tests
+        path: quick-test/runnable/arm-tests/
         retention-days: 3
 
   Run-ARM64-Tests:
@@ -40,16 +44,22 @@ jobs:
     - name: Download ARM64 test package
       uses: actions/download-artifact@v8
       with:
-        name: arm64-system-tests
-        path: system
+        name: arm64-tests
+        path: arm-tests
 
-    - name: Run ARM64 tests
-      working-directory: system
+    - name: Run ARM64 Red/System tests
+      working-directory: arm-tests/system
+      run: sh ./run-all.sh
+
+    - name: Run ARM64 Red tests
+      working-directory: arm-tests/red
       run: sh ./run-all.sh
 
     - name: Upload failure log
       if: failure()
       uses: actions/upload-artifact@v7
       with:
-        name: arm64-system-test-log
-        path: system/quick-test.log
+        name: arm64-test-logs
+        path: |
+          arm-tests/system/quick-test.log
+          arm-tests/red/quick-test.log

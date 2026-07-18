@@ -13,6 +13,7 @@ Red/System [
 routine-call-args!: alias struct! [
 	i1 [int-ptr!] i2 [int-ptr!] i3 [int-ptr!]
 	i4 [int-ptr!] i5 [int-ptr!] i6 [int-ptr!]
+	i7 [int-ptr!] i8 [int-ptr!]
 	f1 [float!] f2 [float!] f3 [float!] f4 [float!]
 	f5 [float!] f6 [float!] f7 [float!] f8 [float!]
 ]
@@ -351,7 +352,7 @@ interpreter: context [
 			i1 [int-ptr!] f1 [float!] i2 [int-ptr!] f2 [float!]
 			i3 [int-ptr!] f3 [float!] i4 [int-ptr!] f4 [float!]
 			i5 [int-ptr!] f5 [float!] i6 [int-ptr!] f6 [float!]
-			f7 [float!] f8 [float!]
+			i7 [int-ptr!] f7 [float!] i8 [int-ptr!] f8 [float!]
 			return: [integer!]
 		]]
 	][
@@ -359,12 +360,12 @@ interpreter: context [
 			i1 [int-ptr!] f1 [float!] i2 [int-ptr!] f2 [float!]
 			i3 [int-ptr!] f3 [float!] i4 [int-ptr!] f4 [float!]
 			i5 [int-ptr!] f5 [float!] i6 [int-ptr!] f6 [float!]
-			f7 [float!] f8 [float!]
+			i7 [int-ptr!] f7 [float!] i8 [int-ptr!] f8 [float!]
 			return: [integer!]
 		] entry
 		call
 			args/i1 args/f1 args/i2 args/f2 args/i3 args/f3 args/i4 args/f4
-			args/i5 args/f5 args/i6 args/f6 args/f7 args/f8
+			args/i5 args/f5 args/i6 args/f6 args/i7 args/f7 args/i8 args/f8
 	]
 
 	invoke-routine-float-x64: func [
@@ -375,7 +376,7 @@ interpreter: context [
 			i1 [int-ptr!] f1 [float!] i2 [int-ptr!] f2 [float!]
 			i3 [int-ptr!] f3 [float!] i4 [int-ptr!] f4 [float!]
 			i5 [int-ptr!] f5 [float!] i6 [int-ptr!] f6 [float!]
-			f7 [float!] f8 [float!]
+			i7 [int-ptr!] f7 [float!] i8 [int-ptr!] f8 [float!]
 			return: [float!]
 		]]
 	][
@@ -383,12 +384,12 @@ interpreter: context [
 			i1 [int-ptr!] f1 [float!] i2 [int-ptr!] f2 [float!]
 			i3 [int-ptr!] f3 [float!] i4 [int-ptr!] f4 [float!]
 			i5 [int-ptr!] f5 [float!] i6 [int-ptr!] f6 [float!]
-			f7 [float!] f8 [float!]
+			i7 [int-ptr!] f7 [float!] i8 [int-ptr!] f8 [float!]
 			return: [float!]
 		] entry
 		call
 			args/i1 args/f1 args/i2 args/f2 args/i3 args/f3 args/i4 args/f4
-			args/i5 args/f5 args/i6 args/f6 args/f7 args/f8
+			args/i5 args/f5 args/i6 args/f6 args/i7 args/f7 args/i8 args/f8
 	]
 
 	invoke-routine-int-win64: func [
@@ -601,10 +602,11 @@ interpreter: context [
 			stack/unwind
 			stack/set-last arg
 		][
-			#either target = 'X86-64 [
+			#either any [target = 'X86-64 target = 'ARM64] [
 				rargs: declare routine-call-args!
 				rargs/i1: null rargs/i2: null rargs/i3: null
 				rargs/i4: null rargs/i5: null rargs/i6: null
+				rargs/i7: null rargs/i8: null
 				rargs/f1: 0.0 rargs/f2: 0.0 rargs/f3: 0.0 rargs/f4: 0.0
 				rargs/f5: 0.0 rargs/f6: 0.0 rargs/f7: 0.0 rargs/f8: 0.0
 			][
@@ -634,8 +636,8 @@ interpreter: context [
 				value: value + 1
 				value >= tail
 			]
-			#either target = 'X86-64 [
-				assert int-count <= 6
+			#either any [target = 'X86-64 target = 'ARM64] [
+				#either target = 'ARM64 [assert int-count <= 8][assert int-count <= 6]
 				assert float-count <= 8
 				float-total: float-count
 			][0]
@@ -661,7 +663,7 @@ interpreter: context [
 							true [ERR_EXPECT_ARGUMENT(dt/value count)]
 						]
 					]
-					#either target = 'X86-64 [
+					#either any [target = 'X86-64 target = 'ARM64] [
 						either sym = words/float! [
 							switch float-count [
 								1 [rargs/f1: float/get arg]
@@ -684,6 +686,7 @@ interpreter: context [
 								1 [rargs/i1: raw] 2 [rargs/i2: raw]
 								3 [rargs/i3: raw] 4 [rargs/i4: raw]
 								5 [rargs/i5: raw] 6 [rargs/i6: raw]
+								7 [rargs/i7: raw] 8 [rargs/i8: raw]
 							]
 							int-count: int-count - 1
 						]
@@ -701,7 +704,7 @@ interpreter: context [
 			either positive? rtype/value [
 				switch rtype/value [
 					TYPE_LOGIC	[
-						#either target = 'X86-64 [
+						#either any [target = 'X86-64 target = 'ARM64] [
 							#either OS = 'Windows [
 								ret: either zero? float-total [invoke-routine-int-win64 entry rargs][invoke-routine-int-x64 entry rargs]
 							][ret: invoke-routine-int-x64 entry rargs]
@@ -711,7 +714,7 @@ interpreter: context [
 						bool/value: ret <> 0
 					]
 					TYPE_INTEGER [
-						#either target = 'X86-64 [
+						#either any [target = 'X86-64 target = 'ARM64] [
 							#either OS = 'Windows [
 								ret: either zero? float-total [invoke-routine-int-win64 entry rargs][invoke-routine-int-x64 entry rargs]
 							][ret: invoke-routine-int-x64 entry rargs]
@@ -721,7 +724,7 @@ interpreter: context [
 						int/value: ret
 					]
 					TYPE_FLOAT [
-						#either target = 'X86-64 [
+						#either any [target = 'X86-64 target = 'ARM64] [
 							retf: invoke-routine-float-x64 entry rargs
 						][
 							callf: as function! [[custom] return: [float!]] entry
@@ -733,7 +736,7 @@ interpreter: context [
 					]
 					default [assert false]				;-- should never happen
 				]
-			][#either target = 'X86-64 [
+			][#either any [target = 'X86-64 target = 'ARM64] [
 				#either OS = 'Windows [
 					either zero? float-total [invoke-routine-int-win64 entry rargs][invoke-routine-int-x64 entry rargs]
 				][invoke-routine-int-x64 entry rargs]
@@ -1007,9 +1010,9 @@ interpreter: context [
 			if value < tail [
 				int: as red-integer! tail - 1
 				if TYPE_OF(int) = TYPE_INTEGER [
-					#either target = 'X86-64 [
+					#either any [target = 'X86-64 target = 'ARM64] [
 						assert int/value <= 16
-						loop 16 [push -1]
+						loop 16 [push NATIVE_SLOT_NONE]
 					][
 						loop int/value [push -1]
 					]
@@ -1187,10 +1190,10 @@ interpreter: context [
 			if loc-cnt > 0 [assert not routine?	_function/init-locals loc-cnt]
 		][
 			if ref-array <> null [system/stack/top: vararg-to-int-pointer ref-array] ;-- reset native stack to our custom arguments frame
-			#if target <> 'X86-64 [
+			#if not any [target = 'X86-64 target = 'ARM64] [
 				if native? [push no]					;-- avoid 2nd type-checking for natives.
 			]
-			#either target = 'X86-64 [
+			#either any [target = 'X86-64 target = 'ARM64] [
 				either ref-array = null [
 					calln: as function! [] xcode
 					calln

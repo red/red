@@ -246,7 +246,7 @@ simple-io: context [
 			yday   [integer!] ;day in the year
 			isdst  [integer!] ;daylight saving time
 		]
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			timespec!: alias struct! [
 				sec      [integer!] ;Seconds, low 32 bits of time_t
 				sec-high [integer!]
@@ -486,6 +486,34 @@ simple-io: context [
 						st_ino_l	  [integer!]
 					]
 				][
+					#either target = 'ARM64 [
+						;-- glibc AArch64 struct stat, 128 bytes
+						stat!: alias struct! [
+							st_dev_l	  [integer!]
+							st_dev_h	  [integer!]
+							st_ino_l	  [integer!]
+							st_ino_h	  [integer!]
+							st_mode		  [integer!]
+							st_nlink	  [integer!]
+							st_uid		  [integer!]
+							st_gid		  [integer!]
+							st_rdev_l	  [integer!]
+							st_rdev_h	  [integer!]
+							pad0_l		  [integer!]
+							pad0_h		  [integer!]
+							st_size		  [integer!]
+							st_size_h	  [integer!]
+							st_blksize_l [integer!]
+							st_blksize_h [integer!]
+							st_blocks_l  [integer!]
+							st_blocks_h  [integer!]
+							st_atime	  [timespec! value]
+							st_mtime	  [timespec! value]
+							st_ctime	  [timespec! value]
+							reserved1	  [integer!]
+							reserved2	  [integer!]
+						]
+					][
 					#either target = 'X86-64 [
 						;-- glibc x86_64 struct stat, 144 bytes
 						stat!: alias struct! [
@@ -542,10 +570,10 @@ simple-io: context [
 							st_ino_h	  [integer!]
 							st_ino_l	  [integer!]
 						]
-					]
+					]]
 				]
 
-				#either target = 'X86-64 [
+				#either any [target = 'X86-64 target = 'ARM64] [
 					#define DIRENT_NAME_OFFSET 19
 				][
 					#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
@@ -556,9 +584,9 @@ simple-io: context [
 				]
 				dirent!: alias struct! [
 					d_ino			[integer!]
-					#if target = 'X86-64 [d_ino_h [integer!]]
+					#if any [target = 'X86-64 target = 'ARM64] [d_ino_h [integer!]]
 					d_off			[integer!]
-					#if target = 'X86-64 [d_off_h [integer!]]
+					#if any [target = 'X86-64 target = 'ARM64] [d_off_h [integer!]]
 					d_reclen		[byte!]
 					d_reclen_pad	[byte!]
 					d_type			[byte!]
@@ -594,7 +622,7 @@ simple-io: context [
 					]
 				]
 			]
-			target = 'X86-64 [
+			any [target = 'X86-64 target = 'ARM64] [
 				#import [
 					LIBC-file cdecl [
 						_stat: "fstat" [
@@ -819,7 +847,7 @@ simple-io: context [
 			OS = 'Windows [
 				GetFileSize file null
 			]
-			target = 'X86-64 [
+			any [target = 'X86-64 target = 'ARM64] [
 				s: as stat! system/stack/allocate 36	;-- x86-64 struct stat is 144 bytes
 				either zero? _stat file s [
 					either s/st_mode and S_IFREG <> 0 [
@@ -1186,7 +1214,7 @@ simple-io: context [
 			s: as stat! system/stack/allocate 36		;-- ensures stat! fits using a max value of 144 bytes
 			fd: open-file file/to-OS-path filename RIO_READ yes
 			if fd < 0 [	return none/push ]
-			#either any [target = 'X86-64 config-name = 'Pico OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
+			#either any [target = 'X86-64 target = 'ARM64 config-name = 'Pico OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				_stat   fd s
 			][	_stat 3 fd s]
 			close-file fd

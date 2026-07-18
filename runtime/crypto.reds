@@ -584,7 +584,11 @@ crypto: context [
 			]
 		]
 
-		#define SYS_getrandom			355		;-- system call for x86
+		#either target = 'ARM64 [
+			#define SYS_getrandom		278
+		][
+			#define SYS_getrandom		355
+		]
 		#define GRND_NONBLOCK			1
 		#define GRND_RANDOM				2
 		#define AF_ALG 					38

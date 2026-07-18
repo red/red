@@ -30,6 +30,7 @@ if system/script/args  [
 	    target = "Android"
 	    target = "RPi"
 		target = "Linux-ARM"
+	    target = "Linux-ARM64"
 	    target = "Darwin"
 	][
 	    target: none
@@ -43,8 +44,9 @@ unless target [
         1) Linux
         2) Android
         3) Linux armhf
+		4) Linux ARM64
         => }
-    target: pick ["Linux-ARM" "Android" "RPi"] to-integer target
+    target: pick ["Linux-ARM" "Android" "RPi" "Linux-ARM64"] to-integer target
 ]
 
 ;; make the Arm dir if needed

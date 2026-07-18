@@ -857,15 +857,21 @@ natives: context [
 		/local
 			type   [integer!]
 			res    [logic!]
+			bool1  [red-logic!]
+			bool2  [red-logic!]
 	][
 		type: TYPE_OF(arg1)
 		res: false
 		
 		if type = TYPE_OF(arg2) [
 			case [
+				type = TYPE_LOGIC [
+					bool1: as red-logic! arg1
+					bool2: as red-logic! arg2
+					res: bool1/value = bool2/value
+				]
 				any [
 					type = TYPE_DATATYPE
-					type = TYPE_LOGIC
 					type = TYPE_OBJECT
 				][
 					res: arg1/data1 = arg2/data1

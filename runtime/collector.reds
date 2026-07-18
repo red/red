@@ -87,7 +87,7 @@ collector: context [
 		min-size:  1000
 		fit-cache: 16									;-- nb of pointers fitting into a typical 64 bytes L1 cache
 
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			series-frame-from-slot: func [slot [ptr-ptr!] return: [series-frame!]][
 				as series-frame! (as byte-ptr! slot/value)
 			]
@@ -888,7 +888,7 @@ collector: context [
 			count i bits [integer!]
 			ptr? [logic!]
 	][
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			stk: stk - 5
 			count: as-integer stk/value				;-- args count
 			stk: stk - 1
@@ -902,7 +902,7 @@ collector: context [
 			i: 3										;-- skip variadic slots header
 		]
 		bits: 0
-		#if target = 'X86-64 [bits: 2]					;-- list is the second formal argument
+		#if any [target = 'X86-64 target = 'ARM64] [bits: 2] ;-- list is the second formal argument
 		either typed? [									;-- typed call (RTTI available)
 			assert count <= 9							;-- 32 - 3, divided by 3 slots per argument
 			loop count [
@@ -920,7 +920,7 @@ collector: context [
 			bits
 		][												;-- variadic call (no RTTI)
 			assert count <= 14							;-- 32 - 3 divided by 2 slots per argument
-			#either target = 'X86-64 [
+			#either any [target = 'X86-64 target = 'ARM64] [
 				bits or (((1 << count) - 1) << i)
 			][
 				bits: (1 << (count * 2)) - 1			;-- set bits for all required positions
@@ -977,7 +977,7 @@ collector: context [
 				assert slot-bits >= 0
 				b: either slot-bits and 40000000h <> 0 [base'][base] ;-- select exe or dll's bitmap array
 				map: b + (slot-bits and 0FFFFFFFh)		;-- first corresponding bitmap slot (removing bit flags)
-				#either target = 'X86-64 [
+				#either any [target = 'X86-64 target = 'ARM64] [
 					arg-slots: map/value
 					map: map + 1
 					local-slots: map/value
@@ -987,10 +987,10 @@ collector: context [
 					local-slots: 0
 				]
 				head: map								;-- saved head reference for later args bitmap detection
-				#either target = 'X86-64 [idx: -1][idx: 2] ;-- arguments index
+				#either any [target = 'X86-64 target = 'ARM64] [idx: -1][idx: 2] ;-- arguments index
 				disp: 1									;-- scanning direction
 				loop 2 [								;-- 1st loop: args, 2nd loop: locals
-					#either target = 'X86-64 [
+					#either any [target = 'X86-64 target = 'ARM64] [
 						slots: either disp = 1 [arg-slots][local-slots]
 					][slots: 0]
 					until [
@@ -1004,15 +1004,15 @@ collector: context [
 						][
 							dyn?: yes
 							bits: encode-dyn-ptr frm bits = 20000000h ;-- replace bitmap by a dynamic one (32 stack slots only)
-							#if target = 'X86-64 [slots: 31]
+							#if any [target = 'X86-64 target = 'ARM64] [slots: 31]
 						]
-						while [#either target = 'X86-64 [
+						while [#either any [target = 'X86-64 target = 'ARM64] [
 							any [bits <> 0 (idx + 1) < slots]
 						][
 							bits <> 0
 						]][
-							#either target = 'X86-64 [idx: idx + 1][idx: idx + disp]
-							#if target = 'X86-64 [
+							#either any [target = 'X86-64 target = 'ARM64] [idx: idx + 1][idx: idx + disp]
+							#if any [target = 'X86-64 target = 'ARM64] [
 								sp-address: either disp = -1 [
 									(as byte-ptr! frm) - ((5 + arg-slots + idx) * size? pointer!)
 								][either all [dyn? idx >= arg-slots] [
@@ -1030,10 +1030,10 @@ collector: context [
 								]
 							]
 							if bits and 1 <> 0 [		;-- check if the slot is a pointer
-								#either target = 'X86-64 [
+								#either any [target = 'X86-64 target = 'ARM64] [
 								][sp: frm + idx - 1]
 								p: sp/value
-								if #either target = 'X86-64 [
+								if #either any [target = 'X86-64 target = 'ARM64] [
 									p > as int-ptr! FFFFh
 								][all [
 									p > as int-ptr! FFFFh	  ;-- filter out too low values
@@ -1071,7 +1071,7 @@ collector: context [
 												]
 												refs/value: p			;-- pointer inside a frame
 												new: refs + 1
-												#either target = 'X86-64 [
+													#either any [target = 'X86-64 target = 'ARM64] [
 													new/value: as int-ptr! sp-address
 												][new/value: as int-ptr! sp]
 												refs: refs + 2
@@ -1087,7 +1087,7 @@ collector: context [
 						map: map + 1					;-- next 31 slots bitmap
 						not ext?						;-- loop until no more extended slots
 					]
-					#either target = 'X86-64 [idx: -1][idx: -3] ;-- locals index
+					#either any [target = 'X86-64 target = 'ARM64] [idx: -1][idx: -3] ;-- locals index
 					disp: -1							;-- scanning direction
 				]
 			]
@@ -1189,7 +1189,7 @@ collector: context [
 			if verbose > 1 [probe "^/marking..."]
 		]
 
-		#either target = 'X86-64 [
+		#either any [target = 'X86-64 target = 'ARM64] [
 			0										;-- rs-* relocation map still uses 32-bit pointer keys
 		][
 			do-node-cycle

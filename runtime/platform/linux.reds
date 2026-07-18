@@ -35,6 +35,11 @@ Red/System [
 		#define SYSCALL_MMAP		9
 		#define SYSCALL_MUNMAP		11
 	]
+	ARM64 [
+		#define SYSCALL_GETDENTS64	61
+		#define SYSCALL_MMAP		222
+		#define SYSCALL_MUNMAP		215
+	]
 	#default [
 		#define SYSCALL_GETDENTS64	220
 		#define SYSCALL_MMAP2		192

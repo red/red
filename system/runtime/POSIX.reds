@@ -155,7 +155,7 @@ posix-startup-ctx: context [
 			][
 				system/image: ***-exec-image
 				#either target = 'ARM64 [
-					system/image/base: (as byte-ptr! :***-boot-rs) - system/image/code
+					system/image/base: (as byte-ptr! ***-exec-image) - (as integer! system/image/base)
 				][
 					system/image/base: as byte-ptr!
 						#either target = 'IA-32 [system/cpu/ebx][system/cpu/r9]
@@ -174,6 +174,9 @@ posix-startup-ctx: context [
 			]
 		]
 		exe [
+			#if all [target = 'ARM64 PIC? = yes][
+				system/image/base: (as byte-ptr! ***-exec-image) - (as integer! system/image/base)
+			]
 			posix-startup-ctx/init
 		]
 	]
