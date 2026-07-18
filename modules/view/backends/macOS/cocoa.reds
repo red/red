@@ -10,6 +10,28 @@ Red/System [
 	}
 ]
 
+#either ABI = 'apple-aarch64 [
+	#define Cocoa-handle! int64!
+	#define Cocoa-uhandle! uint64!
+	#define Cocoa-handle-ptr! [pointer! [int64!]]
+	#define Cocoa-float! float!
+	#define Cocoa-float-ptr! [pointer! [float!]]
+	#define NSInteger! int64!
+	#define NSUInteger! uint64!
+	#define COCOA_TO_F32(value) [as float32! value]
+	#define F32_TO_COCOA [as float!]
+][
+	#define Cocoa-handle! integer!
+	#define Cocoa-uhandle! integer!
+	#define Cocoa-handle-ptr! int-ptr!
+	#define Cocoa-float! float32!
+	#define Cocoa-float-ptr! float32-ptr!
+	#define NSInteger! integer!
+	#define NSUInteger! integer!
+	#define COCOA_TO_F32(value) [value]
+	#define F32_TO_COCOA []
+]
+
 #define NSNotFound					7FFFFFFFh			;@@ should be NSIntegerMax
 
 #define OBJC_ASSOCIATION_ASSIGN		0
@@ -185,43 +207,51 @@ Red/System [
 #define OBJC_ALLOC(class) [objc_msgSend [objc_getClass class sel_alloc]]
 
 objc_super!: alias struct! [
-	receiver	[integer!]
-	superclass	[integer!]
+	receiver	[Cocoa-handle!]
+	superclass	[Cocoa-handle!]
 ]
 
 NSRect!: alias struct! [
-	x		[float32!]
-	y		[float32!]
-	w		[float32!]
-	h		[float32!]
+	x		[Cocoa-float!]
+	y		[Cocoa-float!]
+	w		[Cocoa-float!]
+	h		[Cocoa-float!]
 ]
 
 NSColor!: alias struct! [
-	r		[float32!]
-	g		[float32!]
-	b		[float32!]
-	a		[float32!]
+	r		[Cocoa-float!]
+	g		[Cocoa-float!]
+	b		[Cocoa-float!]
+	a		[Cocoa-float!]
 ]
 
 NSSize!: alias struct! [
-	w		[float32!]
-	h		[float32!]
+	w		[Cocoa-float!]
+	h		[Cocoa-float!]
 ]
 
 NSRange!: alias struct! [
-	idx		[integer!]
-	len		[integer!]
+	idx		[NSUInteger!]
+	len		[NSUInteger!]
 ]
 
 CGPoint!: alias struct! [
-	x		[float32!]
-	y		[float32!]
+	x		[Cocoa-float!]
+	y		[Cocoa-float!]
+]
+
+Cocoa-handle-array!: alias struct! [
+	v1	[Cocoa-handle!]
+	v2	[Cocoa-handle!]
+	v3	[Cocoa-handle!]
+	v4	[Cocoa-handle!]
+	v5	[Cocoa-handle!]
 ]
 
 CGPatternCallbacks!: alias struct! [
 	version		[integer!]
-	drawPattern [integer!]
-	releaseInfo [integer!]
+	drawPattern [int-ptr!]
+	releaseInfo [int-ptr!]
 ]
 
 RECT_STRUCT: alias struct! [
@@ -248,34 +278,34 @@ tagSIZE: alias struct! [
 			c			[integer!]
 			return:		[c-string!]
 		]
+		_NSConcreteStackBlock: "_NSConcreteStackBlock" [Cocoa-handle!]
 		objc_getClass: "objc_getClass" [
 			class		[c-string!]
-			return:		[integer!]
+			return:		[Cocoa-handle!]
 		]
 		objc_allocateClassPair: "objc_allocateClassPair" [
-			superclass	[integer!]
+			superclass	[Cocoa-handle!]
 			name		[c-string!]
-			extraBytes	[integer!]
-			return:		[integer!]
+			extraBytes	[Cocoa-uhandle!]
+			return:		[Cocoa-handle!]
 		]
 		objc_registerClassPair: "objc_registerClassPair" [
-			class		[integer!]
-			return:		[integer!]
+			class		[Cocoa-handle!]
 		]
 		objc_setAssociatedObject: "objc_setAssociatedObject" [
-			obj			[integer!]
-			key			[integer!]
-			value		[integer!]
+			obj			[Cocoa-handle!]
+			key			[Cocoa-handle!]
+			value		[Cocoa-handle!]
 			policy		[integer!]
 		]
 		objc_getAssociatedObject: "objc_getAssociatedObject" [
-			obj			[integer!]
-			key			[integer!]
-			return:		[integer!]
+			obj			[Cocoa-handle!]
+			key			[Cocoa-handle!]
+			return:		[Cocoa-handle!]
 		]
 		sel_getUid: "sel_getUid" [
 			name		[c-string!]
-			return:		[integer!]
+			return:		[Cocoa-handle!]
 		]
 		;ivar_getOffset: "ivar_getOffset" [
 		;	ivar		[integer!]
@@ -287,98 +317,109 @@ tagSIZE: alias struct! [
 		;	return:		[integer!]
 		;]
 		class_addIvar: "class_addIvar" [
-			class		[integer!]
+			class		[Cocoa-handle!]
 			name		[c-string!]
-			size		[integer!]
-			alignment	[integer!]
+			size		[Cocoa-uhandle!]
+			alignment	[byte!]
 			types		[c-string!]
 			return:		[logic!]
 		]
 		class_addMethod: "class_addMethod" [
-			class		[integer!]
-			name		[integer!]
-			implement	[integer!]
+			class		[Cocoa-handle!]
+			name		[Cocoa-handle!]
+			implement	[int-ptr!]
 			types		[c-string!]
-			return:		[integer!]
+			return:		[logic!]
 		]
 		class_replaceMethod: "class_replaceMethod" [
-			class		[integer!]
-			name		[integer!]
-			implement	[integer!]
+			class		[Cocoa-handle!]
+			name		[Cocoa-handle!]
+			implement	[int-ptr!]
 			types		[c-string!]
-			return:		[integer!]
+			return:		[int-ptr!]
 		]
 		class_getSuperclass: "class_getSuperclass" [
-			cls			[integer!]
-			return:		[integer!]
+			cls			[Cocoa-handle!]
+			return:		[Cocoa-handle!]
 		]
 		class_addProtocol: "class_addProtocol" [
-			cls			[integer!]
-			protocol	[integer!]
+			cls			[Cocoa-handle!]
+			protocol	[Cocoa-handle!]
 			return:		[logic!]
 		]
 		object_getClass: "object_getClass" [
-			id			[integer!]
-			return:		[integer!]
+			id			[Cocoa-handle!]
+			return:		[Cocoa-handle!]
 		]
 		object_setInstanceVariable: "object_setInstanceVariable" [
-			id			[integer!]
+			id			[Cocoa-handle!]
 			name		[c-string!]
-			value		[integer!]
-			return:		[integer!]
+			value		[Cocoa-handle!]
+			return:		[Cocoa-handle!]
 		]
 		object_getInstanceVariable: "object_getInstanceVariable" [
-			id			[integer!]
+			id			[Cocoa-handle!]
 			name		[c-string!]
-			out			[int-ptr!]
-			return:		[integer!]
+			out			[Cocoa-handle-ptr!]
+			return:		[Cocoa-handle!]
 		]
 		objc_getProtocol: "objc_getProtocol" [
 			name		[c-string!]
-			return:		[integer!]
+			return:		[Cocoa-handle!]
 		]
-		objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
-		objc_msgSend_pt: "objc_msgSend" [[variadic] return: [CGPoint! value]]
-		objc_msgSend_sz: "objc_msgSend" [[variadic] return: [NSSize! value]]
-		objc_msgSend_range: "objc_msgSend" [[variadic] return: [NSRange! value]]
-		objc_msgSendSuper: "objc_msgSendSuper" [[variadic] return: [integer!]]
-		objc_msgSend_f32: "objc_msgSend_fpret" [[variadic] return: [float32!]]
-		objc_msgSend_fpret: "objc_msgSend_fpret" [[variadic] return: [float!]]
-		objc_msgSend_stret: "objc_msgSend_stret" [[custom]]
-		objc_msgSend_rect: "objc_msgSend_stret" [[variadic] return: [NSRect! value]]
+		objc_msgSend: "objc_msgSend" [[variadic objc] return: [Cocoa-handle!]]
+		objc_msgSend_pt: "objc_msgSend" [[variadic objc] return: [CGPoint! value]]
+		objc_msgSend_sz: "objc_msgSend" [[variadic objc] return: [NSSize! value]]
+		objc_msgSend_range: "objc_msgSend" [[variadic objc] return: [NSRange! value]]
+		objc_msgSendSuper: "objc_msgSendSuper" [
+			[variadic objc]
+			super		[objc_super!]
+			selector	[Cocoa-handle!]
+			return:		[Cocoa-handle!]
+		]
+		#either ABI = 'apple-aarch64 [
+			objc_msgSend_f32: "objc_msgSend" [[variadic objc] return: [Cocoa-float!]]
+			objc_msgSend_fpret: "objc_msgSend" [[variadic objc] return: [float!]]
+			objc_msgSend_rect: "objc_msgSend" [[variadic objc] return: [NSRect! value]]
+		][
+			objc_msgSend_f32: "objc_msgSend_fpret" [[variadic] return: [Cocoa-float!]]
+			objc_msgSend_fpret: "objc_msgSend_fpret" [[variadic] return: [float!]]
+			objc_msgSend_stret: "objc_msgSend_stret" [[custom]]
+			objc_msgSend_rect: "objc_msgSend_stret" [[variadic] return: [NSRect! value]]
+		]
 		_Block_object_assign: "_Block_object_assign" [
-			destAddr	[integer!]
-			obj			[integer!]
+			destAddr	[Cocoa-handle!]
+			obj			[Cocoa-handle!]
 			flags		[integer!]
 		]
 		_Block_object_dispose: "_Block_object_dispose" [
-			obj			[integer!]
+			obj			[Cocoa-handle!]
 			flags		[integer!]
 		]
 	]
 	"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
-		kCFRunLoopDefaultMode: "kCFRunLoopDefaultMode" [integer!]
+		kCFRunLoopDefaultMode: "kCFRunLoopDefaultMode" [Cocoa-handle!]
 		CFAttributedStringCreate: "CFAttributedStringCreate" [
-			allocator	[integer!]
-			str			[integer!]
-			attributes	[integer!]
-			return:		[integer!]
+			allocator	[Cocoa-handle!]
+			str			[Cocoa-handle!]
+			attributes	[Cocoa-handle!]
+			return:		[Cocoa-handle!]
 		]
 		CFGetTypeID: "CFGetTypeID" [
-			cf			[int-ptr!]
-			return:		[integer!]
+			cf			[Cocoa-handle!]
+			return:		[Cocoa-uhandle!]
 		]
 		CFNumberGetTypeID: "CFNumberGetTypeID" [
-			return:		[integer!]
+			return:		[Cocoa-uhandle!]
 		]
 		CFNumberGetValue: "CFNumberGetValue" [
-			number		[int-ptr!]
+			number		[Cocoa-handle!]
 			theType		[integer!]
 			valuePtr	[int-ptr!]
 			return:		[logic!]
 		]
 		CFRunLoopGetCurrent: "CFRunLoopGetCurrent" [
-			return:		[int-ptr!]
+			return:		[Cocoa-handle!]
 		]
 		;CFAttributedStringCreateMutable: "CFAttributedStringCreateMutable" [
 		;	allocator	[integer!]
@@ -409,46 +450,45 @@ tagSIZE: alias struct! [
 		;	aStr		[integer!]
 		;]
 		CFStringCreateWithCString: "CFStringCreateWithCString" [
-			allocator	[integer!]
+			allocator	[Cocoa-handle!]
 			cStr		[c-string!]
 			encoding	[integer!]
-			return:		[integer!]
+			return:		[Cocoa-handle!]
 		]
 		CFNumberCreate: "CFNumberCreate" [
-			allocator	[integer!]
+			allocator	[Cocoa-handle!]
 			type		[integer!]
 			valuePtr	[int-ptr!]
-			return:		[integer!]
+			return:		[Cocoa-handle!]
 		]
 		CFRelease: "CFRelease" [
-			cf			[integer!]
+			cf			[Cocoa-handle!]
 		]
 	]
 	"/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation" cdecl [
 		NSStringFromClass: "NSStringFromClass" [
-			class		[integer!]
-			return:		[integer!]
+			class		[Cocoa-handle!]
+			return:		[Cocoa-handle!]
 		]
-		_NSConcreteStackBlock: "_NSConcreteStackBlock" [integer!]
 	]
 	"/System/Library/Frameworks/AVFoundation.framework/AVFoundation" cdecl [
-		AVMediaTypeVideo: "AVMediaTypeVideo" [integer!]
-		AVVideoCodecKey: "AVVideoCodecKey" [integer!]
-		AVVideoCodecJPEG: "AVVideoCodecJPEG" [integer!]
+		AVMediaTypeVideo: "AVMediaTypeVideo" [Cocoa-handle!]
+		AVVideoCodecKey: "AVVideoCodecKey" [Cocoa-handle!]
+		AVVideoCodecJPEG: "AVVideoCodecJPEG" [Cocoa-handle!]
 	]
 	"/System/Library/Frameworks/AppKit.framework/Versions/Current/AppKit" cdecl [
 		NSBeep: "NSBeep" []
-		NSDeviceResolution: "NSDeviceResolution" [integer!]
-		NSDefaultRunLoopMode: "NSDefaultRunLoopMode" [integer!]
-		NSModalPanelRunLoopMode: "NSModalPanelRunLoopMode" [integer!]
-		NSFontAttributeName: "NSFontAttributeName" [integer!]
-		NSParagraphStyleAttributeName: "NSParagraphStyleAttributeName" [integer!]
-		NSForegroundColorAttributeName: "NSForegroundColorAttributeName" [integer!]
-		NSBackgroundColorAttributeName: "NSBackgroundColorAttributeName" [integer!]
-		NSUnderlineStyleAttributeName: "NSUnderlineStyleAttributeName" [integer!]	
-		NSStrikethroughStyleAttributeName: "NSStrikethroughStyleAttributeName" [integer!]
-		NSMarkedClauseSegmentAttributeName: "NSMarkedClauseSegmentAttributeName" [integer!]
-		NSGlyphInfoAttributeName: "NSGlyphInfoAttributeName" [integer!]
+		NSDeviceResolution: "NSDeviceResolution" [Cocoa-handle!]
+		NSDefaultRunLoopMode: "NSDefaultRunLoopMode" [Cocoa-handle!]
+		NSModalPanelRunLoopMode: "NSModalPanelRunLoopMode" [Cocoa-handle!]
+		NSFontAttributeName: "NSFontAttributeName" [Cocoa-handle!]
+		NSParagraphStyleAttributeName: "NSParagraphStyleAttributeName" [Cocoa-handle!]
+		NSForegroundColorAttributeName: "NSForegroundColorAttributeName" [Cocoa-handle!]
+		NSBackgroundColorAttributeName: "NSBackgroundColorAttributeName" [Cocoa-handle!]
+		NSUnderlineStyleAttributeName: "NSUnderlineStyleAttributeName" [Cocoa-handle!]
+		NSStrikethroughStyleAttributeName: "NSStrikethroughStyleAttributeName" [Cocoa-handle!]
+		NSMarkedClauseSegmentAttributeName: "NSMarkedClauseSegmentAttributeName" [Cocoa-handle!]
+		NSGlyphInfoAttributeName: "NSGlyphInfoAttributeName" [Cocoa-handle!]
 	]
 	"/System/Library/Frameworks/CoreServices.framework/CoreServices" cdecl [
 		Gestalt: "Gestalt" [
@@ -467,67 +507,67 @@ tagSIZE: alias struct! [
 			listOption	[integer!]
 			windowID	[integer!]
 			imageOption [integer!]
-			return:		[integer!]
+			return:		[Cocoa-handle!]
 		]
 		CTLineCreateWithAttributedString: "CTLineCreateWithAttributedString" [
-			aStr		[integer!]
-			return:		[integer!]
+			aStr		[Cocoa-handle!]
+			return:		[Cocoa-handle!]
 		]
 		CTLineDraw: "CTLineDraw" [
-			line		[integer!]
+			line		[Cocoa-handle!]
 			c			[handle!]
 		]
 		CGRectContainsPoint: "CGRectContainsPoint" [
-			x			[float32!]
-			y			[float32!]
-			width		[float32!]
-			height		[float32!]
-			x1			[float32!]
-			y1			[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
+			width		[Cocoa-float!]
+			height		[Cocoa-float!]
+			x1			[Cocoa-float!]
+			y1			[Cocoa-float!]
 			return:		[logic!]
 		]
 		CGColorSpaceCreatePattern: "CGColorSpaceCreatePattern" [
-			baseSpace	[integer!]
-			return:		[integer!]
+			baseSpace	[Cocoa-handle!]
+			return:		[Cocoa-handle!]
 		]
 		CGColorSpaceCreateDeviceRGB: "CGColorSpaceCreateDeviceRGB" [
-			return:		[integer!]
+			return:		[Cocoa-handle!]
 		]
 		CGContextSetFillColorSpace: "CGContextSetFillColorSpace" [
 			ctx			[handle!]
-			space		[integer!]
+			space		[Cocoa-handle!]
 		]
 		CGColorSpaceRelease: "CGColorSpaceRelease" [
-			colorspace	[integer!]
+			colorspace	[Cocoa-handle!]
 		]
 		CGGradientCreateWithColorComponents: "CGGradientCreateWithColorComponents" [
-			colorspace	[integer!]
-			components	[pointer! [float32!]]
-			locations	[pointer! [float32!]]
+			colorspace	[Cocoa-handle!]
+			components	[Cocoa-float-ptr!]
+			locations	[Cocoa-float-ptr!]
 			nlocations	[integer!]
-			return:		[integer!]
+			return:		[Cocoa-handle!]
 		]
 		CGGradientRelease: "CGGradientRelease" [
-			gradient	[integer!]
+			gradient	[Cocoa-handle!]
 		]
 		CGContextDrawLinearGradient: "CGContextDrawLinearGradient" [
 			ctx			[handle!]
-			gradient	[integer!]
-			start-x		[float32!]
-			start-y		[float32!]
-			end-x		[float32!]
-			end-y		[float32!]
+			gradient	[Cocoa-handle!]
+			start-x		[Cocoa-float!]
+			start-y		[Cocoa-float!]
+			end-x		[Cocoa-float!]
+			end-y		[Cocoa-float!]
 			options		[integer!]
 		]
 		CGContextDrawRadialGradient: "CGContextDrawRadialGradient" [
 			ctx			[handle!]
-			gradient	[integer!]
-			start-x		[float32!]
-			start-y		[float32!]
-			start-r		[float32!]
-			end-x		[float32!]
-			end-y		[float32!]
-			end-r		[float32!]
+			gradient	[Cocoa-handle!]
+			start-x		[Cocoa-float!]
+			start-y		[Cocoa-float!]
+			start-r		[Cocoa-float!]
+			end-x		[Cocoa-float!]
+			end-y		[Cocoa-float!]
+			end-r		[Cocoa-float!]
 			options		[integer!]
 		]
 		CGContextSaveGState: "CGContextSaveGState" [
@@ -538,61 +578,61 @@ tagSIZE: alias struct! [
 		]
 		CGContextSetTextPosition: "CGContextSetTextPosition" [
 			c			[handle!]
-			x			[float32!]
-			y			[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
 		]
 		CGContextSetRGBStrokeColor: "CGContextSetRGBStrokeColor" [
 			c			[handle!]
-			red			[float32!]
-			green		[float32!]
-			blue		[float32!]
-			alpha		[float32!]
+			red			[Cocoa-float!]
+			green		[Cocoa-float!]
+			blue		[Cocoa-float!]
+			alpha		[Cocoa-float!]
 		]
 		CGContextSetRGBFillColor: "CGContextSetRGBFillColor" [
 			c			[handle!]
-			red			[float32!]
-			green		[float32!]
-			blue		[float32!]
-			alpha		[float32!]
+			red			[Cocoa-float!]
+			green		[Cocoa-float!]
+			blue		[Cocoa-float!]
+			alpha		[Cocoa-float!]
 		]
 		CGContextStrokeRect: "CGContextStrokeRect" [
 			c			[handle!]
-			x			[float32!]
-			y			[float32!]
-			width		[float32!]
-			height		[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
+			width		[Cocoa-float!]
+			height		[Cocoa-float!]
 		]
 		CGContextFillRect: "CGContextFillRect" [
 			c			[handle!]
-			x			[float32!]
-			y			[float32!]
-			width		[float32!]
-			height		[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
+			width		[Cocoa-float!]
+			height		[Cocoa-float!]
 		]
 		CGContextFillEllipseInRect: "CGContextFillEllipseInRect" [
 			c			[handle!]
-			x			[float32!]
-			y			[float32!]
-			width		[float32!]
-			height		[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
+			width		[Cocoa-float!]
+			height		[Cocoa-float!]
 		]
 		CGContextStrokeEllipseInRect: "CGContextStrokeEllipseInRect" [
 			c			[handle!]
-			x			[float32!]
-			y			[float32!]
-			width		[float32!]
-			height		[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
+			width		[Cocoa-float!]
+			height		[Cocoa-float!]
 		]
 		CGContextAddEllipseInRect: "CGContextAddEllipseInRect" [
 			c			[handle!]
-			x			[float32!]
-			y			[float32!]
-			width		[float32!]
-			height		[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
+			width		[Cocoa-float!]
+			height		[Cocoa-float!]
 		]
 		CGContextSetLineWidth: "CGContextSetLineWidth" [
 			c			[handle!]
-			width		[float32!]
+			width		[Cocoa-float!]
 		]
 		CGContextSetLineJoin: "CGContextSetLineJoin" [
 			c			[handle!]
@@ -604,8 +644,8 @@ tagSIZE: alias struct! [
 		]
 		CGContextSetLineDash: "CGContextSetLineDash" [
 			c			[handle!]
-			phase		[float32!]
-			lengths		[float32-ptr!]
+			phase		[Cocoa-float!]
+			lengths		[Cocoa-float-ptr!]
 			count		[integer!]
 		]
 		CGContextSetAllowsAntialiasing: "CGContextSetAllowsAntialiasing" [
@@ -618,7 +658,7 @@ tagSIZE: alias struct! [
 		]
 		CGContextSetMiterLimit: "CGContextSetMiterLimit" [
 			c			[handle!]
-			limit		[float32!]
+			limit		[Cocoa-float!]
 		]
 		CGContextBeginPath: "CGContextBeginPath" [
 			c			[handle!]
@@ -628,40 +668,40 @@ tagSIZE: alias struct! [
 		]
 		CGContextCopyPath: "CGContextCopyPath" [
 			ctx			[handle!]
-			return:		[integer!]
+			return:		[Cocoa-handle!]
 		]
 		CGContextAddPath: "CGContextAddPath" [
 			ctx			[handle!]
-			path		[integer!]
+			path		[Cocoa-handle!]
 		]
 		CGContextClip: "CGContextClip" [
 			c			[handle!]
 		]
 		CGContextMoveToPoint: "CGContextMoveToPoint" [
 			c			[handle!]
-			x			[float32!]
-			y			[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
 		]
 		CGContextAddLineToPoint: "CGContextAddLineToPoint" [
 			c			[handle!]
-			x			[float32!]
-			y			[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
 		]
 		CGContextAddCurveToPoint: "CGContextAddCurveToPoint" [
 			c			[handle!]
-			cp1x		[float32!]
-			cp1y		[float32!]
-			cp2x		[float32!]
-			cp2y		[float32!]
-			x			[float32!]
-			y			[float32!]
+			cp1x		[Cocoa-float!]
+			cp1y		[Cocoa-float!]
+			cp2x		[Cocoa-float!]
+			cp2y		[Cocoa-float!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
 		]
 		CGContextAddQuadCurveToPoint: "CGContextAddQuadCurveToPoint" [
 			c			[handle!]
-			cp1x		[float32!]
-			cp1y		[float32!]
-			x			[float32!]
-			y			[float32!]
+			cp1x		[Cocoa-float!]
+			cp1y		[Cocoa-float!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
 		]
 		CGContextAddLines: "CGContextAddLines" [
 			c			[handle!]
@@ -670,27 +710,27 @@ tagSIZE: alias struct! [
 		]
 		CGContextAddArc: "CGContextAddArc" [
 			c			[handle!]
-			x			[float32!]
-			y			[float32!]
-			radius		[float32!]
-			startAngle	[float32!]
-			endAngle	[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
+			radius		[Cocoa-float!]
+			startAngle	[Cocoa-float!]
+			endAngle	[Cocoa-float!]
 			clockwise	[integer!]
 		]
 		CGContextAddArcToPoint: "CGContextAddArcToPoint" [
 			c			[handle!]
-			x1			[float32!]
-			y1			[float32!]
-			x2			[float32!]
-			y2			[float32!]
-			radius		[float32!]
+			x1			[Cocoa-float!]
+			y1			[Cocoa-float!]
+			x2			[Cocoa-float!]
+			y2			[Cocoa-float!]
+			radius		[Cocoa-float!]
 		]
 		CGContextAddRect: "CGContextAddRect" [
 			c			[handle!]
-			x			[float32!]
-			y			[float32!]
-			width		[float32!]
-			height		[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
+			width		[Cocoa-float!]
+			height		[Cocoa-float!]
 		]
 		CGContextStrokePath: "CGContextStrokePath" [
 			c			[handle!]
@@ -701,27 +741,27 @@ tagSIZE: alias struct! [
 		]
 		CGContextSetStrokePattern: "CGContextSetStrokePattern" [
 			ctx			[handle!]
-			pattern		[integer!]
-			components	[float32-ptr!]
+			pattern		[Cocoa-handle!]
+			components	[Cocoa-float-ptr!]
 		]
 		CGContextSetFillPattern: "CGContextSetFillPattern" [
 			ctx			[handle!]
-			pattern		[integer!]
-			components	[float32-ptr!]
+			pattern		[Cocoa-handle!]
+			components	[Cocoa-float-ptr!]
 		]
 		CGPatternCreate: "CGPatternCreate" [
 			info		[int-ptr!]
 			rc			[NSRect! value]
 			matrix		[CGAffineTransform! value]
-			xStep		[float32!]
-			yStep		[float32!]
+			xStep		[Cocoa-float!]
+			yStep		[Cocoa-float!]
 			tiling		[integer!]
 			isColored	[logic!]
 			callbacks	[CGPatternCallbacks!]
-			return:		[integer!]
+			return:		[Cocoa-handle!]
 		]
 		CGPatternRelease: "CGPatternRelease" [
-			pattern		[integer!]
+			pattern		[Cocoa-handle!]
 		]
 		CGContextConcatCTM: "CGContextConcatCTM" [
 			ctx			[handle!]
@@ -741,48 +781,48 @@ tagSIZE: alias struct! [
 		]
 		CGContextRotateCTM: "CGContextRotateCTM" [
 			c			[handle!]
-			angle		[float32!]
+			angle		[Cocoa-float!]
 		]
 		CGContextScaleCTM: "CGContextScaleCTM" [
 			c			[handle!]
-			sx			[float32!]
-			sy			[float32!]
+			sx			[Cocoa-float!]
+			sy			[Cocoa-float!]
 		]
 		CGContextTranslateCTM: "CGContextTranslateCTM" [
 			c			[handle!]
-			tx			[float32!]
-			ty			[float32!]
+			tx			[Cocoa-float!]
+			ty			[Cocoa-float!]
 		]
 		CGContextSetTextMatrix: "CGContextSetTextMatrix" [
 			ctx			[handle!]
-			a			[float32!]
-			b			[float32!]
-			c			[float32!]
-			d			[float32!]
-			tx			[float32!]
-			ty			[float32!]
+			a			[Cocoa-float!]
+			b			[Cocoa-float!]
+			c			[Cocoa-float!]
+			d			[Cocoa-float!]
+			tx			[Cocoa-float!]
+			ty			[Cocoa-float!]
 		]
 		CGContextGetPathBoundingBox: "CGContextGetPathBoundingBox" [
 			ctx			[handle!]
 			return:		[NSRect! value]
 		]
 		CGAffineTransformMake: "CGAffineTransformMake" [
-			a			[float32!]
-			b			[float32!]
-			c			[float32!]
-			d			[float32!]
-			tx			[float32!]
-			ty			[float32!]
+			a			[Cocoa-float!]
+			b			[Cocoa-float!]
+			c			[Cocoa-float!]
+			d			[Cocoa-float!]
+			tx			[Cocoa-float!]
+			ty			[Cocoa-float!]
 			return:		[CGAffineTransform! value]
 		]
 		CGAffineTransformMakeScale: "CGAffineTransformMakeScale" [
-			sx			[float32!]
-			sy			[float32!]
+			sx			[Cocoa-float!]
+			sy			[Cocoa-float!]
 			return:		[CGAffineTransform! value]
 		]
 		CGAffineTransformMakeTranslation: "CGAffineTransformMakeTranslation" [
-			x			[float32!]
-			y			[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
 			return:		[CGAffineTransform! value]
 		]
 		CGPointApplyAffineTransform: "CGPointApplyAffineTransform" [
@@ -797,114 +837,131 @@ tagSIZE: alias struct! [
 		]
 		CGAffineTransformRotate: "CGAffineTransformRotate" [
 			m			[CGAffineTransform! value]
-			angle		[float32!]						;-- angle in radians
+			angle		[Cocoa-float!]						;-- angle in radians
 			return:		[CGAffineTransform! value]
 		]
 		CGAffineTransformTranslate: "CGAffineTransformTranslate" [
 			m			[CGAffineTransform! value]
-			x			[float32!]
-			y			[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
 			return:		[CGAffineTransform! value]
 		]
 		CGAffineTransformScale: "CGAffineTransformScale" [
 			m			[CGAffineTransform! value]
-			x			[float32!]
-			y			[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
 			return:		[CGAffineTransform! value]
 		]
 		CGPathCreateMutable: "CGPathCreateMutable" [
-			return:		[integer!]
+			return:		[Cocoa-handle!]
 		]
 		CGPathRelease: "CGPathRelease" [
-			path		[integer!]
+			path		[Cocoa-handle!]
 		]
 		CGPathCloseSubpath: "CGPathCloseSubpath" [
-			path		[integer!]
+			path		[Cocoa-handle!]
 		]
 		CGPathMoveToPoint: "CGPathMoveToPoint" [
-			path		[integer!]
+			path		[Cocoa-handle!]
 			m			[CGAffineTransform!]
-			x			[float32!]
-			y			[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
 		]
 		CGPathAddLineToPoint: "CGPathAddLineToPoint" [
-			path		[integer!]
+			path		[Cocoa-handle!]
 			m			[CGAffineTransform!]
-			x			[float32!]
-			y			[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
 		]
 		CGPathAddRelativeArc: "CGPathAddRelativeArc" [
-			path		[integer!]
+			path		[Cocoa-handle!]
 			m			[CGAffineTransform!]
-			x			[float32!]
-			y			[float32!]
-			radius		[float32!]
-			startAngle	[float32!]
-			delta		[float32!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
+			radius		[Cocoa-float!]
+			startAngle	[Cocoa-float!]
+			delta		[Cocoa-float!]
 		]
 		CGPathAddCurveToPoint: "CGPathAddCurveToPoint" [
-			path		[integer!]
+			path		[Cocoa-handle!]
 			m			[CGAffineTransform!]
-			cp1x		[float32!]
-			cp1y		[float32!]
-			cp2x		[float32!]
-			cp2y		[float32!]
-			x			[float32!]
-			y			[float32!]
+			cp1x		[Cocoa-float!]
+			cp1y		[Cocoa-float!]
+			cp2x		[Cocoa-float!]
+			cp2y		[Cocoa-float!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
 		]
 		CGPathAddQuadCurveToPoint: "CGPathAddQuadCurveToPoint" [
-			path		[integer!]
+			path		[Cocoa-handle!]
 			m			[CGAffineTransform!]
-			cp1x		[float32!]
-			cp1y		[float32!]
-			x			[float32!]
-			y			[float32!]
+			cp1x		[Cocoa-float!]
+			cp1y		[Cocoa-float!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
 		]
 		CGContextDrawImage: "CGContextDrawImage" [
 			ctx			[handle!]
-			x			[float32!]
-			y			[float32!]
-			w			[float32!]
-			h			[float32!]
-			src			[integer!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
+			w			[Cocoa-float!]
+			h			[Cocoa-float!]
+			src			[Cocoa-handle!]
 		]
 		CGImageCreateWithImageInRect: "CGImageCreateWithImageInRect" [
-			image		[integer!]
-			x			[float32!]
-			y			[float32!]
-			w			[float32!]
-			h			[float32!]
-			return:		[integer!]
+			image		[Cocoa-handle!]
+			x			[Cocoa-float!]
+			y			[Cocoa-float!]
+			w			[Cocoa-float!]
+			h			[Cocoa-float!]
+			return:		[Cocoa-handle!]
 		]
 		CGBitmapContextCreateImage: "CGBitmapContextCreateImage" [
-			ctx			[integer!]
-			return:		[integer!]
+			ctx			[handle!]
+			return:		[Cocoa-handle!]
 		]
 		CGImageRelease: "CGImageRelease" [
-			image		[integer!]
+			image		[Cocoa-handle!]
 		]
 	]
 	LIBM-file cdecl [
 		dlopen:	"dlopen" [
 			dllpath		[c-string!]
 			flags		[integer!]
-			return:		[integer!]
+			return:		[Cocoa-handle!]
 		]
 	]
 ]
 
 #define BLOCK_FIELD_IS_OBJECT	3
 
+make-NSDictionary: func [
+	objects	[Cocoa-handle-array!]
+	keys		[Cocoa-handle-array!]
+	count	[NSUInteger!]
+	return: [Cocoa-handle!]
+	/local
+		dict [Cocoa-handle!]
+][
+	dict: objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
+	objc_msgSend [
+		dict sel_getUid "initWithObjects:forKeys:count:"
+		as Cocoa-handle-ptr! objects
+		as Cocoa-handle-ptr! keys
+		count
+	]
+]
+
 ;-- https://opensource.apple.com/source/libclosure/libclosure-38/BlockImplementation.txt
 objc_block_descriptor: declare struct! [
-	reserved		[integer!]
-	size			[integer!]
+	reserved		[Cocoa-uhandle!]
+	size			[Cocoa-uhandle!]
 	copy_helper		[function! [dst [int-ptr!] src [int-ptr!]]]
 	dispose_helper	[function! [src [int-ptr!]]]
 ]
 
 block_literal!: alias struct! [
-	isa			[integer!]
+	isa			[Cocoa-handle!]
 	flags		[integer!]
 	reserved	[integer!]
 	invoke		[int-ptr!]
@@ -913,7 +970,7 @@ block_literal!: alias struct! [
 ]
 
 get-super-obj: func [
-	id		[integer!]
+	id		[Cocoa-handle!]
 	return: [objc_super!]
 	/local
 		super [objc_super! value]
@@ -924,8 +981,8 @@ get-super-obj: func [
 ]
 
 msg-send-super-logic: func [
-	id		[integer!]
-	sel		[integer!]
+	id		[Cocoa-handle!]
+	sel		[Cocoa-handle!]
 	return: [logic!]
 	/local
 		super [objc_super! value]
@@ -936,24 +993,27 @@ msg-send-super-logic: func [
 ]
 
 msg-send-super: func [
-	id		[integer!]
-	sel		[integer!]
-	arg		[integer!]
-	return: [integer!]
+	id		[Cocoa-handle!]
+	sel		[Cocoa-handle!]
+	arg		[Cocoa-handle!]
+	return: [Cocoa-handle!]
 	/local
 		super [objc_super! value]
-		cls   [integer!]
+		cls   [Cocoa-handle!]
+		result [Cocoa-handle!]
 ][
 	cls: objc_msgSend [id sel_getUid "superclass"]
-	either cls = nsview-id [0][
+	result: as Cocoa-handle! 0
+	if cls <> nsview-id [
 		super/receiver: id
 		super/superclass: cls
-		objc_msgSendSuper [super sel arg]
+		result: objc_msgSendSuper [super sel arg]
 	]
+	result
 ]
 
 to-red-string: func [
-	nsstr	[integer!]
+	nsstr	[Cocoa-handle!]
 	slot	[red-value!]
 	return: [red-string!]
 	/local
@@ -961,7 +1021,7 @@ to-red-string: func [
 		size [integer!]
 		cstr [c-string!]
 ][
-	size: objc_msgSend [nsstr sel_getUid "lengthOfBytesUsingEncoding:" NSUTF8StringEncoding]
+	size: as integer! objc_msgSend [nsstr sel_getUid "lengthOfBytesUsingEncoding:" NSUTF8StringEncoding]
 	cstr: as c-string! objc_msgSend [nsstr sel_getUid "UTF8String"]
 	if null? slot [slot: stack/push*]
 	str: string/make-at slot size Latin1
@@ -969,7 +1029,7 @@ to-red-string: func [
 	str
 ]
 
-to-NSString: func [str [red-string!] return: [integer!] /local len][
+to-NSString: func [str [red-string!] return: [Cocoa-handle!] /local len][
 	len: -1
 	objc_msgSend [
 		objc_getClass "NSString"
@@ -978,27 +1038,22 @@ to-NSString: func [str [red-string!] return: [integer!] /local len][
 	]
 ]
 
-to-CFString: func [str [red-string!] return: [integer!] /local len][
+to-CFString: func [str [red-string!] return: [Cocoa-handle!] /local len][
 	len: -1
 	CFStringCreateWithCString 0 unicode/to-utf8 str :len kCFStringEncodingUTF8
 ]
 
 rs-to-NSColor: func [
 	clr		[integer!]
-	return: [integer!]
+	return: [Cocoa-handle!]
 	/local
-		r	[integer!]
-		g	[integer!]
-		b	[integer!]
-		a	[integer!]
 		c	[NSColor!]
 ][
-	a: 0
-	c: as NSColor! :a
-	c/r: (as float32! clr and FFh) / 255.0
-	c/g: (as float32! clr >> 8 and FFh) / 255.0
-	c/b: (as float32! clr >> 16 and FFh) / 255.0
-	c/a: (as float32! 255 - (clr >>> 24)) / 255.0
+	c: declare NSColor!
+	c/r: (as Cocoa-float! clr and FFh) / 255.0
+	c/g: (as Cocoa-float! clr >> 8 and FFh) / 255.0
+	c/b: (as Cocoa-float! clr >> 16 and FFh) / 255.0
+	c/a: (as Cocoa-float! 255 - (clr >>> 24)) / 255.0
 
 	objc_msgSend [
 		objc_getClass "NSColor"
@@ -1009,9 +1064,9 @@ rs-to-NSColor: func [
 
 to-NSColor: func [
 	color	[red-tuple!]
-	return: [integer!]
+	return: [Cocoa-handle!]
 ][
-	if TYPE_OF(color) <> TYPE_TUPLE [return 0]
+	if TYPE_OF(color) <> TYPE_TUPLE [return as Cocoa-handle! 0]
 	rs-to-NSColor get-tuple-color color
 ]
 
@@ -1027,11 +1082,11 @@ make-CGMatrix: func [
 		m	[CGAffineTransform!]
 ][
 	m: declare CGAffineTransform!
-	m/a: as float32! a
-	m/b: as float32! b
-	m/c: as float32! c
-	m/d: as float32! d
-	m/tx: as float32! tx
-	m/ty: as float32! ty
+	m/a: as Cocoa-float! a
+	m/b: as Cocoa-float! b
+	m/c: as Cocoa-float! c
+	m/d: as Cocoa-float! d
+	m/tx: as Cocoa-float! tx
+	m/ty: as Cocoa-float! ty
 	m
 ]

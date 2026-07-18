@@ -20,6 +20,13 @@ jobs:
       shell: cmd
       run: rebview.exe -qws system\tests\sha256-test.r && rebview.exe -qws system\tests\build-arm-tests.r -t Darwin-ARM64 && rebview.exe -qws tests\build-arm-tests.r -t Darwin-ARM64
 
+    - name: Build macOS ARM64 View smoke
+      shell: cmd
+      run: |
+        mkdir build\macos-arm64-view-tests
+        rebview.exe -cqs red.r -r -t macOS-ARM64 -d --show-func-map -o build\macos-arm64-view-tests\macos-arm64-view-smoke tests\source\view\macos-arm64-smoke.red
+        if not exist build\macos-arm64-view-tests\macos-arm64-view-smoke.app\Contents\MacOS\macos-arm64-view-smoke exit /b 1
+
     - name: Validate macOS ARM64 test package
       shell: bash
       run: |
@@ -59,6 +66,13 @@ jobs:
         path: quick-test/runnable/arm-tests/
         retention-days: 3
 
+    - name: Upload macOS ARM64 View smoke
+      uses: actions/upload-artifact@v7
+      with:
+        name: macos-arm64-view-smoke
+        path: build/macos-arm64-view-tests/
+        retention-days: 3
+
   Run-macOS-ARM64-Tests:
     runs-on: macos-latest
     timeout-minutes: 30
@@ -69,6 +83,12 @@ jobs:
       with:
         name: macos-arm64-tests
         path: arm-tests
+
+    - name: Download macOS ARM64 View smoke
+      uses: actions/download-artifact@v8
+      with:
+        name: macos-arm64-view-smoke
+        path: view-smoke
 
     - name: Verify native Apple Silicon runner
       shell: bash
@@ -82,6 +102,32 @@ jobs:
       working-directory: arm-tests/red
       run: sh ./run-all.sh
 
+    - name: Run macOS ARM64 native View smoke
+      working-directory: view-smoke
+      shell: bash
+      run: |
+        set -eu
+        app=macos-arm64-view-smoke.app
+        exe="$app/Contents/MacOS/macos-arm64-view-smoke"
+        chmod 755 "$exe"
+        file "$exe" | grep -q 'Mach-O 64-bit executable arm64'
+        otool -hv "$exe" | grep -q ARM64
+        otool -L "$exe" | grep -q 'AppKit.framework'
+        dyld_info -validate_only "$exe"
+        cp "$exe" macos-arm64-view-smoke.signature-probe
+        chmod 755 macos-arm64-view-smoke.signature-probe
+        codesign --verify --strict --verbose=4 macos-arm64-view-smoke.signature-probe
+        rm macos-arm64-view-smoke.signature-probe
+        rm -f macos-arm64-view-smoke.ok macos-arm64-view-smoke.error
+        if ./$exe; then
+          :
+        else
+          status=$?
+          test ! -f macos-arm64-view-smoke.error || cat macos-arm64-view-smoke.error
+          exit "$status"
+        fi
+        test "$(cat macos-arm64-view-smoke.ok)" = MACOS-ARM64-VIEW-OK
+
     - name: Upload failure logs
       if: failure()
       uses: actions/upload-artifact@v7
@@ -90,3 +136,4 @@ jobs:
         path: |
           arm-tests/system/quick-test.log
           arm-tests/red/quick-test.log
+          view-smoke/macos-arm64-view-smoke.error

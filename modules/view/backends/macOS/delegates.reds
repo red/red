@@ -12,8 +12,8 @@ Red/System [
 
 is-flipped: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
 	return: [logic!]
 ][
 	true
@@ -21,11 +21,11 @@ is-flipped: func [
 
 accepts-first-responder: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
 	return: [logic!]
 	/local
-		type [integer!]
+		type [Cocoa-handle!]
 ][
 	type: 0
 	object_getInstanceVariable self IVAR_RED_DATA :type
@@ -34,8 +34,8 @@ accepts-first-responder: func [
 
 become-first-responder: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
 	return: [logic!]
 ][
 	make-event self 0 EVT_FOCUS
@@ -44,10 +44,10 @@ become-first-responder: func [
 
 reset-cursor-rects: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
 	/local
-		cur [integer!]
+		cur [Cocoa-handle!]
 		sz	[CGPoint! value]
 		rc	[NSRect! value]
 ][
@@ -70,9 +70,9 @@ reset-cursor-rects: func [
 
 mouse-entered: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	event	[Cocoa-handle!]
 ][
 	if zero? objc_getAssociatedObject self RedEnableKey [
 		objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
@@ -82,9 +82,9 @@ mouse-entered: func [
 
 mouse-exited: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	event	[Cocoa-handle!]
 ][
 	if zero? objc_getAssociatedObject self RedEnableKey [
 		objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
@@ -94,9 +94,9 @@ mouse-exited: func [
 
 mouse-moved: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	event	[Cocoa-handle!]
 	/local
 		flags [integer!]
 ][
@@ -111,18 +111,15 @@ mouse-moved: func [
 
 button-mouse-down: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	event	[Cocoa-handle!]
 	/local
 		inside?	[logic!]
-		p-int	[int-ptr!]
-		window	[integer!]
+		window	[Cocoa-handle!]
 		type	[integer!]
-		y		[integer!]
-		x		[integer!]
-		bound	[NSRect!]
-		rc		[NSRect!]
+		bound	[NSRect! value]
+		pt		[CGPoint! value]
 ][
 	if 0 <> objc_getAssociatedObject self RedEnableKey [exit]	;-- button is disabled
 
@@ -137,15 +134,12 @@ button-mouse-down: func [
 			window sel_getUid "nextEventMatchingMask:"
 			NSLeftMouseDownMask or NSLeftMouseUpMask or NSLeftMouseDraggedMask
 		]
-		bound: as NSRect! (as int-ptr! self) + 6
-		p-int: (as int-ptr! event) + 1
-		type: p-int/value
-		rc: as NSRect! (p-int + 1)
-		x: objc_msgSend [self sel_getUid "convertPoint:fromView:" rc/x rc/y 0]
-		y: system/cpu/edx
-		rc: as NSRect! :x
+		bound: objc_msgSend_rect [self sel_getUid "bounds"]
+		type: as integer! objc_msgSend [event sel_getUid "type"]
+		pt: objc_msgSend_pt [event sel_getUid "locationInWindow"]
+		pt: objc_msgSend_pt [self sel_getUid "convertPoint:fromView:" pt/x pt/y 0]
 
-		inside?: CGRectContainsPoint bound/x bound/y bound/w bound/h rc/x rc/y
+		inside?: CGRectContainsPoint bound/x bound/y bound/w bound/h pt/x pt/y
 		objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
 		switch type [
 			NSLeftMouseDragged [
@@ -167,19 +161,19 @@ button-mouse-down: func [
 
 mouse-events-base: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	event	[Cocoa-handle!]
 	/local
-		p		[int-ptr!]
+		type	[integer!]
 		flags	[integer!]
 		super	[objc_super! value]
-		cls		[integer!]
+		cls		[Cocoa-handle!]
 ][
-	p: as int-ptr! event
+	type: as integer! objc_msgSend [event sel_getUid "type"]
 	flags: check-extra-keys event
 	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
-	switch p/2 [
+	switch type [
 		NSRightMouseDown [make-event self flags EVT_RIGHT_DOWN]
 		NSRightMouseUp	 [make-event self flags EVT_RIGHT_UP]
 		default			 [0]
@@ -192,24 +186,24 @@ mouse-events-base: func [
 
 mouse-events: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	event	[Cocoa-handle!]
 	/local
-		p		[int-ptr!]
+		type	[integer!]
 		opt		[red-value!]
 		evt		[integer!]
 		flags	[integer!]
 		state	[integer!]
 		drag?	[logic!]
 ][
-	p: as int-ptr! event
+	type: as integer! objc_msgSend [event sel_getUid "type"]
 	flags: check-extra-keys event
 	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
 	drag?: no
-	switch p/2 [
+	switch type [
 		NSLeftMouseDown		[
-			evt: objc_msgSend [event sel_getUid "clickCount"]
+			evt: as integer! objc_msgSend [event sel_getUid "clickCount"]
 			evt: switch evt [
 				1 [EVT_LEFT_DOWN]
 				2 [EVT_DBL_CLICK]
@@ -218,7 +212,7 @@ mouse-events: func [
 			state: either evt = -1 [EVT_DISPATCH][make-event self flags evt]
 		]
 		NSLeftMouseUp		[
-			state: either 2 > objc_msgSend [event sel_getUid "clickCount"][
+			state: either 2 > as integer! objc_msgSend [event sel_getUid "clickCount"][
 				make-event self flags EVT_LEFT_UP
 			][
 				EVT_DISPATCH
@@ -257,10 +251,10 @@ mouse-events: func [
 ]
 
 print-classname: func [
-	obj		[integer!]
+	obj		[Cocoa-handle!]
 	/local
-		cls		 [integer!]
-		name	 [integer!]
+		cls		 [Cocoa-handle!]
+		name	 [Cocoa-handle!]
 		cls-name [c-string!]
 ][
 	cls: objc_msgSend [obj sel_getUid "class"]
@@ -271,24 +265,24 @@ print-classname: func [
 
 red-timer-action: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	timer	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	timer	[Cocoa-handle!]
 ][
 	make-event self 0 EVT_TIME
 ]
 
 popup-button-action: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	sender	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	sender	[Cocoa-handle!]
 	/local
 		idx [integer!]
 		res [integer!]
-		str [integer!]
+		str [Cocoa-handle!]
 ][
-	idx: objc_msgSend [self sel_getUid "indexOfSelectedItem"]		;-- 1-based index
+	idx: as integer! objc_msgSend [self sel_getUid "indexOfSelectedItem"]	;-- 1-based index
 	str: objc_msgSend [self sel_getUid "titleOfSelectedItem"]
 	if idx > 0 [
 		res: make-event self idx EVT_SELECT
@@ -302,14 +296,14 @@ popup-button-action: func [
 ]
 
 handle-speical-key: func [
-	self	[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	event	[Cocoa-handle!]
 	return: [logic!]
 	/local
 		key		[integer!]
 		flags	[integer!]
 ][
-	key: objc_msgSend [event sel_getUid "keyCode"]
+	key: as integer! objc_msgSend [event sel_getUid "keyCode"]
 	either key = 72h [		;-- insert key
 		flags: check-extra-keys event
 		key: translate-key key
@@ -321,14 +315,15 @@ handle-speical-key: func [
 
 on-key-down: func [
 	[cdecl]
-	self	[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	event	[Cocoa-handle!]
 	/local
 		res		[integer!]
 		key		[integer!]
+		chars	[Cocoa-handle!]
 		flags	[integer!]
 ][
-	key: objc_msgSend [event sel_getUid "keyCode"]
+	key: as integer! objc_msgSend [event sel_getUid "keyCode"]
 	key: either key >= 80h [0][translate-key key]
 	special-key: either char-key? as-byte key [0][-1]	;-- special key or not
 	flags: check-extra-keys event
@@ -345,12 +340,12 @@ on-key-down: func [
 				make-event self key or flags EVT_KEY
 				exit
 			]
-			key: objc_msgSend [event sel_getUid "characters"]
+			chars: objc_msgSend [event sel_getUid "characters"]
 			if all [
-				key <> 0
-				0 < objc_msgSend [key sel_length]
+				chars <> 0
+				0 < as integer! objc_msgSend [chars sel_length]
 			][
-				key: objc_msgSend [key sel_getUid "characterAtIndex:" 0]
+				key: as integer! objc_msgSend [chars sel_getUid "characterAtIndex:" 0]
 				make-event self key or flags EVT_KEY
 			]
 		]
@@ -359,9 +354,9 @@ on-key-down: func [
 
 key-down-base: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	event	[Cocoa-handle!]
 ][
 	either zero? objc_getAssociatedObject self RedRichTextKey [
 		on-key-down self event
@@ -374,11 +369,11 @@ key-down-base: func [
 
 win-level: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	return: [integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	return: [NSInteger!]
 ][
-	objc_msgSend [
+	as NSInteger! objc_msgSend [
 		objc_msgSend [self sel_getUid "window"]
 		sel_getUid "level"
 	]
@@ -386,22 +381,22 @@ win-level: func [
 
 insert-text: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	str		[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	str		[Cocoa-handle!]
 ][
 ]
 
 on-key-up: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	event	[Cocoa-handle!]
 	/local
 		key		[integer!]
 		flags	[integer!]
 ][
-	key: objc_msgSend [event sel_getUid "keyCode"]
+	key: as integer! objc_msgSend [event sel_getUid "keyCode"]
 	key: either key >= 80h [0][translate-key key]
 	special-key: either char-key? as-byte key [0][-1]	;-- special key or not
 	flags: check-extra-keys event
@@ -415,16 +410,16 @@ on-key-up: func [
 
 on-flags-changed: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	event	[Cocoa-handle!]
 	/local
 		key		[integer!]
 		flags	[integer!]
 		evt		[integer!]
 ][
 	special-key: -1
-	key: translate-key objc_msgSend [event sel_getUid "keyCode"]
+	key: translate-key as integer! objc_msgSend [event sel_getUid "keyCode"]
 	flags: check-extra-keys event
 	evt: either zero? flags [EVT_KEY_UP][EVT_KEY_DOWN]
 	if EVT_DISPATCH = make-event self key or flags evt [
@@ -434,7 +429,7 @@ on-flags-changed: func [
 
 button-click: func [
 	[cdecl]
-	self [integer!]
+	self [Cocoa-handle!]
 	/local
 		w		[red-word!]
 		values	[red-value!]
@@ -471,32 +466,32 @@ button-click: func [
 
 empty-func: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	sender	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	sender	[Cocoa-handle!]
 ][0]
 
 scroller-change: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	sender	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	sender	[Cocoa-handle!]
 	/local
 		code		[integer!]
-		bar			[integer!]
+		bar			[Cocoa-handle!]
 		direction	[integer!]
 		pos			[integer!]
 		min			[red-integer!]
 		max			[red-integer!]
 		page		[red-integer!]
 		range		[integer!]
-		n			[integer!]
+		n			[Cocoa-handle!]
 		frac		[float!]
 		values		[red-value!]
 ][
 	bar: objc_msgSend [self sel_getUid "verticalScroller"]
 	direction: either bar = sender [0][1]
-	code: objc_msgSend [sender sel_getUid "hitPart"]
+	code: as integer! objc_msgSend [sender sel_getUid "hitPart"]
 	pos: 0
 	if code = 2 [			;-- track
 		frac: objc_msgSend_fpret [sender sel_getUid "doubleValue"]
@@ -518,24 +513,24 @@ scroller-change: func [
 
 refresh-scrollview: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
 	draw?	[integer!]
 	/local
-		view [integer!]
+		view [Cocoa-handle!]
 ][
 	if draw? <> 0 [
 		view: objc_msgSend [self sel_getUid "documentView"]
 		objc_msgSend [view sel_getUid "setNeedsDisplay:" yes]
 	]
-	msg-send-super self cmd draw?
+	msg-send-super self cmd as Cocoa-handle! draw?
 ]
 
 scroll-wheel: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	event	[Cocoa-handle!]
 ][
 	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
 	make-event self event EVT_WHEEL
@@ -543,9 +538,9 @@ scroll-wheel: func [
 
 slider-change: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	sender	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	sender	[Cocoa-handle!]
 	/local
 		values	[red-value!]
 		pos		[red-float!]
@@ -579,14 +574,14 @@ slider-change: func [
 
 calendar-change: func [
 	[cdecl]
-	self   [integer!]
+	self   [Cocoa-handle!]
 ][	
 	sync-calendar self
 	make-event self 0 EVT_CHANGE
 ]
 
 set-selected: func [
-	obj [integer!]
+	obj [Cocoa-handle!]
 	idx [integer!]
 	/local
 		int [red-integer!]
@@ -597,15 +592,15 @@ set-selected: func [
 ]
 
 set-text: func [
-	obj  [integer!]
-	text [integer!]
+	obj  [Cocoa-handle!]
+	text [Cocoa-handle!]
 	/local
 		size [integer!]
 		str	 [red-string!]
 		face [red-object!]
 		out	 [c-string!]
 ][
-	size: objc_msgSend [text sel_length]
+	size: as integer! objc_msgSend [text sel_length]
 	if size >= 0 [
 		str: as red-string! (get-face-values obj) + FACE_OBJ_TEXT
 		if TYPE_OF(str) <> TYPE_STRING [
@@ -629,9 +624,9 @@ set-text: func [
 
 text-did-end-editing: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	notif	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	notif	[Cocoa-handle!]
 ][
 	make-event self 0 EVT_UNFOCUS
 	msg-send-super self cmd notif
@@ -639,9 +634,9 @@ text-did-end-editing: func [
 
 text-did-change: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	notif	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	notif	[Cocoa-handle!]
 ][
 	set-text self objc_msgSend [self sel_getUid "stringValue"]
 	if loop-started? [make-event self 0 EVT_CHANGE]
@@ -650,12 +645,12 @@ text-did-change: func [
 
 ;text-change-selection: func [
 ;	[cdecl]
-;	self	[integer!]
-;	cmd		[integer!]
-;	notif	[integer!]
+;	self	[Cocoa-handle!]
+;	cmd		[Cocoa-handle!]
+;	notif	[Cocoa-handle!]
 ;	/local
 ;		win		[integer!]
-;		text	[integer!]
+;		text	[Cocoa-handle!]
 ;		range	[NSRange! value]
 ;		sel		[red-pair!]
 ;][
@@ -674,44 +669,66 @@ text-did-change: func [
 ;	make-event self 0 EVT_SELECT
 ;]
 
-text-will-selection: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	view	[integer!]
-	idx1	[integer!]
-	len1	[integer!]
-	idx2	[integer!]
-	len2	[integer!]
+update-text-selection: func [
+	self	[Cocoa-handle!]
+	idx		[integer!]
+	len		[integer!]
 	/local
 		sel [red-pair!]
 ][
 	sel: as red-pair! (get-face-values self) + FACE_OBJ_SELECTED
-	either zero? len2 [sel/header: TYPE_NONE][
+	either zero? len [sel/header: TYPE_NONE][
 		sel/header: TYPE_PAIR
-		sel/x: idx2 + 1
-		sel/y: idx2 + len2
+		sel/x: idx + 1
+		sel/y: idx + len
 	]
-
 	make-event self 0 EVT_SELECT
-	system/cpu/edx: len2
-	system/cpu/eax: idx2
+]
+
+#either ABI = 'apple-aarch64 [
+	text-will-selection: func [
+		[cdecl]
+		self		[Cocoa-handle!]
+		cmd			[Cocoa-handle!]
+		view		[Cocoa-handle!]
+		old-range	[NSRange! value]
+		new-range	[NSRange! value]
+		return:		[NSRange! value]
+	][
+		update-text-selection self as integer! new-range/idx as integer! new-range/len
+		new-range
+	]
+][
+	text-will-selection: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		view	[Cocoa-handle!]
+		idx1	[integer!]
+		len1	[integer!]
+		idx2	[integer!]
+		len2	[integer!]
+	][
+		update-text-selection self idx2 len2
+		system/cpu/edx: len2
+		system/cpu/eax: idx2
+	]
 ]
 
 area-did-end-editing: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	notif	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	notif	[Cocoa-handle!]
 ][
 	make-event self 0 EVT_UNFOCUS
 ]
 
 area-text-change: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	notif	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	notif	[Cocoa-handle!]
 ][
 	set-text self objc_msgSend [self sel_getUid "string"]
 	if loop-started? [make-event self 0 EVT_CHANGE]
@@ -719,14 +736,14 @@ area-text-change: func [
 
 selection-change: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	notif	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	notif	[Cocoa-handle!]
 	/local
 		idx [integer!]
 		res [integer!]
 ][
-	idx: objc_msgSend [self sel_getUid "indexOfSelectedItem"]
+	idx: as integer! objc_msgSend [self sel_getUid "indexOfSelectedItem"]
 	if all [loop-started? idx >= 0][
 		res: make-event self idx + 1 EVT_SELECT
 		set-selected self idx + 1
@@ -739,10 +756,10 @@ selection-change: func [
 
 number-of-rows: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	obj		[integer!]
-	return: [integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	obj		[Cocoa-handle!]
+	return: [NSInteger!]
 	/local
 		blk [red-block!]
 		head [red-value!]
@@ -765,29 +782,29 @@ number-of-rows: func [
 			if ANY_STRING?(type) [cnt: cnt + 1]
 			head: head + 1
 		]
-		cnt
-	][0]
+		as NSInteger! cnt
+	][as NSInteger! 0]
 ]
 
 object-for-table: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	obj		[integer!]
-	column	[integer!]
-	row		[integer!]
-	return: [integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	obj		[Cocoa-handle!]
+	column	[Cocoa-handle!]
+	row		[NSInteger!]
+	return: [Cocoa-handle!]
 	/local
 		data [red-block!]
 		head [red-value!]
 		tail [red-value!]
 		font [red-object!]
 		face [red-object!]
-		attr [integer!]
-		id	 [integer!]
+		attr [Cocoa-handle!]
+		id	 [Cocoa-handle!]
 		idx  [integer!]
 		type [integer!]
-		str  [integer!]
+		str  [Cocoa-handle!]
 ][
 	data: (as red-block! get-face-values obj) + FACE_OBJ_DATA
 	head: block/rs-head data
@@ -796,7 +813,7 @@ object-for-table: func [
 	idx: -1
 	while [all [row >= 0 head < tail]][
 		type: TYPE_OF(head)
-		if ANY_STRING?(type) [row: row - 1]
+		if ANY_STRING?(type) [row: row - as NSInteger! 1]
 		head: head + 1
 		idx: idx + 1
 	]
@@ -808,7 +825,7 @@ object-for-table: func [
 	if TYPE_OF(font) = TYPE_OBJECT [
 		id: 0
 		object_getInstanceVariable self IVAR_RED_FACE :id
-		face: as red-object! references/get id
+		face: as red-object! references/get as integer! id
 		attr: make-font-attrs font face text-list
 		str: objc_msgSend [
 			objc_msgSend [objc_getClass "NSAttributedString" sel_getUid "alloc"]
@@ -820,11 +837,11 @@ object-for-table: func [
 
 table-cell-edit: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	obj		[integer!]
-	column	[integer!]
-	row		[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	obj		[Cocoa-handle!]
+	column	[Cocoa-handle!]
+	row		[NSInteger!]
 	return: [logic!]
 ][
 	no
@@ -832,9 +849,9 @@ table-cell-edit: func [
 
 table-select-did-change: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	notif	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	notif	[Cocoa-handle!]
 	/local
 		res [integer!]
 ][
@@ -847,29 +864,31 @@ table-select-did-change: func [
 
 will-finish: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	notif	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	notif	[Cocoa-handle!]
 ][
 	0
 ]
 
 win-send-event: func [
-	self	[integer!]
+	self	[Cocoa-handle!]
 	type	[integer!]
-	event	[integer!]
+	event	[Cocoa-handle!]
 	return: [logic!]
 	/local
-		responder	[integer!]
+		responder	[Cocoa-handle!]
+		view-type	[Cocoa-handle!]
 		find?		[logic!]
 		send?		[logic!]
 ][
 	send?: yes
+	view-type: as Cocoa-handle! 0
 	case [
 		type = NSKeyUp [
 			responder: objc_msgSend [self sel_getUid "firstResponder"]
-			object_getInstanceVariable responder IVAR_RED_DATA :type
-			if type = base [
+			object_getInstanceVariable responder IVAR_RED_DATA :view-type
+			if view-type = base [
 				on-key-up responder 0 event
 				send?: no
 			]
@@ -877,8 +896,8 @@ win-send-event: func [
 		type = NSKeyDown [
 			find?: yes
 			responder: objc_msgSend [self sel_getUid "firstResponder"]
-			object_getInstanceVariable responder IVAR_RED_DATA :type
-			either type <> base [
+			object_getInstanceVariable responder IVAR_RED_DATA :view-type
+			either view-type <> base [
 				unless red-face? responder [
 					responder: objc_getAssociatedObject self RedFieldEditorKey
 					unless red-face? responder [find?: no]
@@ -897,13 +916,13 @@ win-send-event: func [
 
 app-send-event: func [
 	[cdecl]
-	self		[integer!]
-	cmd			[integer!]
-	event		[integer!]
+	self		[Cocoa-handle!]
+	cmd			[Cocoa-handle!]
+	event		[Cocoa-handle!]
 	/local
-		p-int p [int-ptr!]
+		p		[Cocoa-handle-ptr!]
 		type	[integer!]
-		window	[integer!]
+		window	[Cocoa-handle!]
 		n-win	[integer!]
 		flags	[integer!]
 		faces	[red-block!]
@@ -912,17 +931,12 @@ app-send-event: func [
 		check?	[logic!]
 		active?	[logic!]
 		down?	[logic!]
-		y		[integer!]
-		x		[integer!]
-		point	[CGPoint!]
-		view	[integer!]
+		view	[Cocoa-handle!]
 		state	[integer!]
-		modal-win [integer!]
+		modal-win [Cocoa-handle!]
 ][
 	window: objc_msgSend [event sel_getUid "window"]
-	p-int: as int-ptr! event
-
-	type: p-int/2
+	type: as integer! objc_msgSend [event sel_getUid "type"]
 	switch type [
 		NSMouseMoved
 		NSLeftMouseDragged
@@ -958,7 +972,7 @@ app-send-event: func [
 		]
 
 		if all [check? red-face? window 0 < vector/rs-length? active-wins][
-			p: as int-ptr! vector/rs-tail active-wins
+			p: as Cocoa-handle-ptr! vector/rs-tail active-wins
 			p: p - 1
 			modal-win: p/value
 			if window <> modal-win [
@@ -984,9 +998,9 @@ app-send-event: func [
 
 destroy-app: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	app		[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	app		[Cocoa-handle!]
 	return: [logic!]
 ][
 	no
@@ -994,19 +1008,19 @@ destroy-app: func [
 
 should-terminate: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	app		[integer!]
-	return: [integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	app		[Cocoa-handle!]
+	return: [NSInteger!]
 ][
-	#either sub-system = 'gui [1][0]	;-- 0: NSTerminateCancel, so we don't exit the console
+	#either sub-system = 'gui [as NSInteger! 1][as NSInteger! 0]	;-- 0: NSTerminateCancel
 ]
 
 win-should-close: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	sender	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	sender	[Cocoa-handle!]
 	return: [logic!]
 ][
 	make-event sender 0 EVT_CLOSE
@@ -1015,16 +1029,16 @@ win-should-close: func [
 
 win-will-close: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	notif	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	notif	[Cocoa-handle!]
 	/local
 		i	[integer!]
 		n	[integer!]
-		p	[int-ptr!]
-		pp	[int-ptr!]
+		p	[Cocoa-handle-ptr!]
+		pp	[Cocoa-handle-ptr!]
 ][
-	p: as int-ptr! vector/rs-head active-wins
+	p: as Cocoa-handle-ptr! vector/rs-head active-wins
 	n: vector/rs-length? active-wins
 	i: 0
 	while [i < n][
@@ -1042,9 +1056,9 @@ win-will-close: func [
 
 ;win-will-resize: func [								;-- use it to block resizing window
 ;	[cdecl]
-;	self	[integer!]
-;	cmd		[integer!]
-;	sender	[integer!]
+;	self	[Cocoa-handle!]
+;	cmd		[Cocoa-handle!]
+;	sender	[Cocoa-handle!]
 ;	w		[integer!]
 ;	h		[integer!]
 ;	return: [NSSize! value]
@@ -1056,13 +1070,13 @@ win-will-close: func [
 
 win-did-resize: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	notif	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	notif	[Cocoa-handle!]
 	/local
 		sz	[red-pair!]
 		pt	[red-point2D!]
-		v	[integer!]
+		v	[Cocoa-handle!]
 		rc	[NSRect! value]
 ][
 	make-event self 0 EVT_SIZING
@@ -1072,8 +1086,8 @@ win-did-resize: func [
 	either zero? objc_getAssociatedObject self RedPairSizeKey [
 		pt: as red-point2D! sz
 		pt/header: TYPE_POINT2D
-		pt/x: rc/w
-		pt/y: rc/h
+		pt/x: COCOA_TO_F32(rc/w)
+		pt/y: COCOA_TO_F32(rc/h)
 	][
 		sz/header: TYPE_PAIR
 		sz/x: as-integer rc/w
@@ -1083,23 +1097,23 @@ win-did-resize: func [
 
 win-live-resize: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	notif	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	notif	[Cocoa-handle!]
 ][
 	make-event self 0 EVT_SIZE
 ]
 
 win-did-move: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	notif	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	notif	[Cocoa-handle!]
 	/local
-		rc	[NSRect!]
+		rc	[NSRect! value]
 		sz	[red-pair!]
 ][
-	rc: as NSRect! (as int-ptr! self) + 2
+	rc: objc_msgSend_rect [self sel_getUid "frame"]
 	sz: (as red-pair! get-face-values self) + FACE_OBJ_OFFSET	;-- update face/offset
 	sz/x: as-integer rc/x
 	sz/y: screen-size-y - as-integer (rc/y + rc/h)
@@ -1108,15 +1122,15 @@ win-did-move: func [
 
 tabview-should-select: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	tabview	[integer!]
-	item	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	tabview	[Cocoa-handle!]
+	item	[Cocoa-handle!]
 	return: [logic!]
 	/local
 		idx		[integer!]
 ][
-	idx: objc_msgSend [tabview sel_getUid "indexOfTabViewItem:" item]
+	idx: as integer! objc_msgSend [tabview sel_getUid "indexOfTabViewItem:" item]
 	either EVT_DISPATCH = make-event self idx + 1 EVT_CHANGE [
 		set-selected self idx + 1
 		yes
@@ -1125,25 +1139,45 @@ tabview-should-select: func [
 	]
 ]
 
-set-line-spacing: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	layout	[integer!]
-	idx		[integer!]
-	x		[float32!]
-	y		[float32!]
-	width	[float32!]
-	height	[float32!]
-	return: [float32!]
-	/local
-		d	[float32!]
-][
-	d: objc_msgSend_f32 [
-		objc_getAssociatedObject layout RedAttachedWidgetKey
-		sel_getUid "descender"
+#either ABI = 'apple-aarch64 [
+	set-line-spacing: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		layout	[Cocoa-handle!]
+		idx		[NSUInteger!]
+		rc		[NSRect! value]
+		return: [Cocoa-float!]
+		/local
+			d	[Cocoa-float!]
+	][
+		d: objc_msgSend_f32 [
+			objc_getAssociatedObject layout RedAttachedWidgetKey
+			sel_getUid "descender"
+		]
+		(as Cocoa-float! 1.5) - d
 	]
-	(as float32! 1.5) - d
+][
+	set-line-spacing: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		layout	[Cocoa-handle!]
+		idx		[integer!]
+		x		[float32!]
+		y		[float32!]
+		width	[float32!]
+		height	[float32!]
+		return: [float32!]
+		/local
+			d	[float32!]
+	][
+		d: objc_msgSend_f32 [
+			objc_getAssociatedObject layout RedAttachedWidgetKey
+			sel_getUid "descender"
+		]
+		(as float32! 1.5) - d
+	]
 ]
 
 render-text: func [
@@ -1155,14 +1189,15 @@ render-text: func [
 		font	[red-object!]
 		para	[red-object!]
 		flags	[integer!]
-		str		[integer!]
-		attr	[integer!]
-		nscolor [integer!]
-		attrs	[integer!]
-		line	[integer!]
-		sy		[integer!]
-		sx		[integer!]
-		temp	[float32!]
+		str		[Cocoa-handle!]
+		attr	[Cocoa-handle!]
+		nscolor [Cocoa-handle!]
+		attrs	[Cocoa-handle!]
+		objects	[Cocoa-handle-array!]
+		keys	[Cocoa-handle-array!]
+		line	[Cocoa-handle!]
+		text-size [NSSize! value]
+		temp	[Cocoa-float!]
 		rc		[NSRect!]
 		m		[CGAffineTransform!]
 ][
@@ -1174,19 +1209,21 @@ render-text: func [
 	either TYPE_OF(font) = TYPE_OBJECT [
 		attrs: make-font-attrs font as red-object! none-value -1
 	][
-		attrs: objc_msgSend [
-			objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
-			sel_getUid "initWithObjectsAndKeys:"
-			default-font NSFontAttributeName
-			0
-		]
+		objects: declare Cocoa-handle-array!
+		keys: declare Cocoa-handle-array!
+		objects/v1: default-font
+		keys/v1: NSFontAttributeName
+		attrs: make-NSDictionary objects keys as NSUInteger! 1
 	]
 
 	str: to-CFString text
 	attr: CFAttributedStringCreate 0 str attrs
-	sx: objc_msgSend [attr sel_getUid "size"]		;-- string width on screen
-	sy: system/cpu/edx								;-- string height on screen
-	rc: as NSRect! :sx
+	text-size: objc_msgSend_sz [attr sel_getUid "size"]
+	rc: declare NSRect!
+	rc/x: text-size/w
+	rc/y: text-size/h
+	rc/w: as Cocoa-float! 0.0
+	rc/h: as Cocoa-float! 0.0
 
 	para: as red-object! values + FACE_OBJ_PARA
 	flags: either TYPE_OF(para) = TYPE_OBJECT [		;@@ TBD set alignment attribute
@@ -1198,12 +1235,12 @@ render-text: func [
 	m: make-CGMatrix 1 0 0 -1 0 0
 	case [
 		flags and 1 <> 0 [m/tx: sz/w - rc/x]
-		flags and 2 <> 0 [temp: sz/w - rc/x m/tx: temp / as float32! 2.0]
+		flags and 2 <> 0 [temp: sz/w - rc/x m/tx: temp / as Cocoa-float! 2.0]
 		true [0]
 	]
 
 	case [
-		flags and 4 <> 0 [temp: sz/h - rc/y m/ty: temp / as float32! 2.0]
+		flags and 4 <> 0 [temp: sz/h - rc/y m/ty: temp / as Cocoa-float! 2.0]
 		flags and 8 <> 0 [m/ty: sz/h - rc/y]
 		true [0]
 	]
@@ -1221,10 +1258,10 @@ render-text: func [
 
 	attr: objc_msgSend [attrs sel_getUid "objectForKey:" NSStrikethroughStyleAttributeName]
 	if as logic! objc_msgSend [attr sel_getUid "boolValue"][
-		m/ty: m/ty - temp + (rc/y / as float32! 2.0)
+		m/ty: m/ty - temp + (rc/y / as Cocoa-float! 2.0)
 		CGContextTranslateCTM ctx m/tx m/ty
-		CGContextMoveToPoint ctx as float32! 0.0 as float32! 0.0
-		CGContextAddLineToPoint ctx rc/x as float32! 0.0
+		CGContextMoveToPoint ctx as Cocoa-float! 0.0 as Cocoa-float! 0.0
+		CGContextAddLineToPoint ctx rc/x as Cocoa-float! 0.0
 		CGContextStrokePath ctx
 	]
 	objc_msgSend [attrs sel_getUid "release"]
@@ -1234,28 +1271,28 @@ render-text: func [
 paint-background: func [
 	ctx		[handle!]
 	color	[integer!]
-	x		[float32!]
-	y		[float32!]
-	width	[float32!]
-	height	[float32!]
+	x		[Cocoa-float!]
+	y		[Cocoa-float!]
+	width	[Cocoa-float!]
+	height	[Cocoa-float!]
 	/local
-		r	[float32!]
-		g	[float32!]
-		b	[float32!]
-		a	[float32!]
+		r	[Cocoa-float!]
+		g	[Cocoa-float!]
+		b	[Cocoa-float!]
+		a	[Cocoa-float!]
 ][
-	r: (as float32! color and FFh) / 255.0
-	g: (as float32! color >> 8 and FFh) / 255.0
-	b: (as float32! color >> 16 and FFh) / 255.0
-	a: (as float32! 255 - (color >>> 24)) / 255.0
+	r: (as Cocoa-float! color and FFh) / 255.0
+	g: (as Cocoa-float! color >> 8 and FFh) / 255.0
+	b: (as Cocoa-float! color >> 16 and FFh) / 255.0
+	a: (as Cocoa-float! 255 - (color >>> 24)) / 255.0
 	CGContextSetRGBFillColor ctx r g b a
 	CGContextFillRect ctx x y width height
 ]
 
 has-marked-text: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
 	return: [logic!]
 ][
 	in-composition?
@@ -1264,45 +1301,66 @@ has-marked-text: func [
 _marked-range-idx: 0
 _marked-range-len: 0
 
-marked-range: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-][
-	system/cpu/edx: _marked-range-len
-	system/cpu/eax: _marked-range-idx
-]
+#either ABI = 'apple-aarch64 [
+	marked-range: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		return: [NSRange! value]
+		/local
+			range [NSRange! value]
+	][
+		range/idx: as NSUInteger! _marked-range-idx
+		range/len: as NSUInteger! _marked-range-len
+		range
+	]
 
-selected-range: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
+	selected-range: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		return: [NSRange! value]
+		/local
+			range [NSRange! value]
+	][
+		range/idx: as NSUInteger! 0
+		range/len: as NSUInteger! 0
+		range
+	]
 ][
-	system/cpu/edx: 0
-	system/cpu/eax: 0
+	marked-range: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+	][
+		system/cpu/edx: _marked-range-len
+		system/cpu/eax: _marked-range-idx
+	]
+
+	selected-range: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+	][
+		system/cpu/edx: 0
+		system/cpu/eax: 0
+	]
 ]
 
 get-text-styles: func [
-	str		[integer!]
+	str		[Cocoa-handle!]
 	styles	[red-block!]
 ][
 	
 ]
 
-set-marked-text: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	str		[integer!]
-	idx1	[integer!]
-	len1	[integer!]
-	idx2	[integer!]
-	len2	[integer!]
+set-marked-text*: func [
+	self	[Cocoa-handle!]
+	str		[Cocoa-handle!]
+	idx		[integer!]
 	/local
 		attr-str?	[logic!]
-		text		[integer!]
-		cstr		[c-string!]
-		key			[integer!]
+		text		[Cocoa-handle!]
 ][
 	in-composition?: yes
 	attr-str?: as logic! objc_msgSend [
@@ -1310,17 +1368,43 @@ set-marked-text: func [
 	]
 	text: either attr-str? [objc_msgSend [str sel_getUid "string"]][str]
 	make-event self text EVT_IME
-	_marked-range-idx: idx1
-	_marked-range-len: objc_msgSend [text sel_length]
+	_marked-range-idx: idx
+	_marked-range-len: as integer! objc_msgSend [text sel_length]
 	if zero? _marked-range-len [
 		objc_msgSend [self sel_getUid "unmarkText"]
 	]
 ]
 
+#either ABI = 'apple-aarch64 [
+	set-marked-text: func [
+		[cdecl]
+		self			[Cocoa-handle!]
+		cmd				[Cocoa-handle!]
+		str				[Cocoa-handle!]
+		selected-range	[NSRange! value]
+		replace-range	[NSRange! value]
+	][
+		set-marked-text* self str as integer! selected-range/idx
+	]
+][
+	set-marked-text: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		str		[Cocoa-handle!]
+		idx1	[integer!]
+		len1	[integer!]
+		idx2	[integer!]
+		len2	[integer!]
+	][
+		set-marked-text* self str idx1
+	]
+]
+
 unmark-text: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
 ][
 	in-composition?: no
 	objc_msgSend [
@@ -1331,43 +1415,63 @@ unmark-text: func [
 
 valid-attrs-marked-text: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	return: [integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	return: [Cocoa-handle!]
+	/local
+		objects [Cocoa-handle-array!]
 ][
+	objects: declare Cocoa-handle-array!
+	objects/v1: NSMarkedClauseSegmentAttributeName
+	objects/v2: NSGlyphInfoAttributeName
 	objc_msgSend [
-		objc_getClass "NSArray" sel_getUid "arrayWithObjects:"
-		NSMarkedClauseSegmentAttributeName
-		NSGlyphInfoAttributeName
-		0
+		objc_getClass "NSArray" sel_getUid "arrayWithObjects:count:"
+		as Cocoa-handle-ptr! objects
+		as NSUInteger! 2
 	]
 ]
 
-attr-str-range: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	idx		[integer!]
-	len		[integer!]
-	p-range	[int-ptr!]
-	return: [integer!]
+attr-str-range*: func [
+	self	[Cocoa-handle!]
+	return: [Cocoa-handle!]
 ][
-	;probe "attr-str-range"
-	0
+	as Cocoa-handle! 0
 ]
 
-insert-text-range: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	str		[integer!]
-	idx		[integer!]
-	len		[integer!]
+#either ABI = 'apple-aarch64 [
+	attr-str-range: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		range	[NSRange! value]
+		actual	[NSRange!]
+		return: [Cocoa-handle!]
+	][
+		attr-str-range* self
+	]
+][
+	attr-str-range: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		idx		[integer!]
+		len		[integer!]
+		p-range	[int-ptr!]
+		return: [Cocoa-handle!]
+	][
+		attr-str-range* self
+	]
+]
+
+insert-text-range*: func [
+	self	[Cocoa-handle!]
+	str		[Cocoa-handle!]
 	/local
 		attr-str?	[logic!]
-		text		[integer!]
-		cstr		[c-string!]
+		text		[Cocoa-handle!]
 		key			[integer!]
+		idx			[integer!]
+		len			[integer!]
 ][
 	special-key: 0
 	objc_msgSend [self sel_getUid "unmarkText"]
@@ -1375,35 +1479,92 @@ insert-text-range: func [
 		str sel_getUid "isKindOfClass:" objc_getClass "NSAttributedString"
 	]
 	text: either attr-str? [objc_msgSend [str sel_getUid "string"]][str]
-	len: objc_msgSend [text sel_length]
+	len: as integer! objc_msgSend [text sel_length]
 	idx: 0
 	while [idx < len][
-		key: objc_msgSend [text sel_getUid "characterAtIndex:" idx]
+		key: as integer! objc_msgSend [text sel_getUid "characterAtIndex:" idx]
 		make-event self key EVT_KEY
 		idx: idx + 1
 	]
 ]
 
-char-idx-point: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	x		[float32!]
-	y		[float32!]
-	return: [integer!]
+#either ABI = 'apple-aarch64 [
+	insert-text-range: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		str		[Cocoa-handle!]
+		range	[NSRange! value]
+	][
+		insert-text-range* self str
+	]
 ][
-	;probe "char-idx-point"
-	0
+	insert-text-range: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		str		[Cocoa-handle!]
+		idx		[integer!]
+		len		[integer!]
+	][
+		insert-text-range* self str
+	]
 ]
 
-first-rect-range: func [
-	[stdcall]
-	base		[integer!]
+#either ABI = 'apple-aarch64 [
+	char-idx-point: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		point	[CGPoint! value]
+		return: [NSUInteger!]
+	][
+		as NSUInteger! 0
+	]
+
+	first-rect-range: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		range	[NSRange! value]
+		actual	[NSRange!]
+		return: [NSRect! value]
+		/local
+			rc		[NSRect! value]
+			pt		[CGPoint! value]
+			window	[Cocoa-handle!]
+	][
+		rc/x: F32_TO_COCOA caret-x
+		rc/y: F32_TO_COCOA (caret-y + caret-h)
+		rc/w: F32_TO_COCOA caret-w
+		rc/h: F32_TO_COCOA caret-h
+		pt: objc_msgSend_pt [self sel_getUid "convertPoint:toView:" rc/x rc/y 0]
+		window: objc_msgSend [self sel_getUid "window"]
+		pt: objc_msgSend_pt [window sel_getUid "convertPointToScreen:" pt/x pt/y]
+		rc/x: pt/x
+		rc/y: pt/y
+		rc
+	]
+][
+	char-idx-point: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		x		[float32!]
+		y		[float32!]
+		return: [integer!]
+	][
+		0
+	]
+
+	first-rect-range: func [
+		[stdcall]
+		base		[integer!]
 	/local
 		pc		[int-ptr!]
 		rc		[NSRect!]
-		self	[integer!]
-		cmd		[integer!]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
 		idx		[integer!]
 		len		[integer!]
 		p-range [int-ptr!]
@@ -1411,7 +1572,7 @@ first-rect-range: func [
 		x		[integer!]
 		pt		[CGPoint!]
 		sy		[float32!]
-][
+	][
 	pc: :base
 	rc: as NSRect! base
 	pc: pc + 1
@@ -1433,16 +1594,17 @@ first-rect-range: func [
 	y: system/cpu/edx
 	pt: as CGPoint! :x
 	rc/x: pt/x
-	rc/y: pt/y
+		rc/y: pt/y
+	]
 ]
 
 do-cmd-selector: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	sel		[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	sel		[Cocoa-handle!]
 	/local
-		event [integer!]
+		event [Cocoa-handle!]
 ][
 	event: objc_msgSend [NSApp sel_getUid "currentEvent"]
 	if all [
@@ -1453,27 +1615,29 @@ do-cmd-selector: func [
 	]
 ]
 
-hit-test: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	x		[integer!]
-	y		[integer!]
-	return: [integer!]
+hit-test*: func [
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	x		[Cocoa-float!]
+	y		[Cocoa-float!]
+	return: [Cocoa-handle!]
 	/local
 		img		[red-image!]
 		sz		[red-pair!]
 		pt		[CGPoint! value]
 		super	[objc_super! value]
-		v		[integer!]
-		pixel	[integer!]
+		v		[Cocoa-handle!]
+		pixel	[Cocoa-handle!]
+		pixel-value [integer!]
 		w		[integer!]
 		h		[integer!]
-		ratio	[float32!]
+		ix		[integer!]
+		iy		[integer!]
+		ratio	[Cocoa-float!]
 		vals	[red-value!]
 		clr		[red-tuple!]
 		rc		[NSRect! value]
-		rep		[integer!]
+		rep		[Cocoa-handle!]
 		alpha	[float!]
 ][
 	super/receiver: self
@@ -1490,12 +1654,12 @@ hit-test: func [
 			]
 			w: IMAGE_WIDTH(img/size)
 			h: IMAGE_HEIGHT(img/size)
-			ratio: (as float32! w) / (as float32! sz/x)
-			x: as-integer pt/x * ratio
-			ratio: (as float32! h) / (as float32! sz/y)
-			y: as-integer pt/y * ratio
-			pixel: OS-image/get-pixel resolve-node img/node y * w + x
-			if pixel >>> 24 = 0 [return 0]
+			ratio: (as Cocoa-float! w) / (as Cocoa-float! sz/x)
+			ix: as integer! (pt/x * ratio)
+			ratio: (as Cocoa-float! h) / (as Cocoa-float! sz/y)
+			iy: as integer! (pt/y * ratio)
+			pixel-value: OS-image/get-pixel resolve-node img/node iy * w + ix
+			if pixel-value >>> 24 = 0 [return as Cocoa-handle! 0]
 		]
 
 		clr: (as red-tuple! vals) + FACE_OBJ_COLOR
@@ -1516,22 +1680,43 @@ hit-test: func [
 			]
 			pixel: objc_msgSend [rep sel_getUid "colorAtX:y:" as-integer pt/x as-integer pt/y]
 			alpha: objc_msgSend_fpret [pixel sel_getUid "alphaComponent"]
-			if alpha = 0.0 [return 0]
+			if alpha = 0.0 [return as Cocoa-handle! 0]
 		]
 	]
 	v
 ]
 
-draw-rect: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	x		[float32!]
-	y		[float32!]
-	width	[float32!]
-	height	[float32!]
+#either ABI = 'apple-aarch64 [
+	hit-test: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		point	[CGPoint! value]
+		return: [Cocoa-handle!]
+	][
+		hit-test* self cmd point/x point/y
+	]
+][
+	hit-test: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		x		[float32!]
+		y		[float32!]
+		return: [Cocoa-handle!]
+	][
+		hit-test* self cmd x y
+	]
+]
+
+draw-rect*: func [
+	self	[Cocoa-handle!]
+	x		[Cocoa-float!]
+	y		[Cocoa-float!]
+	width	[Cocoa-float!]
+	height	[Cocoa-float!]
 	/local
-		nsctx	[integer!]
+		nsctx	[Cocoa-handle!]
 		ctx		[handle!]
 		vals	[red-value!]
 		img		[red-image!]
@@ -1545,6 +1730,8 @@ draw-rect: func [
 		DC		[draw-ctx!]
 		pt		[red-point2D!]
 		sx sy	[integer!]
+		bounds	[NSRect! value]
+		view-size [NSSize! value]
 ][
 	nsctx: objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "currentContext"]
 	v1010?: as logic! objc_msgSend [nsctx sel_getUid "respondsToSelector:" sel_getUid "CGContext"]
@@ -1567,10 +1754,13 @@ draw-rect: func [
 	]
 	if TYPE_OF(img) = TYPE_IMAGE [
 		GET_PAIR_XY_INT(size sx sy)
-		CG-draw-image ctx OS-image/to-cgimage img 0 0 sx sy
+		CG-draw-image ctx as Cocoa-handle! OS-image/to-cgimage img 0 0 sx sy
 	]
+	bounds: objc_msgSend_rect [self sel_getUid "bounds"]
+	view-size/w: bounds/w
+	view-size/h: bounds/h
 	case [
-		sym = base [render-text ctx vals as NSSize! (as int-ptr! self) + 8]
+		sym = base [render-text ctx vals :view-size]
 		sym = rich-text [
 			pos/header: TYPE_POINT2D
 			pos/x: F32_0 pos/y: F32_0
@@ -1579,26 +1769,48 @@ draw-rect: func [
 		true []
 	]
 
-	img: as red-image! (as int-ptr! self) + 8				;-- view's size
 	either TYPE_OF(draw) = TYPE_BLOCK [
-		do-draw ctx img draw no yes no yes
+		do-draw ctx null draw no yes no yes
 	][
 		system/thrown: 0
 		DC: declare draw-ctx!								;@@ should declare it on stack
-		draw-begin DC ctx img no no
-		object_setInstanceVariable self IVAR_RED_DRAW_CTX as-integer DC
+		draw-begin DC ctx null no no
+		object_setInstanceVariable self IVAR_RED_DRAW_CTX as Cocoa-handle! DC
 		make-event self 0 EVT_DRAWING
 		draw-end DC ctx no no no
 	]
 ]
 
+#either ABI = 'apple-aarch64 [
+	draw-rect: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		rc		[NSRect! value]
+	][
+		draw-rect* self rc/x rc/y rc/w rc/h
+	]
+][
+	draw-rect: func [
+		[cdecl]
+		self	[Cocoa-handle!]
+		cmd		[Cocoa-handle!]
+		x		[float32!]
+		y		[float32!]
+		width	[float32!]
+		height	[float32!]
+	][
+		draw-rect* self x y width height
+	]
+]
+
 return-field-editor: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	sender	[integer!]
-	obj		[integer!]
-	return: [integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	sender	[Cocoa-handle!]
+	obj		[Cocoa-handle!]
+	return: [Cocoa-handle!]
 ][
 	objc_setAssociatedObject sender RedFieldEditorKey obj OBJC_ASSOCIATION_ASSIGN
 	0
@@ -1606,35 +1818,35 @@ return-field-editor: func [
 
 perform-key-equivalent: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	event	[Cocoa-handle!]
 	return: [logic!]
 	/local
 		type  [integer!]
 		flags [integer!]
 		mask  [integer!]
-		obj   [integer!]
-		sel   [integer!]
+		obj   [Cocoa-handle!]
+		sel   [Cocoa-handle!]
 ][
-	type: objc_msgSend [event sel_getUid "type"]
+	type: as integer! objc_msgSend [event sel_getUid "type"]
 	if type = NSKeyDown [
-		flags: objc_msgSend [event sel_getUid "modifierFlags"]
+		flags: as integer! objc_msgSend [event sel_getUid "modifierFlags"]
 		mask: 0
 		if flags and NSAlternateKeyMask <> 0 [mask: mask or NSAlternateKeyMask]
 		if flags and NSShiftKeyMask <> 0 [mask: mask or NSShiftKeyMask]
 		if flags and NSControlKeyMask <> 0 [mask: mask or NSControlKeyMask]
 		if flags and NSCommandKeyMask <> 0 [mask: mask or NSCommandKeyMask]
-		sel: 0
+		sel: as Cocoa-handle! 0
 		if mask = NSCommandKeyMask [
-			flags: objc_msgSend [event sel_getUid "keyCode"]
+			flags: as integer! objc_msgSend [event sel_getUid "keyCode"]
 			sel: switch flags [
 				6 [sel_getUid "undo:"]				;-- Z
 				7 [sel_getUid "cut:"]				;-- X
 				8 [sel_getUid "copy:"]				;-- C
 				9 [sel_getUid "paste:"]				;-- V
 				0 [sel_getUid "selectAll:"]			;-- A
-				default [0]
+				default [as Cocoa-handle! 0]
 			]
 		]
 		if NSCommandKeyMask or NSShiftKeyMask = mask [

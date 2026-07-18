@@ -1870,9 +1870,10 @@ system-dialect: make-profilable context [
 			]
 			cconv: ['cdecl | 'stdcall]
 			attribs: [
-				[cconv ['variadic | 'typed | 'custom]]
+				['variadic 'objc | 'objc 'variadic]
+				| [cconv ['variadic | 'typed | 'custom]]
 				| [['variadic | 'typed | 'custom] cconv]
-				| 'catch | 'infix | 'variadic | 'typed | 'custom | 'callback | cconv
+				| 'catch | 'infix | 'variadic | 'typed | 'custom | 'callback | 'objc | cconv
 			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 			fun-rule: [pos: block! (check-specs name pos/1)]
@@ -2095,11 +2096,12 @@ system-dialect: make-profilable context [
 			;--   * apply C default argument promotions to the trailing (variadic) args:
 			;--     float32! -> float! (i.e. float -> double). char/byte are already word-sized.
 			name [word!] tag [issue!] args [block!]
-			/local entry spec fixed n i arg atype
+			/local entry spec fixed n i arg atype objc-call?
 		][
 			entry: functions/:name
 			unless all [tag = #variadic  entry/3 = 'cdecl][exit] ;-- only C-ABI vararg imports
 			spec: entry/4
+			objc-call?: find-attribute spec 'objc
 			if block? spec/1 [spec: next spec]			;-- skip attributes block
 			fixed: entry/1								;-- number of named (fixed) C parameters
 			n: length? args
@@ -2117,6 +2119,7 @@ system-dialect: make-profilable context [
 			]
 			repeat i n [								;-- variadic tail: default argument promotions
 				if all [
+					not objc-call?
 					i > fixed
 					not block? arg: args/:i				;-- skip nested calls (no float32! promotion there yet)
 					'float32! = first get-type arg

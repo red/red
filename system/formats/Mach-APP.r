@@ -55,18 +55,22 @@ packager: context [
 	copy-icon: func [
 		main-file [file!]
 		res-dir	  [file!]
-		/local root src s e icon
+		/local root src token header s icon
 	][
 		src: read main-file
-		if all [
-			s: find src "icon"
-			e: find s "^/"
-		][
-			icon: second load copy/part s e
-			root: first split-path main-file
-			icon: join root icon
-			if s: find/last icon #"." [clear s]
-			append icon %.icns
+		token: attempt [load/next src]
+		if all [block? token token/1 = 'Red][
+			token: attempt [load/next token/2]
+			if all [
+				block? token
+				block? header: token/1
+				file? icon: select header first [Icon:]
+			][
+				root: first split-path main-file
+				icon: join root icon
+				if s: find/last icon #"." [clear s]
+				append icon %.icns
+			]
 		]
 
 		if all [

@@ -16,21 +16,20 @@ Red/System [
 
 ;-- User's define selectors
 
-sel-on-timer:					0
-sel_release:					0
-sel_alloc:						0
-sel_init:						0
-sel_initWithFrame:				0
-sel_changeFont:					0
-sel_windowWillClose:			0
-sel_addObject:					0
-sel_addAttributes:				0
-sel_addAttribute:				0
-sel_initWithObjectsAndKeys:		0
-sel_arrayWithObject:			0
-sel_length:						0
+sel-on-timer:					as Cocoa-handle! 0
+sel_release:					as Cocoa-handle! 0
+sel_alloc:						as Cocoa-handle! 0
+sel_init:						as Cocoa-handle! 0
+sel_initWithFrame:				as Cocoa-handle! 0
+sel_changeFont:					as Cocoa-handle! 0
+sel_windowWillClose:			as Cocoa-handle! 0
+sel_addObject:					as Cocoa-handle! 0
+sel_addAttributes:				as Cocoa-handle! 0
+sel_addAttribute:				as Cocoa-handle! 0
+sel_arrayWithObject:			as Cocoa-handle! 0
+sel_length:						as Cocoa-handle! 0
 
-cls_NSArray:					0
+cls_NSArray:					as Cocoa-handle! 0
 
 init-selectors: does [
 	sel-on-timer:				sel_getUid "on-timer:"
@@ -43,7 +42,6 @@ init-selectors: does [
 	sel_addObject:				sel_getUid "addObject:"
 	sel_addAttributes:			sel_getUid "addAttributes:range:"
 	sel_addAttribute:			sel_getUid "addAttribute:value:range:"
-	sel_initWithObjectsAndKeys:	sel_getUid "initWithObjectsAndKeys:"
 	sel_arrayWithObject:		sel_getUid "arrayWithObject:"
 	sel_length:					sel_getUid "length"
 

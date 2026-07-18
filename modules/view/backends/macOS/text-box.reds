@@ -20,6 +20,37 @@ Red/System [
 
 max-line-cnt:  0
 
+get-text-box-state-handle: func [
+	state	[red-block!]
+	index	[integer!]
+	return: [Cocoa-handle!]
+	/local
+		cell [red-value!]
+		int  [red-integer!]
+][
+	cell: block/rs-head state + index
+	#either ABI = 'apple-aarch64 [
+		get-cocoa-handle as red-handle! cell
+	][
+		int: as red-integer! cell
+		as Cocoa-handle! int/value
+	]
+]
+
+append-text-box-state-handle: func [
+	state	[red-block!]
+	value	[Cocoa-handle!]
+	/local
+		result [red-handle!]
+][
+	#either ABI = 'apple-aarch64 [
+		result: handle/make-in state as integer! value handle/CLASS_RICHTEXT
+		set-cocoa-handle result value
+	][
+		integer/make-in state as integer! value
+	]
+]
+
 OS-text-box-color: func [
 	dc		[handle!]
 	layout	[handle!]
@@ -64,10 +95,11 @@ OS-text-box-underline: func [
 	opts	[red-value!]					;-- options
 	tail	[red-value!]
 	/local
-		under [integer!]
+		value [integer!]
+		under [Cocoa-handle!]
 ][
-	under: 1
-	under: CFNumberCreate 0 15 :under
+	value: 1
+	under: CFNumberCreate 0 15 :value
 	objc_msgSend [layout sel_addAttribute NSUnderlineStyleAttributeName under pos len]
 ]
 
@@ -77,10 +109,11 @@ OS-text-box-strikeout: func [
 	len		[integer!]
 	opts	[red-value!]					;-- options
 	/local
-		strike [integer!]
+		value [integer!]
+		strike [Cocoa-handle!]
 ][
-	strike: 1
-	strike: CFNumberCreate 0 15 :strike
+	value: 1
+	strike: CFNumberCreate 0 15 :value
 	objc_msgSend [layout sel_addAttribute NSStrikethroughStyleAttributeName strike pos len]
 ]
 
@@ -101,9 +134,9 @@ OS-text-box-font-name: func [
 	len		[integer!]
 	name	[red-string!]
 	/local
-		desc	[integer!]
-		font	[integer!]
-		str		[integer!]
+		desc	[Cocoa-handle!]
+		font	[Cocoa-handle!]
+		str		[Cocoa-handle!]
 ][
 	desc: objc_msgSend [nsfont sel_getUid "fontDescriptor"]
 	str: to-CFString name
@@ -123,15 +156,13 @@ OS-text-box-font-size: func [
 	len		[integer!]
 	size	[float!]
 	/local
-		desc	[integer!]
-		font	[integer!]
-		x		[integer!]
-		y		[integer!]
+		desc	[Cocoa-handle!]
+		font	[Cocoa-handle!]
 		temp	[CGPoint!]
 ][
-	y: 0
-	temp: as CGPoint! :y
-	temp/x: as float32! size
+	temp: declare CGPoint!
+	temp/x: as Cocoa-float! size
+	temp/y: as Cocoa-float! 0.0
 	desc: objc_msgSend [nsfont sel_getUid "fontDescriptor"]
 	font: objc_msgSend [
 		objc_getClass "NSFont" sel_getUid "fontWithDescriptor:size:"
@@ -147,15 +178,14 @@ OS-text-box-metrics: func [
 	type	[integer!]
 	return: [red-value!]
 	/local
-		layout	[integer!]
-		ts		[integer!]
-		tc		[integer!]
+		layout	[Cocoa-handle!]
+		ts		[Cocoa-handle!]
+		tc		[Cocoa-handle!]
 		pos		[red-pair!]
 		int		[red-integer!]
 		str		[red-string!]
 		values	[red-value!]
-		y		[float32!]
-		x		[float32!]
+		y		[Cocoa-float!]
 		cnt		[integer!]
 		yy		[integer!]
 		xx		[integer!]
@@ -163,21 +193,18 @@ OS-text-box-metrics: func [
 		_h		[integer!]
 		_y		[integer!]
 		_x		[integer!]
-		frame	[NSRect!]
-		cg-pt	[CGPoint!]
+		frame	[NSRect! value]
+		cg-pt	[CGPoint! value]
 		idx		[integer!]
 		len		[integer!]
-		method	[integer!]
-		saved	[int-ptr!]
+		range	[NSRange! value]
 		last?	[logic!]
 		pt		[red-point2D!]
 ][
-	int: as red-integer! block/rs-head state
-	layout: int/value
-	int: int + 1
-	tc: int/value
-	int: int + 1
-	ts: int/value
+	int: as red-integer! block/rs-head state + 2
+	layout: get-text-box-state-handle state 0
+	tc: get-text-box-state-handle state 1
+	ts: get-text-box-state-handle state 2
 	as red-value! switch type [
 		TBOX_METRICS_OFFSET?
 		TBOX_METRICS_LINE_HEIGHT [
@@ -190,73 +217,59 @@ OS-text-box-metrics: func [
 			last?: idx >= len
 			if last? [idx: len - 1]
 
-			frame: as NSRect! :_x
-			method: sel_getUid "lineFragmentUsedRectForGlyphAtIndex:effectiveRange:"
-			saved: system/stack/align
-			push 0 push 0 push 0
-			push 0 push idx
-			push method push layout push frame
-			objc_msgSend_stret 5
-			system/stack/top: saved
+			frame: objc_msgSend_rect [
+				layout sel_getUid "lineFragmentUsedRectForGlyphAtIndex:effectiveRange:"
+				as NSUInteger! idx 0
+			]
 			either type = TBOX_METRICS_LINE_HEIGHT [
 				float/push as float! frame/h
 			][
-				cg-pt: as CGPoint! :_x
+				cg-pt/y: as Cocoa-float! 0.0
 				either last? [
 					cg-pt/x: frame/x + frame/w
 				][
-					_x: objc_msgSend [layout sel_getUid "locationForGlyphAtIndex:" idx]
+					cg-pt: objc_msgSend_pt [layout sel_getUid "locationForGlyphAtIndex:" as NSUInteger! idx]
 				]
-				point2D/push cg-pt/x cg-pt/y
+				point2D/push COCOA_TO_F32(cg-pt/x) COCOA_TO_F32(cg-pt/y)
 			]
 		]
 		TBOX_METRICS_INDEX?
 		TBOX_METRICS_CHAR_INDEX? [
-			y: as float32! 0.0
+			y: as Cocoa-float! 0.0
 			pos: as red-pair! arg0
 			xx: 0
-			cg-pt: as CGPoint! :xx
-			GET_PAIR_XY(pos cg-pt/x cg-pt/y)
-			idx: objc_msgSend [
+			cg-pt/x: as Cocoa-float! pos/x
+			cg-pt/y: as Cocoa-float! pos/y
+			idx: as integer! objc_msgSend [
 				layout
 				sel_getUid "characterIndexForPoint:inTextContainer:fractionOfDistanceBetweenInsertionPoints:"
 				cg-pt/x cg-pt/y tc :y
 			]
-			if all [type = TBOX_METRICS_INDEX? y > as float32! 0.5][idx: idx + 1]
+			if all [type = TBOX_METRICS_INDEX? y > as Cocoa-float! 0.5][idx: idx + 1]
 			integer/push idx + 1
 		]
 		TBOX_METRICS_SIZE [
-			idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
-			len: system/cpu/edx
-			xx: 0 _x: 0
-			frame: as NSRect! :_x
-			method: sel_getUid "boundingRectForGlyphRange:inTextContainer:"
-			saved: system/stack/align
-			push 0 push 0
-			push tc push len push idx
-			push method push layout push frame
-			objc_msgSend_stret 6
-			system/stack/top: saved
-			point2D/push frame/w frame/h
+			range: objc_msgSend_range [layout sel_getUid "glyphRangeForTextContainer:" tc]
+			idx: as integer! range/idx
+			len: as integer! range/len
+			frame: objc_msgSend_rect [
+				layout sel_getUid "boundingRectForGlyphRange:inTextContainer:"
+				range/idx range/len tc
+			]
+			point2D/push COCOA_TO_F32(frame/w) COCOA_TO_F32(frame/h)
 		]
 		TBOX_METRICS_LINE_COUNT [
-			idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
-			len: system/cpu/edx
-			xx: 0 _x: 0
-			frame: as NSRect! :_x
-			method: sel_getUid "lineFragmentRectForGlyphAtIndex:effectiveRange:"
+			range: objc_msgSend_range [layout sel_getUid "glyphRangeForTextContainer:" tc]
+			len: as integer! range/len
 			cnt: 0
 			idx: 0
-			yy: 0
 			while [idx < len][
 				cnt: cnt + 1
-				saved: system/stack/align
-				push 0 push 0 push 0
-				push :xx push idx
-				push method push layout push frame
-				objc_msgSend_stret 5
-				system/stack/top: saved
-				idx: xx + yy
+				frame: objc_msgSend_rect [
+					layout sel_getUid "lineFragmentRectForGlyphAtIndex:effectiveRange:"
+					as NSUInteger! idx :range
+				]
+				idx: as integer! (range/idx + range/len)
 			]
 			if zero? cnt [cnt: 1]
 			integer/push cnt
@@ -268,9 +281,9 @@ OS-text-box-metrics: func [
 OS-text-box-layout: func [
 	box			[red-object!]
 	target		[int-ptr!]
-	nscolor		[integer!]	
+	nscolor		[Cocoa-handle!]
 	catch?		[logic!]
-	return:		[integer!]
+	return:		[Cocoa-handle!]
 	/local
 		values	[red-value!]
 		state	[red-block!]
@@ -280,17 +293,20 @@ OS-text-box-layout: func [
 		font	[red-object!]
 		fcolor	[red-tuple!]
 		bool	[red-logic!]
-		layout	[integer!]
-		ts		[integer!]
-		tc		[integer!]
-		str		[integer!]
+		layout	[Cocoa-handle!]
+		ts		[Cocoa-handle!]
+		tc		[Cocoa-handle!]
+		str		[Cocoa-handle!]
 		w		[integer!]
 		h		[integer!]
 		sz		[NSSize!]
-		attrs	[integer!]
-		nsfont	[integer!]
-		clr		[integer!]
-		para	[integer!]
+		attrs	[Cocoa-handle!]
+		objects	[Cocoa-handle-array!]
+		keys	[Cocoa-handle-array!]
+		attr-count [NSUInteger!]
+		nsfont	[Cocoa-handle!]
+		clr		[Cocoa-handle!]
+		para	[Cocoa-handle!]
 		cached?	[logic!]
 		pt		[red-point2D!]
 		sx sy	[float32!]
@@ -301,26 +317,27 @@ OS-text-box-layout: func [
 	state: as red-block! values + FACE_OBJ_EXT3
 	size: as red-pair! values + FACE_OBJ_SIZE
 	font: as red-object! values + FACE_OBJ_FONT
-	nsfont: as-integer get-font null font
+	nsfont: get-font null font
 	cached?: TYPE_OF(state) = TYPE_BLOCK
 
-	h: 7CF0BDC2h w: 7CF0BDC2h
-	sz: as NSSize! :h
+	sz: declare NSSize!
+	sz/w: as Cocoa-float! 1.0e37
+	sz/h: as Cocoa-float! 1.0e37
 
 	either cached? [
-		int: as red-integer! block/rs-head state
-		layout: int/value
-		int: int + 1 tc: int/value
-		int: int + 1 ts: int/value
-		int: int + 1 para: int/value
+		layout: get-text-box-state-handle state 0
+		tc: get-text-box-state-handle state 1
+		ts: get-text-box-state-handle state 2
+		para: get-text-box-state-handle state 3
+		int: as red-integer! block/rs-head state + 3
 		bool: as red-logic! int + 2
 		bool/value: false
 	][
 		tc: objc_msgSend [
 			objc_msgSend [objc_getClass "NSTextContainer" sel_alloc]
-			sel_getUid "initWithSize:" 7CF0BDC2h 7CF0BDC2h
+			sel_getUid "initWithSize:" sz/w sz/h
 		]
-		objc_msgSend [tc sel_getUid "setLineFragmentPadding:" 0]
+		objc_msgSend [tc sel_getUid "setLineFragmentPadding:" (as Cocoa-float! 0.0)]
 
 		ts: objc_msgSend [
 			objc_msgSend [objc_getClass "NSTextStorage" sel_alloc]
@@ -337,16 +354,15 @@ OS-text-box-layout: func [
 
 		para: objc_msgSend [objc_getClass "NSParagraphStyle" sel_getUid "defaultParagraphStyle"]
 		para: objc_msgSend [para sel_getUid "mutableCopy"]
-		h: objc_msgSend [nsfont sel_getUid "advancementForGlyph:" 32]			;-- #" "
-		objc_msgSend [para sel_getUid "setDefaultTabInterval:" sz/w * (as float32! 4.0)]
+		sz: objc_msgSend_sz [nsfont sel_getUid "advancementForGlyph:" 32]		;-- #" "
+		objc_msgSend [para sel_getUid "setDefaultTabInterval:" sz/w * (as Cocoa-float! 4.0)]
 		objc_msgSend [para sel_getUid "setTabStops:" objc_msgSend [objc_getClass "NSArray" sel_getUid "array"]]
 
-		h: 7CF0BDC2h
 		block/make-at state 6
-		integer/make-in state layout
-		integer/make-in state tc
-		integer/make-in state ts
-		integer/make-in state para
+		append-text-box-state-handle state layout
+		append-text-box-state-handle state tc
+		append-text-box-state-handle state ts
+		append-text-box-state-handle state para
 		none/make-in state
 		logic/make-in state false
 	]
@@ -357,28 +373,33 @@ OS-text-box-layout: func [
 
 	if ANY_COORD?(size) [
 		GET_PAIR_XY(size sx sy)
-		if sx <> F32_0 [sz/w: sx]
-		if sy <> F32_0 [sz/h: sy]
+		if sx <> F32_0 [sz/w: F32_TO_COCOA sx]
+		if sy <> F32_0 [sz/h: F32_TO_COCOA sy]
 	]
 	objc_msgSend [tc sel_getUid "setSize:" sz/w sz/h]
 
 	objc_msgSend [ts sel_getUid "beginEditing"]
 
 	if cached? [
-		w: objc_msgSend [ts sel_length]
+		w: as integer! objc_msgSend [ts sel_length]
 		objc_msgSend [ts sel_getUid "deleteCharactersInRange:" 0 w]
 		objc_msgSend [ts sel_getUid "replaceCharactersInRange:withString:" 0 0 str]
 	]
 
-	attrs: objc_msgSend [
-		objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
-		sel_getUid "initWithObjectsAndKeys:"
-		nsfont NSFontAttributeName
-		para NSParagraphStyleAttributeName
-		nscolor NSForegroundColorAttributeName
-		0
+	objects: declare Cocoa-handle-array!
+	keys: declare Cocoa-handle-array!
+	objects/v1: nsfont
+	keys/v1: NSFontAttributeName
+	objects/v2: para
+	keys/v2: NSParagraphStyleAttributeName
+	attr-count: as NSUInteger! 2
+	if nscolor <> 0 [
+		objects/v3: nscolor
+		keys/v3: NSForegroundColorAttributeName
+		attr-count: as NSUInteger! 3
 	]
-	w: objc_msgSend [str sel_length]
+	attrs: make-NSDictionary objects keys attr-count
+	w: as integer! objc_msgSend [str sel_length]
 	objc_msgSend [ts sel_getUid "setAttributes:range:" attrs 0 w]
 	objc_msgSend [attrs sel_release]
 	;-- base font foreground; data ranges layer above

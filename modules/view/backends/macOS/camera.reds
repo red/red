@@ -21,39 +21,42 @@ Red/System [
 camera-ratio:	 0.0									;-- used to pass ratio info from deep code to init-camera 
 
 init-camera: func [
-	camera	[integer!]
+	camera	[Cocoa-handle!]
 	rc		[NSRect!]
 	data	[red-block!]
 	/local
-		devices	[integer!]
-		session	[integer!]
-		preview	[integer!]
-		layer	[integer!]
+		devices	[Cocoa-handle!]
+		session	[Cocoa-handle!]
+		preview	[Cocoa-handle!]
+		layer	[Cocoa-handle!]
 		n		[integer!]
+		color	[Cocoa-handle!]
 		cnt		[integer!]
-		dev		[integer!]
-		name	[integer!]
+		dev		[Cocoa-handle!]
+		name	[Cocoa-handle!]
 		size	[integer!]
 		str		[red-string!]
 		cstr	[c-string!]
-		img-out [integer!]
-		setting [integer!]
+		img-out [Cocoa-handle!]
+		setting [Cocoa-handle!]
+		objects [Cocoa-handle-array!]
+		keys	[Cocoa-handle-array!]
 ][
-	rc/x: as float32! 0.0
-	rc/y: as float32! 0.0
+	rc/x: as Cocoa-float! 0.0
+	rc/y: as Cocoa-float! 0.0
 
-	layer: objc_msgSend [camera sel_getUid "setWantsLayer:" yes]
+	objc_msgSend [camera sel_getUid "setWantsLayer:" yes]
 	layer: objc_msgSend [camera sel_getUid "layer"]
-	n: objc_msgSend [objc_getClass "NSColor" sel_getUid "blackColor"]
+	color: objc_msgSend [objc_getClass "NSColor" sel_getUid "blackColor"]
 	objc_msgSend [
-		layer sel_getUid "setBackgroundColor:" objc_msgSend [n sel_getUid "CGColor"]
+		layer sel_getUid "setBackgroundColor:" objc_msgSend [color sel_getUid "CGColor"]
 	]
 	objc_msgSend [layer sel_getUid "setAutoresizingMask:" NSViewWidthSizable or NSViewHeightSizable]
 
 	;-- get all devices name
 	devices: objc_msgSend [objc_getClass "AVCaptureDevice" sel_getUid "devicesWithMediaType:" AVMediaTypeVideo]
 	if zero? devices [exit]
-	cnt: objc_msgSend [devices sel_getUid "count"]
+	cnt: as integer! objc_msgSend [devices sel_getUid "count"]
 	if zero? cnt [exit]
 
 	if TYPE_OF(data) <> TYPE_BLOCK [
@@ -63,7 +66,7 @@ init-camera: func [
 	while [n < cnt] [
 		dev: objc_msgSend [devices sel_getUid "objectAtIndex:" n]
 		name: objc_msgSend [dev sel_getUid "localizedName"]
-		size: objc_msgSend [name sel_getUid "lengthOfBytesUsingEncoding:" NSUTF8StringEncoding]
+		size: as integer! objc_msgSend [name sel_getUid "lengthOfBytesUsingEncoding:" NSUTF8StringEncoding]
 		cstr: as c-string! objc_msgSend [name sel_getUid "UTF8String"]
 		str: string/make-at ALLOC_TAIL(data) size Latin1
 		unicode/load-utf8-stream cstr size str null
@@ -76,8 +79,11 @@ init-camera: func [
 	objc_msgSend [session sel_getUid "beginConfiguration"]
 	img-out: objc_msgSend [objc_getClass "AVCaptureStillImageOutput" sel_getUid "alloc"]
 	img-out: objc_msgSend [img-out sel_getUid "init"]
-	setting: objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
-	setting: objc_msgSend [setting sel_getUid "initWithObjectsAndKeys:" AVVideoCodecJPEG AVVideoCodecKey 0]
+	objects: declare Cocoa-handle-array!
+	keys: declare Cocoa-handle-array!
+	objects/v1: AVVideoCodecJPEG
+	keys/v1: AVVideoCodecKey
+	setting: make-NSDictionary objects keys as NSUInteger! 1
 	objc_msgSend [img-out sel_getUid "setOutputSettings:" setting]
 	objc_msgSend [session sel_getUid "addOutput:" img-out]
 	objc_msgSend [session sel_getUid "commitConfiguration"]
@@ -93,14 +99,14 @@ init-camera: func [
 ]
 
 select-camera: func [
-	camera		[integer!]
+	camera		[Cocoa-handle!]
 	idx			[integer!]
 	/local
-		session [integer!]
-		devices [integer!]
-		dev		[integer!]
-		dev-in	[integer!]
-		cur-dev	[integer!]
+		session [Cocoa-handle!]
+		devices [Cocoa-handle!]
+		dev		[Cocoa-handle!]
+		dev-in	[Cocoa-handle!]
+		cur-dev	[Cocoa-handle!]
 ][
 	session: objc_getAssociatedObject camera RedCameraSessionKey
 	devices: objc_getAssociatedObject camera RedCameraDevicesKey
@@ -121,10 +127,10 @@ select-camera: func [
 ]
 
 toggle-preview: func [
-	camera		[integer!]
+	camera		[Cocoa-handle!]
 	enabled?	[logic!]
 	/local
-		session [integer!]
+		session [Cocoa-handle!]
 		face	[red-object!]
 		ratio	[red-float!]
 		img		[red-image!]
@@ -151,11 +157,11 @@ toggle-preview: func [
 still-image-handler: func [
 	[cdecl]
 	block	[int-ptr!]
-	buffer	[integer!]
-	error	[integer!]
+	buffer	[Cocoa-handle!]
+	error	[Cocoa-handle!]
 	/local
 		values	[red-value!]
-		data	[integer!]
+		data	[Cocoa-handle!]
 ][
 	if error <> 0 [exit]		;-- error occur
 
@@ -171,22 +177,22 @@ still-image-handler: func [
 ]
 
 snap-camera: func [				;-- capture an image of current preview window
-	camera		[integer!]
+	camera		[Cocoa-handle!]
 	/local
 		blk			[block_literal!]
-		isa			[integer!]
-		image		[integer!]
-		connection	[integer!]
-		layer		[integer!]
+		isa			[Cocoa-handle!]
+		image		[Cocoa-handle!]
+		connection	[Cocoa-handle!]
+		layer		[Cocoa-handle!]
 		orientation [integer!]
-		sel			[integer!]
+		sel			[Cocoa-handle!]
 ][
 	blk: declare block_literal!
 	isa: objc_getAssociatedObject camera RedCameraSessionKey
 	if zero? objc_msgSend [isa sel_getUid "isRunning"][exit]
 
-	objc_block_descriptor/reserved: 0
-	objc_block_descriptor/size: 4 * 6
+	objc_block_descriptor/reserved: as Cocoa-uhandle! 0
+	objc_block_descriptor/size: as Cocoa-uhandle! size? block_literal!
 
 	blk/isa: _NSConcreteStackBlock
 	blk/flags: 1 << 29				;-- BLOCK_HAS_DESCRIPTOR, no copy and dispose helpers

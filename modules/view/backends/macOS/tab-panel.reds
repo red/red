@@ -11,13 +11,13 @@ Red/System [
 ]
 
 select-tab: func [
-	hWnd [integer!]
+	hWnd [Cocoa-handle!]
 	int  [red-integer!]
 	/local
 		nb	[integer!]
 		idx [integer!]
 ][
-	nb: objc_msgSend [hWnd sel_getUid "numberOfTabViewItems"]
+	nb: as integer! objc_msgSend [hWnd sel_getUid "numberOfTabViewItems"]
 	idx: int/value
 	if any [idx < 1 idx > nb][exit]
 
@@ -26,7 +26,7 @@ select-tab: func [
 ]
 
 insert-tab: func [
-	hWnd  [integer!]
+	hWnd  [Cocoa-handle!]
 	str	  [red-string!]
 	index [integer!]
 ][
@@ -34,7 +34,7 @@ insert-tab: func [
 ]
 
 set-tabs: func [
-	obj		[integer!]
+	obj		[Cocoa-handle!]
 	facets	[red-value!]
 	/local
 		data	[red-block!]
@@ -44,13 +44,13 @@ set-tabs: func [
 		int		[red-integer!]
 		nb		[integer!]
 		idx		[integer!]
-		item	[integer!]
-		title	[integer!]
-		panel	[integer!]
+		item	[Cocoa-handle!]
+		title	[Cocoa-handle!]
+		panel	[Cocoa-handle!]
 		face	[red-object!]
 		end		[red-object!]
 ][
-	nb: objc_msgSend [obj sel_getUid "numberOfTabViewItems"]
+	nb: as integer! objc_msgSend [obj sel_getUid "numberOfTabViewItems"]
 	idx: nb - 1
 	while [idx >= 0][							;-- remove all tabs
 		objc_msgSend [
@@ -106,7 +106,7 @@ update-tabs: func [
 	index [integer!]
 	part  [integer!]
 	/local
-		hWnd [integer!]
+		hWnd [Cocoa-handle!]
 		str  [red-string!]
 ][
 	hWnd: get-face-handle face

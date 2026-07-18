@@ -659,7 +659,13 @@ system/view/platform: context [
 						#either OS = 'Windows [
 							(get-win-handle h) = hMonitor
 						][
-							h/value = as-integer hMonitor
+							#either OS = 'macOS [
+								#either ABI = 'apple-aarch64 [
+									(gui/get-cocoa-handle h) = (as int64! hMonitor)
+								][
+									(gui/get-cocoa-handle h) = (as integer! hMonitor)
+								]
+							][h/value = as-integer hMonitor]
 						]
 					][
 						if parent/ctx <> face/ctx [					;-- if window really moved to a different display
@@ -855,6 +861,28 @@ system/view/platform: context [
 				handle/CLASS_WINDOW
 		]
 	][
+	#either all [config/OS = 'macOS config/ABI = 'apple-aarch64] [
+		refresh-window: routine [h [handle!]][
+			gui/OS-refresh-window gui/get-cocoa-handle as red-handle! h
+		]
+
+		redraw: routine [face [object!] /local h [int64!]][
+			h: gui/face-handle? face
+			if h <> 0 [gui/OS-redraw h]
+		]
+
+		show-window: routine [id [handle!]][
+			gui/OS-show-window gui/get-cocoa-handle as red-handle! id
+			SET_RETURN(none-value)
+		]
+
+		make-view: routine [face [object!] parent [handle!]][
+			gui/make-cocoa-handle-at
+				stack/arguments
+				gui/OS-make-view face gui/get-cocoa-handle as red-handle! parent
+				handle/CLASS_WINDOW
+		]
+	][
 		refresh-window: routine [h [handle!]][
 			gui/OS-refresh-window h/value
 		]
@@ -873,6 +901,7 @@ system/view/platform: context [
 			handle/box gui/OS-make-view face parent/value handle/CLASS_WINDOW
 		]
 	]
+	]
 
 	draw-image: routine [image [image!] cmds [block!]][
 		if any [zero? IMAGE_WIDTH(image/size) zero? IMAGE_HEIGHT(image/size)][exit]
@@ -880,10 +909,26 @@ system/view/platform: context [
 		ownership/check as red-value! image words/_poke as red-value! image -1 -1
 	]
 
-	draw-face: routine [face [object!] cmds [block!] /local h [handle!] flags [integer!]][
-		flags: gui/get-flags as red-block! (object/get-values face) + gui/FACE_OBJ_FLAGS
-		h: gui/face-handle? face
-		if h <> null [gui/OS-draw-face h cmds flags]
+	#either all [config/OS = 'macOS config/ABI = 'apple-aarch64] [
+		draw-face: routine [face [object!] cmds [block!] /local h [int64!] flags [integer!]][
+			flags: gui/get-flags as red-block! (object/get-values face) + gui/FACE_OBJ_FLAGS
+			h: gui/face-handle? face
+			if h <> 0 [gui/OS-draw-face h cmds flags]
+		]
+	][
+		#either config/OS = 'macOS [
+			draw-face: routine [face [object!] cmds [block!] /local h [integer!] flags [integer!]][
+				flags: gui/get-flags as red-block! (object/get-values face) + gui/FACE_OBJ_FLAGS
+				h: gui/face-handle? face
+				if h <> 0 [gui/OS-draw-face h cmds flags]
+			]
+		][
+			draw-face: routine [face [object!] cmds [block!] /local h [handle!] flags [integer!]][
+				flags: gui/get-flags as red-block! (object/get-values face) + gui/FACE_OBJ_FLAGS
+				h: gui/face-handle? face
+				if h <> null [gui/OS-draw-face h cmds flags]
+			]
+		]
 	]
 
 	do-event-loop: routine [no-wait? [logic!] /local bool [red-logic!]][

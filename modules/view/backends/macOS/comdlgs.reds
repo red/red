@@ -13,11 +13,24 @@ Red/System [
 quit-modal-loop?: no
 font-changed?: no
 
+request-file-block!: alias struct! [
+	isa			[Cocoa-handle!]
+	flags		[integer!]
+	reserved	[integer!]
+	invoke		[int-ptr!]
+	descriptor	[int-ptr!]
+	panel		[Cocoa-handle!]
+	multi?		[logic!]
+	save?		[logic!]
+	dir?		[logic!]
+	ret			[red-value!]
+]
+
 dialog-proc: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	arg0	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	arg0	[Cocoa-handle!]
 ][
 	case [
 		cmd = sel_changeFont [
@@ -33,9 +46,9 @@ dialog-proc: func [
 do-modal-loop: func [
 	/local
 		state	[integer!]
-		pool	[integer!]
-		timeout [integer!]
-		event	[integer!]
+		pool	[Cocoa-handle!]
+		timeout [Cocoa-handle!]
+		event	[Cocoa-handle!]
 ][
 	timeout: objc_msgSend [objc_getClass "NSDate" sel_getUid "distantFuture"]
 	until [
@@ -57,22 +70,22 @@ do-modal-loop: func [
 ]
 
 set-file-filter: func [
-	panel		[integer!]
+	panel		[Cocoa-handle!]
 	filter		[red-string!]
 	/local
-		sep		[integer!]
-		str		[integer!]
-		types	[integer!]
-		e		[integer!]
-		t		[integer!]
+		sep		[Cocoa-handle!]
+		str		[Cocoa-handle!]
+		types	[Cocoa-handle!]
+		e		[Cocoa-handle!]
+		t		[Cocoa-handle!]
 		idx		[integer!]
-		any1	[integer!]
-		any2	[integer!]
-		pre1	[integer!]
-		pre2	[integer!]
-		allowed [integer!]
-		s_equal [integer!]
-		s_start [integer!]
+		any1	[Cocoa-handle!]
+		any2	[Cocoa-handle!]
+		pre1	[Cocoa-handle!]
+		pre2	[Cocoa-handle!]
+		allowed [Cocoa-handle!]
+		s_equal [Cocoa-handle!]
+		s_start [Cocoa-handle!]
 ][
 	sep:	NSString(";"  )
 	pre1:	NSString("*." )
@@ -119,44 +132,44 @@ set-file-filter: func [
 
 filter-filetype-action: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	sender	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	sender	[Cocoa-handle!]
 	/local
 		idx		[integer!]
-		p-int	[integer!]
+		p-int	[Cocoa-handle!]
 		filters [red-block!]
 ][
 	p-int: 0
 	object_getInstanceVariable self IVAR_RED_DATA :p-int
 	filters: as red-block! p-int
-	idx: objc_msgSend [sender sel_getUid "indexOfSelectedItem"]
+	idx: as integer! objc_msgSend [sender sel_getUid "indexOfSelectedItem"]
 	set-file-filter self as red-string! (block/rs-head filters) + (idx * 2 + 1)
 	objc_msgSend [self sel_getUid "validateVisibleColumns"]
 ]
 
 request-file-handler: func [
 	[cdecl]
-	_blk		[int-ptr!]
-	result		[integer!]
+	_blk		[request-file-block!]
+	result		[NSInteger!]
 	/local
-		panel	[integer!]
+		panel	[Cocoa-handle!]
 		multi?	[logic!]
 		save?	[logic!]
 		dir?	[logic!]
-		file	[integer!]
-		files	[integer!]
+		file	[Cocoa-handle!]
+		files	[Cocoa-handle!]
 		i		[integer!]
 		count	[integer!]
 		ret		[red-value!]
 		blk		[red-block!]
 		str		[red-string!]
 ][
-	panel:	_blk/6
-	multi?:	as logic! _blk/7
-	save?:	as logic! _blk/8
-	dir?:	as logic! _blk/9
-	ret:	as red-value! _blk/10
+	panel:	_blk/panel
+	multi?:	_blk/multi?
+	save?:	_blk/save?
+	dir?:	_blk/dir?
+	ret:	_blk/ret
 	either result = 1 [							;-- NSFileHandlingPanelOKButton
 		either any [not multi? save?][
 			str: to-red-string objc_msgSend [panel sel_getUid "filename"] ret
@@ -164,7 +177,7 @@ request-file-handler: func [
 			if dir? [string/append-char GET_BUFFER(str) as-integer #"/"]
 		][
 			files: objc_msgSend [panel sel_getUid "filenames"]
-			count: objc_msgSend [files sel_getUid "count"]
+			count: as integer! objc_msgSend [files sel_getUid "count"]
 			blk: block/make-at as red-block! ret count
 			i: 0
 			while [i < count][
@@ -182,20 +195,20 @@ request-file-handler: func [
 ]
 
 setup-filter-button: func [
-	panel		[integer!]
+	panel		[Cocoa-handle!]
 	filter		[red-block!]
 	/local
-		obj		[integer!]
+		obj		[Cocoa-handle!]
 		rc		[NSRect!]
-		menu	[integer!]
+		menu	[Cocoa-handle!]
 		head	[red-value!]
 		tail	[red-value!]
 		str		[red-value!]
-		item	[integer!]
-		key		[integer!]
+		item	[Cocoa-handle!]
+		key		[Cocoa-handle!]
 		type	[integer!]
 ][
-	object_setInstanceVariable panel IVAR_RED_DATA as-integer filter
+	object_setInstanceVariable panel IVAR_RED_DATA as Cocoa-handle! filter
 
 	rc: make-rect 0 0 0 0
 	obj: objc_msgSend [
@@ -244,20 +257,11 @@ _request-file: func [
 	dir?			[logic!]
 	return:			[red-value!]
 	/local
-		ret			[integer!]
-		value4		[integer!]
-		value3		[integer!]
-		value2		[integer!]
-		value1		[integer!]
-		descriptor	[integer!]
-		invoke		[integer!]
-		reserved	[integer!]
-		flags		[integer!]
-		isa			[integer!]
-		panel		[integer!]
-		parent		[integer!]
-		dir			[integer!]
-		res			[integer!]
+		block-literal [request-file-block!]
+		panel		[Cocoa-handle!]
+		parent		[Cocoa-handle!]
+		dir			[Cocoa-handle!]
+		res			[NSInteger!]
 		val			[red-file! value]
 		exist?		[logic!]
 ][
@@ -321,33 +325,34 @@ _request-file: func [
 		]
 	]
 
-	objc_block_descriptor/reserved: 0
-	objc_block_descriptor/size: 4 * 10
+	objc_block_descriptor/reserved: as Cocoa-uhandle! 0
+	objc_block_descriptor/size: as Cocoa-uhandle! size? request-file-block!
 
-	isa: _NSConcreteStackBlock
-	flags: 1 << 29				;-- BLOCK_HAS_DESCRIPTOR, no copy and dispose helpers
-	reserved: 0
-	invoke: as-integer :request-file-handler
-	descriptor: as-integer objc_block_descriptor
-	value1: panel
-	value2: as-integer multi?
-	value3: as-integer save?
-	value4: as-integer dir?
-	ret:	as-integer :val
+	block-literal: declare request-file-block!
+	block-literal/isa: _NSConcreteStackBlock
+	block-literal/flags: 1 << 29		;-- BLOCK_HAS_DESCRIPTOR, no copy and dispose helpers
+	block-literal/reserved: 0
+	block-literal/invoke: as int-ptr! :request-file-handler
+	block-literal/descriptor: as int-ptr! objc_block_descriptor
+	block-literal/panel: panel
+	block-literal/multi?: multi?
+	block-literal/save?: save?
+	block-literal/dir?: dir?
+	block-literal/ret: as red-value! :val
 
 	parent: objc_msgSend [NSApp sel_getUid "mainWindow"]
 	either parent <> 0 [
 		objc_msgSend [
 			panel sel_getUid "beginSheetModalForWindow:completionHandler:"
-			parent :isa
+			parent block-literal
 		]
 		do-modal-loop
 		objc_msgSend [parent sel_getUid "makeKeyWindow"]
 	][
 		res: objc_msgSend [panel sel_getUid "runModal"]
-		request-file-handler :isa res
+		request-file-handler block-literal res
 	]
-	as red-value! ret
+	as red-value! :val
 ]
 
 OS-request-dir: func [
@@ -378,19 +383,19 @@ OS-request-font: func [
 	mono?			[logic!]
 	return:			[red-object!]
 	/local
-		panel		[integer!]
-		delegate	[integer!]
-		nsfont		[integer!]
+		panel		[Cocoa-handle!]
+		delegate	[Cocoa-handle!]
+		nsfont		[Cocoa-handle!]
 		values		[red-value!]
 		style		[red-block!]
-		size		[float32!]
-		manager		[integer!]
+		size		[Cocoa-float!]
+		manager		[Cocoa-handle!]
 		trait		[integer!]
 		bold?		[logic!]
-		pool		[integer!]
+		pool		[Cocoa-handle!]
 ][
 	font-changed?: no
-	nsfont: as-integer get-font null selected
+	nsfont: get-font null selected
 	if zero? nsfont [nsfont: default-font]
 	delegate: objc_msgSend [objc_getClass "RedPanelDelegate" sel_getUid "alloc"]
 	delegate: objc_msgSend [delegate sel_getUid "init"]
@@ -407,7 +412,7 @@ OS-request-font: func [
 				objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
 				sel_getUid "init"
 			]
-		][0]
+		][as Cocoa-handle! 0]
 		values: object/get-values font
 		to-red-string
 			objc_msgSend [nsfont sel_getUid "familyName"]
@@ -417,7 +422,7 @@ OS-request-font: func [
 		integer/make-at values + FONT_OBJ_SIZE as-integer size
 
 		manager: objc_msgSend [objc_getClass "NSFontManager" sel_getUid "sharedFontManager"]
-		trait: objc_msgSend [manager sel_getUid "traitsOfFont:" nsfont]
+		trait: as integer! objc_msgSend [manager sel_getUid "traitsOfFont:" nsfont]
 		style: as red-block! values + FONT_OBJ_STYLE
 		bold?: no
 		if trait and NSBoldFontMask <> 0 [

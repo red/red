@@ -859,16 +859,18 @@ make-profilable make target-class [
 
 	emit-call-import: func [
 		args [block!] fspec [block!] spec [block!] attribs [block! none!]
-		/local n indirect-result? apple-call? apple-variadic?
+		/local n indirect-result? apple-call? apple-variadic? objc-call?
 	][
 		if all [compiler/variadic? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
 		n: call-arg-index
 		indirect-result?: to logic! emitter/struct-ptr? fspec/4
 		apple-call?: apple-aarch64?
+		objc-call?: compiler/find-attribute fspec/4 'objc
 		apple-variadic?: to logic! all [
 			apple-call?
 			fspec/3 = 'cdecl
 			compiler/variadic? args/1
+			not objc-call?
 		]
 		call-stack-slots: (case [
 			all [indirect-result? apple-variadic?] [

@@ -13,7 +13,7 @@ Red/System [
 make-font: func [
 	face	[red-object!]
 	font	[red-object!]
-	return: [handle!]
+	return: [Cocoa-handle!]
 	/local
 		values	[red-value!]
 		int		[red-integer!]
@@ -22,16 +22,18 @@ make-font: func [
 		style	[red-word!]
 		str		[red-string!]
 		blk		[red-block!]
-		size	[float32!]
+		size	[Cocoa-float!]
 		angle	[integer!]
 		quality [integer!]
 		len		[integer!]
 		sym		[integer!]
 		name	[c-string!]
 		traits	[integer!]
-		manager [integer!]
+		manager [Cocoa-handle!]
+		family	[Cocoa-handle!]
 		method	[c-string!]
-		hFont	[handle!]
+		hFont	[Cocoa-handle!]
+		handle-value [red-handle!]
 		temp	[CGPoint!]
 		sys?	[logic!]
 ][
@@ -40,9 +42,9 @@ make-font: func [
 
 	int: as red-integer! values + FONT_OBJ_SIZE
 	either TYPE_OF(int) <> TYPE_INTEGER [
-		size: as float32! 0.0
+		size: as Cocoa-float! 0.0
 	][
-		size: as float32! int/value * 94 / 72						;@@ hard coded
+		size: as Cocoa-float! (int/value * 94 / 72)					;@@ hard coded
 	]
 
 	int: as red-integer! values + FONT_OBJ_ANGLE
@@ -76,44 +78,46 @@ make-font: func [
 
 	temp/x: size
 	str: as red-string! values + FONT_OBJ_NAME
-	hFont: null
+	hFont: 0
 	sys?: no
 	either TYPE_OF(str) = TYPE_STRING [
 		len: -1
 		name: unicode/to-utf8 str :len
-		sym: CFString(name)
+		family: CFString(name)
 	][
 		sys?: yes
-		sym: objc_msgSend [default-font sel_getUid "familyName"]
+		family: objc_msgSend [default-font sel_getUid "familyName"]
 	]
 	manager: objc_msgSend [objc_getClass "NSFontManager" sel_getUid "sharedFontManager"]
 	until [
-		hFont: as handle! objc_msgSend [
+		hFont: objc_msgSend [
 			manager
 			sel_getUid "fontWithFamily:traits:weight:size:"
-			sym
+			family
 			traits
 			5									;-- ignored if use traits
 			temp/x
 		]
-		unless sys? [CFRelease sym]
-		if null? hFont [
-			either sys? [sym: CFString("Helvetica") sys?: no][
-				sym: objc_msgSend [default-font sel_getUid "familyName"]
+		unless sys? [CFRelease family]
+		if hFont = 0 [
+			either sys? [family: CFString("Helvetica") sys?: no][
+				family: objc_msgSend [default-font sel_getUid "familyName"]
 				sys?: yes
 			]
 		]
-		hFont <> null
+		hFont <> 0
 	]
 
 	blk: as red-block! values + FONT_OBJ_STATE
 	either TYPE_OF(blk) <> TYPE_BLOCK [
 		block/make-at blk 2
-		handle/make-in blk as-integer hFont handle/CLASS_FONT
+		handle-value: handle/make-in blk as integer! hFont handle/CLASS_FONT
+		set-cocoa-handle handle-value hFont
 	][
-		int: as red-integer! block/rs-head blk
-		int/header: TYPE_HANDLE
-		int/value: as-integer hFont
+		handle-value: as red-handle! block/rs-head blk
+		handle-value/header: TYPE_HANDLE
+		handle-value/type: handle/CLASS_FONT
+		set-cocoa-handle handle-value hFont
 	]
 
 	if face <> null [
@@ -126,31 +130,31 @@ make-font: func [
 get-font-handle: func [
 	font	[red-object!]
 	idx		[integer!]
-	return: [handle!]
+	return: [Cocoa-handle!]
 	/local
 		state  [red-block!]
-		int	   [red-integer!]
+		h		   [red-handle!]
 ][
 	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
-		int: as red-integer! block/rs-head state
-		if TYPE_OF(int) = TYPE_HANDLE [
-			return as handle! int/value
+		h: as red-handle! block/rs-head state
+		if TYPE_OF(h) = TYPE_HANDLE [
+			return get-cocoa-handle h
 		]
 	]
-	null
+	0
 ]
 
 get-font: func [
 	face	[red-object!]
 	font	[red-object!]
-	return: [handle!]
+	return: [Cocoa-handle!]
 	/local
-		hFont [handle!]
+		hFont [Cocoa-handle!]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [return as handle! default-font]
+	if TYPE_OF(font) <> TYPE_OBJECT [return default-font]
 	hFont: get-font-handle font 0
-	if null? hFont [hFont: make-font face font]
+	if hFont = 0 [hFont: make-font face font]
 	hFont
 ]
 
@@ -158,10 +162,10 @@ free-font: func [
 	font [red-object!]
 	/local
 		state [red-block!]
-		hFont [handle!]
+		hFont [Cocoa-handle!]
 ][
 	hFont: get-font-handle font 0
-	if hFont <> null [
+	if hFont <> 0 [
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
 	]
@@ -188,21 +192,27 @@ make-font-attrs: func [
 	font	[red-object!]
 	face	[red-object!]
 	type	[integer!]
-	return: [integer!]
+	return: [Cocoa-handle!]
 	/local
 		values	[red-value!]
 		blk		[red-block!]
 		style	[red-word!]
 		o-para	[red-object!]
-		nsfont	[integer!]
-		nscolor [integer!]
+		nsfont	[Cocoa-handle!]
+		nscolor [Cocoa-handle!]
 		len		[integer!]
-		under	[integer!]
-		strike	[integer!]
-		para	[integer!]
-		attrs	[integer!]
+		under	[Cocoa-handle!]
+		strike	[Cocoa-handle!]
+		under-value [integer!]
+		strike-value [integer!]
+		para	[Cocoa-handle!]
+		attrs	[Cocoa-handle!]
+		objects	[Cocoa-handle-array!]
+		keys	[Cocoa-handle-array!]
+		attr-count [NSUInteger!]
+		style-sym [integer!]
 ][
-	nsfont: as-integer get-font face font
+	nsfont: get-font face font
 	values: object/get-values font
 	nscolor: to-NSColor as red-tuple! values + FONT_OBJ_COLOR
 	if zero? nscolor [
@@ -219,21 +229,21 @@ make-font-attrs: func [
 		default	   [0]
 	]
 
-	under: 0									;-- NSUnderlineStyleNone
-	strike: 0
+	under-value: 0							;-- NSUnderlineStyleNone
+	strike-value: 0
 	unless zero? len [
 		loop len [
-			attrs: symbol/resolve style/symbol
+			style-sym: symbol/resolve style/symbol
 			case [
-				attrs = _underline [under: 1]	;-- NSUnderlineStyleSingle
-				attrs = _strike	 [strike: 1]
+				style-sym = _underline [under-value: 1]	;-- NSUnderlineStyleSingle
+				style-sym = _strike	 [strike-value: 1]
 				true			 [0]
 			]
 			style: style + 1
 		]
 	]
-	under: CFNumberCreate 0 15 :under
-	strike: CFNumberCreate 0 15 :strike
+	under: CFNumberCreate 0 15 :under-value
+	strike: CFNumberCreate 0 15 :strike-value
 
 	len: -1
 	if TYPE_OF(face) = TYPE_OBJECT [
@@ -249,16 +259,23 @@ make-font-attrs: func [
 		objc_msgSend [para sel_getUid "setAlignment:" len]
 	]
 
-	attrs: objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
-	attrs: objc_msgSend [
-		attrs sel_getUid "initWithObjectsAndKeys:"
-		nsfont NSFontAttributeName
-		nscolor NSForegroundColorAttributeName
-		under NSUnderlineStyleAttributeName
-		strike NSStrikethroughStyleAttributeName
-		para NSParagraphStyleAttributeName
-		0
+	objects: declare Cocoa-handle-array!
+	keys: declare Cocoa-handle-array!
+	objects/v1: nsfont
+	keys/v1: NSFontAttributeName
+	objects/v2: nscolor
+	keys/v2: NSForegroundColorAttributeName
+	objects/v3: under
+	keys/v3: NSUnderlineStyleAttributeName
+	objects/v4: strike
+	keys/v4: NSStrikethroughStyleAttributeName
+	attr-count: as NSUInteger! 4
+	if para <> 0 [
+		objects/v5: para
+		keys/v5: NSParagraphStyleAttributeName
+		attr-count: as NSUInteger! 5
 	]
+	attrs: make-NSDictionary objects keys attr-count
 	if para <> 0 [objc_msgSend [para sel_getUid "release"]]
 	CFRelease under
 	CFRelease strike

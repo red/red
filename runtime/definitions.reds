@@ -335,13 +335,20 @@ Red/System [
 				]
 			]
 			macOS    [
+				#either ABI = 'apple-aarch64 [
+					#define macOS-float! float!
+					#define macOS-handle! int64!
+				][
+					#define macOS-float! float32!
+					#define macOS-handle! integer!
+				]
 				CGAffineTransform!: alias struct! [
-					a		[float32!]
-					b		[float32!]
-					c		[float32!]
-					d		[float32!]
-					tx		[float32!]
-					ty		[float32!]
+					a		[macOS-float!]
+					b		[macOS-float!]
+					c		[macOS-float!]
+					d		[macOS-float!]
+					tx		[macOS-float!]
+					ty		[macOS-float!]
 				]
 
 				draw-ctx!: alias struct! [
@@ -350,40 +357,40 @@ Red/System [
 					ctx-matrix      [CGAffineTransform! value]
 					pen-join		[integer!]
 					pen-cap			[integer!]
-					pen-width		[float32!]
+					pen-width		[macOS-float!]
 					pen-style		[integer!]
 					pen-color		[integer!]					;-- 00bbggrr format
 					brush-color		[integer!]					;-- 00bbggrr format
 					font-color?		[logic!]
-					font-attrs		[integer!]
-					colorspace		[integer!]
-					grad-pen		[integer!]
+					font-attrs		[macOS-handle!]
+					colorspace		[macOS-handle!]
+					grad-pen		[macOS-handle!]
 					grad-type		[integer!]
 					grad-spread		[integer!]
-					grad-x1			[float32!]
-					grad-y1			[float32!]
-					grad-x2			[float32!]
-					grad-y2			[float32!]
-					grad-radius		[float32!]
+					grad-x1			[macOS-float!]
+					grad-y1			[macOS-float!]
+					grad-x2			[macOS-float!]
+					grad-y2			[macOS-float!]
+					grad-radius		[macOS-float!]
 					grad-pos?		[logic!]
 					grad-pen?		[logic!]
 					grad-brush?		[logic!]
 					pen?			[logic!]
 					brush?			[logic!]
 					on-image?		[logic!]					;-- drawing on image?
-					rect-y			[float32!]
+					rect-y			[macOS-float!]
 					pattern-blk		[int-ptr!]
 					pattern-mode	[integer!]
 					pattern-ver		[integer!]
-					pattern-draw	[integer!]
-					pattern-release [integer!]
-					pattern-w		[float32!]
-					pattern-h		[float32!]
-					last-pt-x		[float32!]					;-- below used by shape
-					last-pt-y		[float32!]
-					control-x		[float32!]
-					control-y		[float32!]
-					path			[integer!]
+					pattern-draw	[int-ptr!]
+					pattern-release [int-ptr!]
+					pattern-w		[macOS-float!]
+					pattern-h		[macOS-float!]
+					last-pt-x		[macOS-float!]					;-- below used by shape
+					last-pt-y		[macOS-float!]
+					control-x		[macOS-float!]
+					control-y		[macOS-float!]
+					path			[macOS-handle!]
 					shape-curve?	[logic!]
 				]
 			]

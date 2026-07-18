@@ -110,6 +110,26 @@ int check_variadic_after_stack(
 		&& a5 == 15 && a6 == 16 && a7 == 17 && a8 == 18 && tail == 42;
 }
 
+int check_objc_dispatch(
+	uint64_t receiver, uint64_t selector, float f0, double d0,
+	uint8_t u8, int16_t i16, uint64_t u64
+) {
+	return receiver == 0x100000001ULL && selector == 0x100000002ULL
+		&& f0 == 1.25f && d0 == 2.5 && u8 == 250 && i16 == -300
+		&& u64 == 0x100000004ULL;
+}
+
+int check_objc_compact_stack(
+	uint64_t receiver, uint64_t selector,
+	int32_t a0, int32_t a1, int32_t a2, int32_t a3, int32_t a4, int32_t a5,
+	int8_t i8, uint8_t u8, int16_t i16, uint16_t u16, int32_t i32
+) {
+	return receiver == 0x100000001ULL && selector == 0x100000002ULL
+		&& a0 == 10 && a1 == 11 && a2 == 12 && a3 == 13 && a4 == 14 && a5 == 15
+		&& i8 == -2 && u8 == 250 && i16 == -300 && u16 == 60000
+		&& i32 == -123456;
+}
+
 int check_readonly(const void *address) {
 	mach_vm_address_t region = (mach_vm_address_t)(uintptr_t)address;
 	mach_vm_size_t size = 0;

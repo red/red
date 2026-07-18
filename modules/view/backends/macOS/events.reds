@@ -172,19 +172,19 @@ keycode-table: [
 ]
 
 make-at: func [
-	view	[integer!]
+	view	[Cocoa-handle!]
 	face	[red-object!]
 	return: [red-object!]
 	/local
-		id	[integer!]
+		id	[Cocoa-handle!]
 ][
 	id: 0
 	object_getInstanceVariable view IVAR_RED_FACE :id
-	as red-object! copy-cell as cell! references/get id as cell! face
+	as red-object! copy-cell as cell! references/get as integer! id as cell! face
 ]
 
 push-face: func [
-	handle  [integer!]
+	handle  [Cocoa-handle!]
 	return: [red-object!]
 ][
 	make-at handle as red-object! stack/push*
@@ -194,7 +194,7 @@ get-event-face: func [
 	evt		[red-event!]
 	return: [red-value!]
 ][
-	as red-value! push-face as-integer evt/msg
+	as red-value! push-face as Cocoa-handle! evt/msg
 ]
 
 get-event-window: func [
@@ -218,14 +218,14 @@ char-key?: func [
 ]
 
 check-extra-keys: func [
-	event	[integer!]
+	event	[Cocoa-handle!]
 	return: [integer!]
 	/local
 		key		[integer!]
 		flags	[integer!]
 ][
 	key: 0
-	flags: objc_msgSend [event sel_getUid "modifierFlags"]
+	flags: as integer! objc_msgSend [event sel_getUid "modifierFlags"]
 	if NSControlKeyMask and flags <> 0 [key: EVT_FLAG_CTRL_DOWN]
 	if NSShiftKeyMask and flags <> 0 [key: key or EVT_FLAG_SHIFT_DOWN]
 	if NSAlternateKeyMask and flags <> 0 [key: key or EVT_FLAG_MENU_DOWN]
@@ -246,28 +246,25 @@ get-event-offset: func [
 	return: [red-value!]
 	/local
 		type	[integer!]
-		event	[integer!]
+		event	[Cocoa-handle!]
 		offset	[red-point2D!]
 		pair	[red-pair!]
-		rc		[NSRect!]
+		rc		[NSRect! value]
 		frame	[NSRect! value]
-		y		[integer!]
-		x		[integer!]
-		v		[integer!]
+		pt		[CGPoint! value]
+		v		[Cocoa-handle!]
 ][
 	type: evt/type
 	offset: as red-point2D! stack/push*
 	offset/header: TYPE_POINT2D
 	case [
 		type <= EVT_OVER [
-			event: objc_getAssociatedObject as-integer evt/msg RedNSEventKey
+			event: objc_getAssociatedObject as Cocoa-handle! evt/msg RedNSEventKey
 			either zero? event [offset/x: as float32! 0.0 offset/y: as float32! 0.0][
-				rc: as NSRect! (as int-ptr! event) + 2
-				x: objc_msgSend [evt/msg sel_getUid "convertPoint:fromView:" rc/x rc/y 0]
-				y: system/cpu/edx
-				rc: as NSRect! :x
-				offset/x: rc/x
-				offset/y: rc/y
+				pt: objc_msgSend_pt [event sel_getUid "locationInWindow"]
+				pt: objc_msgSend_pt [as Cocoa-handle! evt/msg sel_getUid "convertPoint:fromView:" pt/x pt/y 0]
+				offset/x: COCOA_TO_F32(pt/x)
+				offset/y: COCOA_TO_F32(pt/y)
 			]
 			as red-value! offset
 		]
@@ -275,20 +272,20 @@ get-event-offset: func [
 			type = EVT_MOVING
 			type = EVT_MOVE
 		][
-			rc: as NSRect! (as int-ptr! evt/msg) + 2
-			offset/x: rc/x
-			offset/y: (as float32! screen-size-y) - (rc/y + rc/h)
+			rc: objc_msgSend_rect [as Cocoa-handle! evt/msg sel_getUid "frame"]
+			offset/x: COCOA_TO_F32(rc/x)
+			offset/y: (as float32! screen-size-y) - (COCOA_TO_F32(rc/y) + COCOA_TO_F32(rc/h))
 			as red-value! offset
 		]
 		any [
 			type = EVT_SIZING
 			type = EVT_SIZE
 		][
-			v: objc_msgSend [evt/msg sel_getUid "contentView"]
+			v: objc_msgSend [as Cocoa-handle! evt/msg sel_getUid "contentView"]
 			frame: objc_msgSend_rect [v sel_getUid "frame"]
-			either zero? objc_getAssociatedObject as-integer evt/msg RedPairSizeKey [
-				offset/x: frame/w
-				offset/y: frame/h
+			either zero? objc_getAssociatedObject as Cocoa-handle! evt/msg RedPairSizeKey [
+				offset/x: COCOA_TO_F32(frame/w)
+				offset/y: COCOA_TO_F32(frame/h)
 			][
 				pair: as red-pair! offset
 				pair/header: TYPE_PAIR
@@ -418,10 +415,10 @@ get-event-picked: func [
 	/local
 		res [red-value!]
 		int	[red-integer!]
-		obj [integer!]
+		obj [Cocoa-handle!]
 		n	[integer!]
-		d	[float32!]
-		event [integer!]
+		d	[Cocoa-float!]
+		event [Cocoa-handle!]
 		idx	[integer!]
 ][
 	as red-value! switch evt/type [
@@ -444,21 +441,21 @@ get-event-picked: func [
 		]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
 		EVT_WHEEL [
-			event: objc_getAssociatedObject as-integer evt/msg RedNSEventKey
-			d: as float32! 0
+			event: objc_getAssociatedObject as Cocoa-handle! evt/msg RedNSEventKey
+			d: as Cocoa-float! 0
 			if event <> 0 [
 				d: objc_msgSend_f32 [event sel_getUid "scrollingDeltaY"]
-				if 1 = objc_msgSend [event sel_getUid "hasPreciseScrollingDeltas"] [
-					d: d / (as float32! 10.0)
+				if 1 = as integer! objc_msgSend [event sel_getUid "hasPreciseScrollingDeltas"] [
+					d: d / (as Cocoa-float! 10.0)
 				]
 			]
 			float/push as float! d
 		]
-		EVT_IME [to-red-string evt/flags null]
+		EVT_IME [to-red-string ime-text null]
 		EVT_DBL_CLICK [
-			obj: as-integer evt/msg
+			obj: as Cocoa-handle! evt/msg
 			if (object_getClass obj) = objc_getClass "RedTableView" [
-				n: objc_msgSend [obj sel_getUid "selectedRow"]
+				n: as integer! objc_msgSend [obj sel_getUid "selectedRow"]
 				either n = -1 [none/push][integer/push n + 1]
 			]
 		]
@@ -494,9 +491,11 @@ get-event-flag: func [
 	as red-value! logic/push flags and flag <> 0
 ]
 
+ime-text: as Cocoa-handle! 0
+
 make-event: func [
-	obj		[integer!]
-	flags	[integer!]
+	obj		[Cocoa-handle!]
+	flags	[Cocoa-handle!]
 	evt		[integer!]
 	return: [integer!]
 	/local
@@ -509,10 +508,15 @@ make-event: func [
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! obj
-	either evt = EVT_WHEEL [
+	case [
+		evt = EVT_WHEEL [
 		gui-evt/flags: check-extra-keys flags	;-- pass event as flags for EVT_WHEEL
-	][
-		gui-evt/flags: flags
+		]
+		evt = EVT_IME [
+			ime-text: flags
+			gui-evt/flags: 0
+		]
+		true [gui-evt/flags: as integer! flags]
 	]
 
 	state: EVT_DISPATCH
@@ -533,23 +537,19 @@ make-event: func [
 ]
 
 process-mouse-tracking: func [
-	window	[integer!]
-	event	[integer!]
-	return: [integer!]
+	window	[Cocoa-handle!]
+	event	[Cocoa-handle!]
+	return: [Cocoa-handle!]
 	/local
-		y	[integer!]
-		x	[integer!]
-		pt	[CGPoint!]
+		pt	[CGPoint! value]
 		n 	[integer!]
-		v	[integer!]
-		w	[integer!]
+		v	[Cocoa-handle!]
+		w	[Cocoa-handle!]
 ][
 	w: window
 	if zero? w [
-		x: objc_msgSend [objc_getClass "NSEvent" sel_getUid "mouseLocation"]
-		y: system/cpu/edx
-		pt: as CGPoint! :x
-		n: objc_msgSend [
+		pt: objc_msgSend_pt [objc_getClass "NSEvent" sel_getUid "mouseLocation"]
+		n: as integer! objc_msgSend [
 			objc_getClass "NSWindow" sel_getUid "windowNumberAtPoint:belowWindowWithWindowNumber:"
 			pt/x pt/y 0
 		]
@@ -561,12 +561,10 @@ process-mouse-tracking: func [
 		if zero? v [return 0]
 
 		either zero? window [
-			x: objc_msgSend [w sel_getUid "convertScreenToBase:" pt/x pt/y]
+			pt: objc_msgSend_pt [w sel_getUid "convertScreenToBase:" pt/x pt/y]
 		][
-			x: objc_msgSend [event sel_getUid "locationInWindow"]
+			pt: objc_msgSend_pt [event sel_getUid "locationInWindow"]
 		]
-		y: system/cpu/edx
-		pt: as CGPoint! :x
 
 		v: objc_msgSend [v sel_getUid "hitTest:" pt/x pt/y]
 
@@ -590,11 +588,11 @@ process-mouse-tracking: func [
 	w
 ]
 
-close-pending-windows: func [/local n [integer!] p [int-ptr!]][
+close-pending-windows: func [/local n [integer!] p [Cocoa-handle-ptr!]][
 	n: vector/rs-length? win-array
 	if zero? n [exit]
 
-	p: as int-ptr! vector/rs-head win-array
+	p: as Cocoa-handle-ptr! vector/rs-head win-array
 	while [n > 0][
 		free-handles p/value yes
 		p: p + 1
@@ -606,7 +604,7 @@ close-pending-windows: func [/local n [integer!] p [int-ptr!]][
 
 post-quit-msg: func [
 	/local
-		e	[integer!]
+		e	[Cocoa-handle!]
 		tm	[float!]
 ][
 	tm: objc_msgSend_fpret [
@@ -634,9 +632,9 @@ do-events: func [
 	return:  [logic!]
 	/local
 		msg?	[logic!]
-		pool	[integer!]
-		timeout [integer!]
-		event	[int-ptr!]
+		pool	[Cocoa-handle!]
+		timeout [Cocoa-handle!]
+		event	[Cocoa-handle!]
 ][
 	msg?: no
 	timeout: 0
@@ -646,7 +644,7 @@ do-events: func [
 			pool: objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
 			objc_msgSend [pool sel_getUid "init"]
 
-			event: as int-ptr! objc_msgSend [
+			event: objc_msgSend [
 				NSApp sel_getUid "nextEventMatchingMask:untilDate:inMode:dequeue:"
 				NSAnyEventMask
 				timeout
@@ -666,18 +664,18 @@ do-events: func [
 		pool: objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
 		objc_msgSend [pool sel_getUid "init"]
 
-		event: as int-ptr! objc_msgSend [
+		event: objc_msgSend [
 			NSApp sel_getUid "nextEventMatchingMask:untilDate:inMode:dequeue:"
 			NSAnyEventMask
 			timeout
 			NSDefaultRunLoopMode
 			true
 		]
-		if event <> null [
+		if event <> 0 [
 			msg?: yes
 			either all [
-				event/2 = NSApplicationDefined
-				QuitMsgData = objc_msgSend [event sel_getUid "data1"]
+				NSApplicationDefined = as integer! objc_msgSend [event sel_getUid "type"]
+				QuitMsgData = as integer! objc_msgSend [event sel_getUid "data1"]
 			][
 				no-wait?: yes
 			][

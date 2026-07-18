@@ -27,19 +27,20 @@ win-cnt:		0
 loop-started?:	no
 close-window?:	no
 
-NSApp:			0
-NSAppDelegate:	0
-AppMainMenu:	0
+NSApp:			as Cocoa-handle! 0
+NSAppDelegate:	as Cocoa-handle! 0
+AppMainMenu:	as Cocoa-handle! 0
 
-current-widget: 0			;-- for mouse tracking: mouseEnter, mouseExit
+current-widget: as Cocoa-handle! 0	;-- for mouse tracking: mouseEnter, mouseExit
 
-default-font:	0
+default-font:	as Cocoa-handle! 0
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
 screen-size-y:	0
 mac-version:	0
-nsview-id:		0
+nsview-id:		as Cocoa-handle! 0
+cocoa-handle-ext-type: -1
 
 ;-- for IME support
 in-composition?: no
@@ -52,11 +53,27 @@ caret-y:		as float32! 0.0
 win-array:		declare red-vector!
 active-wins:	declare red-vector!			;-- last actives windows
 
+append-cocoa-handle: func [
+	vec		[red-vector!]
+	value	[Cocoa-handle!]
+	/local
+		s	[series!]
+		p	[Cocoa-handle-ptr!]
+][
+	#either ABI = 'apple-aarch64 [
+		s: GET_BUFFER(vec)
+		p: as Cocoa-handle-ptr! alloc-tail-unit s 8
+		p/value: value
+	][
+		vector/rs-append-int vec value
+	]
+]
+
 red-face?: func [
-	handle	[integer!]
+	handle	[Cocoa-handle!]
 	return: [logic!]
 	/local
-		id  [integer!]
+		id  [Cocoa-handle!]
 ][
 	id: 0
 	object_getInstanceVariable handle IVAR_RED_FACE :id
@@ -64,17 +81,17 @@ red-face?: func [
 ]
 
 get-face-values: func [
-	handle	[integer!]
+	handle	[Cocoa-handle!]
 	return: [red-value!]
 	/local
 		ctx	 [red-context!]
 		s	 [series!]
-		id	 [integer!]
+		id	 [Cocoa-handle!]
 		face [red-object!]
 ][
 	id: 0
 	object_getInstanceVariable handle IVAR_RED_FACE :id
-	face: as red-object! references/get id
+	face: as red-object! references/get as integer! id
 	ctx: TO_CTX(face/ctx)
 	s: resolve-series ctx/values
 	s/offset
@@ -94,15 +111,15 @@ get-node-facet: func [
 ]
 
 get-face-obj: func [
-	view	[integer!]
+	view	[Cocoa-handle!]
 	return: [red-object!]
 	/local
-		id  [integer!]
+		id  [Cocoa-handle!]
 ][
 	id: 0
 	object_getInstanceVariable view IVAR_RED_FACE :id
 	assert id <> 0
-	as red-object! references/get id
+	as red-object! references/get as integer! id
 ]
 
 get-face-flags: func [
@@ -112,33 +129,67 @@ get-face-flags: func [
 	0
 ]
 
+get-cocoa-handle: func [
+	value	[red-handle!]
+	return: [Cocoa-handle!]
+][
+	either value/extID >= 0 [
+		as Cocoa-handle! externals/get value/extID
+	][
+		as Cocoa-handle! value/value
+	]
+]
+
+set-cocoa-handle: func [
+	value	[red-handle!]
+	native	[Cocoa-handle!]
+][
+	value/value: as integer! native
+	value/extID: -1
+	if native <> 0 [
+		value/extID: externals/store as int-ptr! native cocoa-handle-ext-type
+	]
+]
+
+make-cocoa-handle-at: func [
+	value	[red-value!]
+	native	[Cocoa-handle!]
+	type	[integer!]
+	return: [red-handle!]
+	/local result [red-handle!]
+][
+	result: handle/make-at value as integer! native type
+	set-cocoa-handle result native
+	result
+]
+
 face-handle?: func [
 	face	[red-object!]
-	return: [handle!]									;-- returns NULL is no handle
+	return: [Cocoa-handle!]							;-- returns 0 if no handle
 	/local
 		state [red-block!]
-		int	  [red-integer!]
+		h		  [red-handle!]
 ][
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
-		int: as red-integer! block/rs-head state
-		if TYPE_OF(int) = TYPE_HANDLE [return as handle! int/value]
+		h: as red-handle! block/rs-head state
+		if TYPE_OF(h) = TYPE_HANDLE [return get-cocoa-handle h]
 	]
-	null
+	0
 ]
 
 get-face-handle: func [
 	face	[red-object!]
-	return: [integer!]
+	return: [Cocoa-handle!]
 	/local
 		state [red-block!]
-		int	  [red-integer!]
+		h		  [red-handle!]
 ][
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	assert TYPE_OF(state) = TYPE_BLOCK
-	int: as red-integer! block/rs-head state
-	assert TYPE_OF(int) = TYPE_HANDLE
-	int/value
+	h: as red-handle! block/rs-head state
+	assert TYPE_OF(h) = TYPE_HANDLE
+	get-cocoa-handle h
 ]
 
 get-ratio: func [face [red-object!] return: [red-float!]][
@@ -146,12 +197,12 @@ get-ratio: func [face [red-object!] return: [red-float!]][
 ]
 
 get-child-from-xy: func [
-	parent	[handle!]
+	parent	[Cocoa-handle!]
 	x		[integer!]
 	y		[integer!]
 	return: [integer!]
 	/local
-		hWnd [handle!]
+		hWnd [Cocoa-handle!]
 ][
 0
 ]
@@ -165,44 +216,41 @@ get-text-size: func [
 		values	[red-value!]
 		font	[red-object!]
 		state	[red-block!]
-		hFont	[handle!]
-		attrs	[integer!]
-		cf-str	[integer!]
-		attr	[integer!]
-		y		[integer!]
-		x		[integer!]
-		rc		[NSRect!]
+		hFont	[Cocoa-handle!]
+		attrs	[Cocoa-handle!]
+		objects	[Cocoa-handle-array!]
+		keys	[Cocoa-handle-array!]
+		cf-str	[Cocoa-handle!]
+		attr	[Cocoa-handle!]
+		ns-size	[NSSize! value]
 		size	[tagSIZE]
 ][
 	values: object/get-values face
 	font: as red-object! values + FACE_OBJ_FONT
-	hFont: null
+	hFont: 0
 	if TYPE_OF(font) = TYPE_OBJECT [
 		state: as red-block! values + FONT_OBJ_STATE
 		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
-		if null? hFont [hFont: make-font face font]
+		if hFont = 0 [hFont: make-font face font]
 	]
 
 	size: declare tagSIZE
-	if null? hFont [hFont: as handle! default-font]
+	if hFont = 0 [hFont: default-font]
 
-	attrs: objc_msgSend [
-		objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
-		sel_getUid "initWithObjectsAndKeys:"
-		hFont NSFontAttributeName
-		0
-	]
+	objects: declare Cocoa-handle-array!
+	keys: declare Cocoa-handle-array!
+	objects/v1: hFont
+	keys/v1: NSFontAttributeName
+	attrs: make-NSDictionary objects keys as NSUInteger! 1
 	cf-str: to-CFString str
 	attr: CFAttributedStringCreate 0 cf-str attrs
-	x: objc_msgSend [attr sel_getUid "size"]		;-- string width on screen
-	y: system/cpu/edx								;-- string height on screen
-	rc: as NSRect! :x
+	ns-size: objc_msgSend_sz [attr sel_getUid "size"]
 
-	size/width: as-integer ceil as-float rc/x
-	size/height: as-integer ceil as-float rc/y
+	size/width: as-integer ceil as-float ns-size/w
+	size/height: as-integer ceil as-float ns-size/h
 	if pt <> null [
-		pt/x: rc/x
-		pt/y: rc/y
+		pt/x: COCOA_TO_F32(ns-size/w)
+		pt/y: COCOA_TO_F32(ns-size/h)
 	]
 	CFRelease cf-str
 	CFRelease attr
@@ -211,7 +259,7 @@ get-text-size: func [
 ]
 
 free-handles: func [
-	hWnd	[integer!]
+	hWnd	[Cocoa-handle!]
 	force?	[logic!]
 	/local
 		values [red-value!]
@@ -222,7 +270,7 @@ free-handles: func [
 		state  [red-value!]
 		rate   [red-value!]
 		sym	   [integer!]
-		handle [integer!]
+		handle [Cocoa-handle!]
 ][
 	if hWnd = current-widget [current-widget: 0]
 
@@ -232,7 +280,7 @@ free-handles: func [
 
 	if all [sym = window not force?][
 		close-window?: yes
-		vector/rs-append-int win-array hWnd
+		append-cocoa-handle win-array hWnd
 		exit
 	]
 
@@ -244,7 +292,7 @@ free-handles: func [
 		face: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
 		while [face < tail][
-			handle: as-integer face-handle? face
+			handle: face-handle? face
 			if handle <> 0 [free-handles handle force?]
 			face: face + 1
 		]
@@ -292,9 +340,13 @@ get-os-version: func [
 	int/value:  0
 ]
 
-set-defaults: func [/local n [float32!]][
+set-defaults: func [
+	/local
+		n			[float32!]
+		point-size	[Cocoa-float!]
+][
 	default-font: objc_msgSend [
-		objc_getClass "NSFont" sel_getUid "systemFontOfSize:" 0
+		objc_getClass "NSFont" sel_getUid "systemFontOfSize:" (as Cocoa-float! 0.0)
 	]
 	objc_msgSend [default-font sel_getUid "retain"]
 
@@ -302,7 +354,8 @@ set-defaults: func [/local n [float32!]][
 		objc_msgSend [default-font sel_getUid "familyName"]
 		#get system/view/fonts/system
 
-	n: objc_msgSend_f32 [default-font sel_getUid "pointSize"]
+	point-size: objc_msgSend_f32 [default-font sel_getUid "pointSize"]
+	n: COCOA_TO_F32(point-size)
 	n: n * as float32! 0.75
 	n: n + as float32! 0.5
 	integer/make-at
@@ -329,7 +382,7 @@ support-dark-mode?: func [
 ]
 
 set-dark-mode: func [
-	hWnd		[integer!]
+	hWnd		[Cocoa-handle!]
 	dark?		[logic!]
 	top-level?	[logic!]
 ][
@@ -337,21 +390,20 @@ set-dark-mode: func [
 
 init: func [
 	/local
-		screen	 [integer!]
-		rect	 [NSRect!]
-		pool	 [integer!]
-		delegate [integer!]
-		lib		 [integer!]
-		dict	 [integer!]
-		y		 [integer!]
-		x		 [integer!]
-		sz		 [NSSize!]
-		dpi		 [integer!]
-		scaling  [float32!]
+		screen	 [Cocoa-handle!]
+		rect	 [NSRect! value]
+		pool	 [Cocoa-handle!]
+		delegate [Cocoa-handle!]
+		lib		 [Cocoa-handle!]
+		dict	 [Cocoa-handle!]
+		sz		 [NSSize! value]
+		dpi		 [Cocoa-handle!]
+		scaling  [Cocoa-float!]
 		p-int	 [int-ptr!]
 ][
-	vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
-	vector/make-at as red-value! active-wins 8 TYPE_INTEGER 4
+	cocoa-handle-ext-type: externals/register "cocoa-handle" null
+	vector/make-at as red-value! win-array 8 TYPE_INTEGER #either ABI = 'apple-aarch64 [8][4]
+	vector/make-at as red-value! active-wins 8 TYPE_INTEGER #either ABI = 'apple-aarch64 [8][4]
 	init-selectors
 	register-classes
 	nsview-id: objc_getClass "NSView"
@@ -376,24 +428,22 @@ init: func [
 	;]
 
 	screen: objc_msgSend [objc_getClass "NSScreen" sel_getUid "mainScreen"]
-	rect: as NSRect! (as int-ptr! screen) + 1
+	rect: objc_msgSend_rect [screen sel_getUid "frame"]
 	screen-size-x: as-integer rect/w
 	screen-size-y: as-integer rect/h
 
 	dict: objc_msgSend [screen sel_getUid "deviceDescription"]
 	dpi: objc_msgSend [dict sel_getUid "objectForKey:" NSDeviceResolution]
 
-	x: objc_msgSend [dpi sel_getUid "sizeValue"]
-	y: system/cpu/edx
-	sz: as NSSize! :x
+	sz: objc_msgSend_sz [dpi sel_getUid "sizeValue"]
 
-	scaling: as float32! 1.0
+	scaling: as Cocoa-float! 1.0
 	if mac-version >= 1070 [
 		scaling: objc_msgSend_f32 [screen sel_getUid "backingScaleFactor"]
 	]
 
-	log-pixels-x: as-integer sz/w / scaling
-	log-pixels-y: as-integer sz/h / scaling
+	log-pixels-x: as-integer (sz/w / scaling)
+	log-pixels-y: as-integer (sz/h / scaling)
 
 	set-defaults
 
@@ -405,7 +455,7 @@ init: func [
 ]
 
 set-logic-state: func [
-	handle [integer!]
+	handle [Cocoa-handle!]
 	state  [red-logic!]
 	check? [logic!]
 	/local
@@ -434,13 +484,13 @@ set-logic-state: func [
 ]
 
 get-logic-state: func [
-	handle [integer!]
+	handle [Cocoa-handle!]
 	/local
 		bool  [red-logic!]
 		state [integer!]
 ][
 	bool: as red-logic! (get-face-values handle) + FACE_OBJ_DATA
-	state: objc_msgSend [handle sel_getUid "state"]
+	state: as integer! objc_msgSend [handle sel_getUid "state"]
 	
 	either state = NSMixedState [
 		bool/header: TYPE_NONE
@@ -475,13 +525,13 @@ get-screen-size: func [
 ]
 
 store-face-to-obj: func [
-	obj		[integer!]
+	obj		[Cocoa-handle!]
 	face	[red-object!]
 	/local
 		id	 [integer!]
 ][
 	id: references/store as red-value! face
-	object_setInstanceVariable obj IVAR_RED_FACE id
+	object_setInstanceVariable obj IVAR_RED_FACE as Cocoa-handle! id
 ]
 
 make-rect: func [
@@ -494,20 +544,20 @@ make-rect: func [
 		r	[NSRect!]
 ][
 	r: declare NSRect!
-	r/x: as float32! x
-    r/y: as float32! y
-    r/w: as float32! w
-    r/h: as float32! h
+	r/x: as Cocoa-float! x
+    r/y: as Cocoa-float! y
+    r/w: as Cocoa-float! w
+    r/h: as Cocoa-float! h
     r
 ]
 
 change-rate: func [
-	hWnd [integer!]
+	hWnd [Cocoa-handle!]
 	rate [red-value!]
 	/local
 		int		[red-integer!]
 		tm		[red-time!]
-		timer	[integer!]
+		timer	[Cocoa-handle!]
 		ts		[float!]
 ][
 	timer: objc_getAssociatedObject hWnd RedTimerKey
@@ -541,21 +591,22 @@ change-rate: func [
 ]
 
 change-size: func [
-	hWnd [integer!]
+	hWnd [Cocoa-handle!]
 	size [red-pair!]
 	type [integer!]
 	/local
 		rc		[NSRect!]
 		frame	[NSRect! value]
-		h		[float32!]
+		h		[Cocoa-float!]
+		view-type [Cocoa-handle!]
 		pt		[red-point2D!]
 		sx sy	[float32!]
 ][
 	rc: make-rect 1 1 0 0
-	GET_PAIR_XY(size rc/x rc/y)
+	GET_COCOA_XY(size rc/x rc/y)
 	SET_PAIR_SIZE_FLAG(hWnd size)
 
-	if all [any [type = button type = toggle] rc/y > as float32! 32.0][
+	if all [any [type = button type = toggle] rc/y > as Cocoa-float! 32.0][
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
 	]
 	either type = window [
@@ -569,20 +620,21 @@ change-size: func [
 	][
 		objc_msgSend [hWnd sel_getUid "setFrameSize:" rc/x rc/y]
 		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
-		object_getInstanceVariable hWnd IVAR_RED_DATA :type
-		if type = caret [
-			caret-w: rc/x
-			caret-h: rc/y
+		view-type: as Cocoa-handle! 0
+		object_getInstanceVariable hWnd IVAR_RED_DATA :view-type
+		if view-type = caret [
+			caret-w: COCOA_TO_F32(rc/x)
+			caret-h: COCOA_TO_F32(rc/y)
 		]
 	]
 ]
 
 change-image: func [
-	hWnd	[integer!]
+	hWnd	[Cocoa-handle!]
 	image	[red-image!]
 	type	[integer!]
 	/local
-		id		 [integer!]
+		id		 [Cocoa-handle!]
 ][
 	case [
 		any [type = button type = toggle type = check type = radio][
@@ -591,7 +643,7 @@ change-image: func [
 				exit
 			]
 			id: objc_msgSend [objc_getClass "NSImage" sel_getUid "alloc"]
-			id: objc_msgSend [id sel_getUid "initWithCGImage:size:" OS-image/to-cgimage image 0 0]
+			id: objc_msgSend [id sel_getUid "initWithCGImage:size:" OS-image/to-cgimage image (as Cocoa-float! 0.0) (as Cocoa-float! 0.0)]
 			objc_msgSend [hWnd sel_getUid "setImage:" id]
 			objc_msgSend [id sel_getUid "release"]
 		]
@@ -603,10 +655,10 @@ change-image: func [
 ]
 
 set-caret-color: func [
-	hWnd	[integer!]
+	hWnd	[Cocoa-handle!]
 	color	[integer!]
 	/local
-		clr [integer!]
+		clr [Cocoa-handle!]
 ][
 	clr: either any [
 		color and FFh < 100
@@ -621,22 +673,24 @@ set-caret-color: func [
 ]
 
 change-color: func [
-	hWnd	[integer!]
+	hWnd	[Cocoa-handle!]
 	color	[red-tuple!]
 	type	[integer!]
 	/local
-		clr  [integer!]
+		clr  [Cocoa-handle!]
+		packed [integer!]
 		set? [logic!]
 		t	 [integer!]
 ][
 	t: TYPE_OF(color)
 	if all [t <> TYPE_NONE t <> TYPE_TUPLE][exit]
+	clr: as Cocoa-handle! 0
 	set?: yes
 	case [
 		type = area [
 			hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
-			clr: either t = TYPE_NONE [00FFFFFFh][get-tuple-color color]
-			set-caret-color hWnd clr
+			packed: either t = TYPE_NONE [00FFFFFFh][get-tuple-color color]
+			set-caret-color hWnd packed
 			if t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "textBackgroundColor"]]
 		]
 		type = text [
@@ -670,15 +724,15 @@ change-color: func [
 ]
 
 update-z-order: func [
-	parent	[integer!]
+	parent	[Cocoa-handle!]
 	pane	[red-block!]
 	type	[integer!]
 	/local
 		face [red-object!]
 		tail [red-object!]
-		hWnd [handle!]
-		parr [int-ptr!]
-		arr  [integer!]
+		hWnd [Cocoa-handle!]
+		parr [Cocoa-handle-ptr!]
+		arr  [Cocoa-handle!]
 		nb   [integer!]
 		s	 [series!]
 ][
@@ -687,14 +741,14 @@ update-z-order: func [
 	tail: as red-object! s/tail
 	nb: (as-integer tail - face) >> 4
 
-	parr: as int-ptr! allocate nb * 4
+	parr: as Cocoa-handle-ptr! allocate nb * size? Cocoa-handle!
 	nb: 0
 	while [face < tail][
 		if TYPE_OF(face) = TYPE_OBJECT [
 			hWnd: face-handle? face
-			if hWnd <> null [
+			if hWnd <> 0 [
 				nb: nb + 1
-				parr/nb: as-integer hWnd
+				parr/nb: hWnd
 			]
 		]
 		face: face + 1
@@ -710,21 +764,21 @@ update-z-order: func [
 ]
 
 change-font: func [
-	hWnd	[integer!]
+	hWnd	[Cocoa-handle!]
 	face	[red-object!]
 	font	[red-object!]
 	type	[integer!]
 	return: [logic!]
 	/local
 		values	[red-value!]
-		nscolor	[integer!]
-		attrs	[integer!]
-		str		[integer!]
-		title	[integer!]
-		view	[integer!]
-		storage [integer!]
-		nsfont	[integer!]
-		lm		[integer!]
+		nscolor	[Cocoa-handle!]
+		attrs	[Cocoa-handle!]
+		str		[Cocoa-handle!]
+		title	[Cocoa-handle!]
+		view	[Cocoa-handle!]
+		storage [Cocoa-handle!]
+		nsfont	[Cocoa-handle!]
+		lm		[Cocoa-handle!]
 		pt		[CGPoint! value]
 ][
 	if TYPE_OF(font) <> TYPE_OBJECT [return no]
@@ -754,7 +808,7 @@ change-font: func [
 		if type = text-list [
 			nsfont: objc_msgSend [attrs sel_getUid "objectForKey:" NSFontAttributeName]
 			lm: objc_msgSend [objc_msgSend [objc_getClass "NSLayoutManager" sel_alloc] sel_init]
-			pt/x: (as float32! 1.0) + objc_msgSend_f32 [lm sel_getUid "defaultLineHeightForFont:" nsfont]
+			pt/x: (as Cocoa-float! 1.0) + objc_msgSend_f32 [lm sel_getUid "defaultLineHeightForFont:" nsfont]
 			objc_msgSend [lm sel_release]
 			view: objc_msgSend [hWnd sel_getUid "documentView"]
 			objc_msgSend [view sel_getUid "setRowHeight:" pt/x]
@@ -781,32 +835,34 @@ change-font: func [
 ]
 
 change-offset: func [
-	hWnd [integer!]
+	hWnd [Cocoa-handle!]
 	pos  [red-pair!]
 	type [integer!]
 	/local
 		rc [NSRect!]
 		pt [red-point2D!]
+		view-type [Cocoa-handle!]
 ][
 	rc: make-rect 1 1 0 0
-	GET_PAIR_XY(pos rc/x rc/y)
+	GET_COCOA_XY(pos rc/x rc/y)
 	either type = window [
-		rc/y: (as float32! screen-size-y) - rc/y
+		rc/y: (as Cocoa-float! screen-size-y) - rc/y
 		objc_msgSend [hWnd sel_getUid "setFrameTopLeftPoint:" rc/x rc/y]
 	][
 		objc_msgSend [hWnd sel_getUid "setFrameOrigin:" rc/x rc/y]
 		unless in-composition? [
-			object_getInstanceVariable hWnd IVAR_RED_DATA :type
-			if type = caret [
-				caret-x: rc/x
-				caret-y: rc/y
+			view-type: as Cocoa-handle! 0
+			object_getInstanceVariable hWnd IVAR_RED_DATA :view-type
+			if view-type = caret [
+				caret-x: COCOA_TO_F32(rc/x)
+				caret-y: COCOA_TO_F32(rc/y)
 			]
 		]
 	]
 ]
 
 change-visible: func [
-	hWnd  [integer!]
+	hWnd  [Cocoa-handle!]
 	show? [logic!]
 	type  [integer!]
 ][
@@ -827,11 +883,11 @@ change-visible: func [
 ]
 
 change-enabled: func [
-	hWnd	 [integer!]
+	hWnd	 [Cocoa-handle!]
 	enabled? [logic!]
 	type	 [integer!]
 	/local
-		obj  [integer!]
+		obj  [Cocoa-handle!]
 ][
 	case [
 		type = area [
@@ -860,13 +916,13 @@ change-enabled: func [
 ]
 
 change-text: func [
-	hWnd	[integer!]
+	hWnd	[Cocoa-handle!]
 	values	[red-value!]
 	face	[red-object!]
 	type	[integer!]
 	/local
 		len  [integer!]
-		txt  [integer!]
+		txt  [Cocoa-handle!]
 		cstr [c-string!]
 		str  [red-string!]
 ][
@@ -907,7 +963,7 @@ change-text: func [
 ]
 
 change-data: func [
-	hWnd   [integer!]
+	hWnd   [Cocoa-handle!]
 	values [red-value!]
 	/local
 		data 	[red-value!]
@@ -919,11 +975,13 @@ change-data: func [
 		type	[integer!]
 		len		[integer!]
 		font	[red-object!]
-		ivar	[integer!]
-		nsstr	[integer!]
-		attr	[integer!]
-		max-w	[float32!]
-		view	[integer!]
+		ivar	[Cocoa-handle!]
+		nsstr	[Cocoa-handle!]
+		attr	[Cocoa-handle!]
+		objects	[Cocoa-handle-array!]
+		keys	[Cocoa-handle-array!]
+		max-w	[Cocoa-float!]
+		view	[Cocoa-handle!]
 		sz		[NSSize! value]
 		rc		[NSRect!]
 		face	[red-object!]
@@ -968,18 +1026,17 @@ change-data: func [
 			font: as red-object! values + FACE_OBJ_FONT
 			ivar: 0
 			object_getInstanceVariable hWnd IVAR_RED_FACE :ivar
-			face: as red-object! references/get ivar
+			face: as red-object! references/get as integer! ivar
 			either TYPE_OF(font) = TYPE_OBJECT [
 				attr: make-font-attrs font face text-list
 			][
-				attr: objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
-				attr: objc_msgSend [
-					attr sel_getUid "initWithObjectsAndKeys:"
-					default-font NSFontAttributeName
-					0
-				]
+				objects: declare Cocoa-handle-array!
+				keys: declare Cocoa-handle-array!
+				objects/v1: default-font
+				keys/v1: NSFontAttributeName
+				attr: make-NSDictionary objects keys as NSUInteger! 1
 			]
-			max-w: as float32! 2.0
+			max-w: as Cocoa-float! 2.0
 			loop len [
 				if TYPE_OF(data) <> TYPE_STRING [continue]
 				nsstr: to-NSString as red-string! data
@@ -993,7 +1050,7 @@ change-data: func [
 			sz: objc_msgSend_sz [view sel_getUid "frameSize"]
 			rc: make-rect 0 0 as-integer sz/w size/y
 			either max-w > rc/w [
-				rc/w: max-w + as float32! 16.0
+				rc/w: max-w + as Cocoa-float! 16.0
 				make-text-list
 					face
 					hWnd
@@ -1018,15 +1075,16 @@ change-data: func [
 ]
 
 change-selection: func [
-	hWnd   [integer!]
+	hWnd   [Cocoa-handle!]
 	int	   [red-integer!]								;-- can be also none! | object!
 	type   [integer!]
 	/local
 		idx [integer!]
 		sz	[integer!]
-		wnd [integer!]
+		selection [Cocoa-handle!]
+		wnd [Cocoa-handle!]
 		sel [red-pair!]
-		win [integer!]
+		win [Cocoa-handle!]
 ][
 	if type <> window [
 		idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
@@ -1064,17 +1122,17 @@ change-selection: func [
 				objc_msgSend [hWnd sel_getUid "deselectAll:" hWnd]
 				exit
 			]
-			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfRows"]
+			sz: -1 + as integer! objc_msgSend [hWnd sel_getUid "numberOfRows"]
 			if any [sz < 0 sz < idx][exit]
-			idx: objc_msgSend [objc_getClass "NSIndexSet" sel_getUid "indexSetWithIndex:" idx]
+			selection: objc_msgSend [objc_getClass "NSIndexSet" sel_getUid "indexSetWithIndex:" as NSUInteger! idx]
 			objc_msgSend [
-				hWnd sel_getUid "selectRowIndexes:byExtendingSelection:" idx no
+				hWnd sel_getUid "selectRowIndexes:byExtendingSelection:" selection no
 			]
 		]
 		any [type = drop-list type = drop-down][
-			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfItems"]
+			sz: -1 + as integer! objc_msgSend [hWnd sel_getUid "numberOfItems"]
 			if all [idx = -1 type = drop-down][		;-- deselect current item
-				idx: objc_msgSend [hWnd sel_getUid "indexOfSelectedItem"]
+				idx: as integer! objc_msgSend [hWnd sel_getUid "indexOfSelectedItem"]
 				if idx <> -1 [
 					objc_msgSend [hWnd sel_getUid "deselectItemAtIndex:" idx]
 				]
@@ -1083,19 +1141,19 @@ change-selection: func [
 			if any [sz < 0 sz < idx][exit]
 			either type = drop-list [
 				objc_msgSend [hWnd sel_getUid "selectItemAtIndex:" idx + 1]
-				idx: objc_msgSend [hWnd sel_getUid "titleOfSelectedItem"]
-				objc_msgSend [hWnd sel_getUid "setTitle:" idx]
+				selection: objc_msgSend [hWnd sel_getUid "titleOfSelectedItem"]
+				objc_msgSend [hWnd sel_getUid "setTitle:" selection]
 			][
 				objc_msgSend [hWnd sel_getUid "selectItemAtIndex:" idx]
-				idx: objc_msgSend [hWnd sel_getUid "objectValueOfSelectedItem"]
-				objc_msgSend [hWnd sel_getUid "setObjectValue:" idx]
+				selection: objc_msgSend [hWnd sel_getUid "objectValueOfSelectedItem"]
+				objc_msgSend [hWnd sel_getUid "setObjectValue:" selection]
 			]
 		]
 		type = tab-panel [select-tab hWnd int]
 		type = window [
 			wnd: either TYPE_OF(int) = TYPE_OBJECT [
-				as-integer face-handle? as red-object! int
-			][0]
+				face-handle? as red-object! int
+			][as Cocoa-handle! 0]
 			objc_msgSend [hWnd sel_getUid "makeFirstResponder:" wnd]
 		]
 		true [0]										;-- default, do nothing
@@ -1103,7 +1161,7 @@ change-selection: func [
 ]
 
 same-type?: func [
-	obj		[integer!]
+	obj		[Cocoa-handle!]
 	name	[c-string!]
 	return: [logic!]
 ][
@@ -1111,13 +1169,13 @@ same-type?: func [
 ]
 
 set-content-view: func [
-	obj		[integer!]
+	obj		[Cocoa-handle!]
 	face	[red-object!]
 	/local
 		rect [NSRect!]
-		view [integer!]
+		view [Cocoa-handle!]
 		cls  [c-string!]
-		id	 [integer!]
+		id	 [Cocoa-handle!]
 ][
 	cls: either null? face ["NSViewFlip"]["RedView"]
 	id: objc_getClass cls
@@ -1129,17 +1187,17 @@ set-content-view: func [
 ]
 
 insert-list-item: func [
-	hWnd  [integer!]
+	hWnd  [Cocoa-handle!]
 	item  [red-string!]
 	pos	  [integer!]
 	list? [logic!]
 	/local
 		len [integer!]
-		sel [integer!]
+		sel [Cocoa-handle!]
 ][
 	unless TYPE_OF(item) = TYPE_STRING [exit]
 
-	len: objc_msgSend [hWnd sel_getUid "numberOfItems"]
+	len: as integer! objc_msgSend [hWnd sel_getUid "numberOfItems"]
 	sel: either list? [
 		pos: pos + 1
 		sel_getUid "insertItemWithTitle:atIndex:"
@@ -1151,16 +1209,16 @@ insert-list-item: func [
 ]
 
 init-combo-box: func [
-	combo		[integer!]
+	combo		[Cocoa-handle!]
 	data		[red-block!]
-	caption		[integer!]
+	caption		[Cocoa-handle!]
 	drop-list?	[logic!]
 	/local
 		str		[red-string!]
 		tail	[red-string!]
 		len		[integer!]
-		val		[integer!]
-		sel-add [integer!]
+		val		[Cocoa-handle!]
+		sel-add [Cocoa-handle!]
 ][
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK
@@ -1196,7 +1254,7 @@ init-combo-box: func [
 		either caption <> 0 [
 			objc_msgSend [combo sel_getUid "setStringValue:" caption]
 		][
-			len: objc_msgSend [combo sel_getUid "numberOfItems"]
+			len: as integer! objc_msgSend [combo sel_getUid "numberOfItems"]
 			if zero? len [objc_msgSend [combo sel_getUid "setStringValue:" NSString("")]]
 		]
 	]
@@ -1210,11 +1268,11 @@ cap-year: func [year [integer!] return: [integer!]][
 
 to-NSDate: func [
 	date 	[red-date!]
-	return: [integer!]
+	return: [Cocoa-handle!]
 	/local
-		components [integer!]
-		calendar   [integer!]
-		NSDate 	   [integer!]
+		components [Cocoa-handle!]
+		calendar   [Cocoa-handle!]
+		NSDate 	   [Cocoa-handle!]
 ][	
 	components: objc_msgSend [
 		objc_msgSend [objc_getClass "NSDateComponents" sel_getUid "alloc"]
@@ -1239,11 +1297,11 @@ to-NSDate: func [
 ]
 
 sync-calendar: func [
-	handle [integer!]
+	handle [Cocoa-handle!]
 	/local
 		slot 	   [red-value!]
-		calendar   [integer!]
-		components [integer!]
+		calendar   [Cocoa-handle!]
+		components [Cocoa-handle!]
 		day 	   [integer!]
 		month 	   [integer!]
 		year	   [integer!]
@@ -1260,9 +1318,9 @@ sync-calendar: func [
 		objc_msgSend [handle sel_getUid "dateValue"]
 	]
 	
-	day:   objc_msgSend [components sel_getUid "day"]
-	month: objc_msgSend [components sel_getUid "month"]
-	year:  objc_msgSend [components sel_getUid "year"]
+	day:   as integer! objc_msgSend [components sel_getUid "day"]
+	month: as integer! objc_msgSend [components sel_getUid "month"]
+	year:  as integer! objc_msgSend [components sel_getUid "year"]
 	
 	slot: (get-face-values handle) + FACE_OBJ_DATA
 	date/make-at slot year month day 0.0 0 0 no no
@@ -1271,7 +1329,7 @@ sync-calendar: func [
 ]
 
 init-calendar: func [
-	calendar [integer!]
+	calendar [Cocoa-handle!]
 	data	 [red-value!]
 	/local
 		dt [red-date! value]
@@ -1304,13 +1362,13 @@ init-calendar: func [
 
 init-window: func [
 	face	[red-object!]
-	window	[integer!]
-	title	[integer!]
+	window	[Cocoa-handle!]
+	title	[Cocoa-handle!]
 	bits	[integer!]
 	rect	[NSRect!]
 	/local
 		flags		[integer!]
-		sel_Hidden	[integer!]
+		sel_Hidden	[Cocoa-handle!]
 		main-win?	[logic!]
 ][
 	flags: 0
@@ -1368,18 +1426,18 @@ transparent-base?: func [
 
 init-base-face: func [
 	face	[red-object!]
-	hwnd	[integer!]
+	hwnd	[Cocoa-handle!]
 	menu	[red-block!]
 	size	[red-pair!]
 	values	[red-value!]
 	bits	[integer!]
-	return: [integer!]
+	return: [Cocoa-handle!]
 	/local
 		color	[red-tuple!]
 		opts	[red-block!]
 		word	[red-word!]
-		id		[integer!]
-		obj		[integer!]
+		id		[Cocoa-handle!]
+		obj		[Cocoa-handle!]
 		sym		[integer!]
 		len		[integer!]
 		rc		[NSRect!]
@@ -1432,18 +1490,18 @@ init-base-face: func [
 
 make-area: func [
 	face		[red-object!]
-	container	[integer!]
+	container	[Cocoa-handle!]
 	rc			[NSRect!]
-	text		[integer!]
+	text		[Cocoa-handle!]
 	border?		[logic!]
 	/local
-		id		[integer!]
-		obj		[integer!]
-		tbox	[integer!]
+		id		[Cocoa-handle!]
+		obj		[Cocoa-handle!]
+		tbox	[Cocoa-handle!]
 		x		[integer!]
 ][
-	rc/x: as float32! 0.0
-	rc/y: as float32! 0.0
+	rc/x: as Cocoa-float! 0.0
+	rc/y: as Cocoa-float! 0.0
 
 	x: either border? [NSBezelBorder][NSNoBorder]
 	objc_msgSend [container sel_getUid "setBorderType:" x]
@@ -1461,7 +1519,7 @@ make-area: func [
 	]
 	store-face-to-obj obj face
 
-	rc/y: as float32! 1e37			;-- FLT_MAX
+	rc/y: as Cocoa-float! 1e37
 	objc_msgSend [obj sel_getUid "setVerticallyResizable:" yes]
 	objc_msgSend [obj sel_getUid "setHorizontallyResizable:" yes]
 	objc_msgSend [obj sel_getUid "setMinSize:" rc/x rc/h]
@@ -1481,19 +1539,19 @@ make-area: func [
 
 make-text-list: func [
 	face		[red-object!]
-	container	[integer!]
+	container	[Cocoa-handle!]
 	rc			[NSRect!]
 	menu		[red-block!]
 	border?		[logic!]
-	return:		[integer!]
+	return:		[Cocoa-handle!]
 	/local
-		id		[integer!]
-		obj		[integer!]
-		column	[integer!]
+		id		[Cocoa-handle!]
+		obj		[Cocoa-handle!]
+		column	[Cocoa-handle!]
 ][
-	rc/x: as float32! 0.0
-	rc/y: as float32! 0.0
-	rc/w: rc/w - as float32! 5.0
+	rc/x: as Cocoa-float! 0.0
+	rc/y: as Cocoa-float! 0.0
+	rc/w: rc/w - as Cocoa-float! 5.0
 
 	id: CFString("RedCol1")
 	column: objc_msgSend [objc_getClass "NSTableColumn" sel_getUid "alloc"]
@@ -1541,8 +1599,8 @@ update-combo-box: func [
 	part  [integer!]
 	list? [logic!]										;-- TRUE: drop-list or drop-down widgets
 	/local
-		hWnd [integer!]
-		nstr [integer!]
+		hWnd [Cocoa-handle!]
+		nstr [Cocoa-handle!]
 		str  [red-string!]
 		sel  [red-integer!]
 		blk  [red-block!]
@@ -1660,9 +1718,12 @@ update-scroller: func [
 		parent		[red-object!]
 		vertical?	[red-logic!]
 		int			[red-integer!]
+		handle-value [red-handle!]
 		values		[red-value!]
-		container	[integer!]
-		bar			[integer!]
+		container	[Cocoa-handle!]
+		bar			[Cocoa-handle!]
+		selector	[Cocoa-handle!]
+		associated	[Cocoa-handle!]
 		range		[integer!]
 		sel			[integer!]
 		pos			[integer!]
@@ -1672,25 +1733,24 @@ update-scroller: func [
 		n			[integer!]
 		frac		[float!]
 		old-frac	[float!]
-		knob		[float32!]
-		pf32		[pointer! [float32!]]
-		old-knob	[float32!]
+		knob		[Cocoa-float!]
+		old-knob	[Cocoa-float!]
 ][
 	values: object/get-values scroller
 	parent: as red-object! values + SCROLLER_OBJ_PARENT
 	vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
-	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
-	container: int/value
+	handle-value: as red-handle! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
+	container: get-cocoa-handle handle-value
 
 	if flag = SCROLLER_OBJ_VISIBLE? [
 		int: as red-integer! values + SCROLLER_OBJ_VISIBLE?
-		sel: either vertical?/value [sel_getUid "setHasVerticalScroller:"][sel_getUid "setHasHorizontalScroller:"]
-		objc_msgSend [container sel int/value]
+		selector: either vertical?/value [sel_getUid "setHasVerticalScroller:"][sel_getUid "setHasHorizontalScroller:"]
+		objc_msgSend [container selector int/value]
 		exit
 	]
 
-	sel: either vertical?/value [sel_getUid "verticalScroller"][sel_getUid "horizontalScroller"]
-	bar: objc_msgSend [container sel]
+	selector: either vertical?/value [sel_getUid "verticalScroller"][sel_getUid "horizontalScroller"]
+	bar: objc_msgSend [container selector]
 
 	int: as red-integer! values + SCROLLER_OBJ_POS
 	pos: int/value
@@ -1701,16 +1761,16 @@ update-scroller: func [
 	int: as red-integer! values + SCROLLER_OBJ_MAX
 	max: int/value
 
-	n: objc_getAssociatedObject bar RedAttachedWidgetKey
+	associated: objc_getAssociatedObject bar RedAttachedWidgetKey
 	if any [
-		zero? n
-		values <> as red-value! objc_msgSend [n sel_getUid "unsignedIntValue"]
+		zero? associated
+		values <> as red-value! objc_msgSend [associated sel_getUid "unsignedLongLongValue"]
 	][
-		n: objc_msgSend [
-			objc_getClass "NSNumber" sel_getUid "numberWithUnsignedInt:"
-			values
+		associated: objc_msgSend [
+			objc_getClass "NSNumber" sel_getUid "numberWithUnsignedLongLong:"
+			as Cocoa-uhandle! values
 		]
-		objc_setAssociatedObject bar RedAttachedWidgetKey n OBJC_ASSOCIATION_RETAIN
+		objc_setAssociatedObject bar RedAttachedWidgetKey associated OBJC_ASSOCIATION_RETAIN
 	]
 
 	n: max - page
@@ -1722,17 +1782,15 @@ update-scroller: func [
 	]
 
 	sel: max - min
-	knob: either range <= 0 [as float32! 1.0][
-		(as float32! page) / as float32! sel
+	knob: either range <= 0 [as Cocoa-float! 1.0][
+		(as Cocoa-float! page) / as Cocoa-float! sel
 	]
 
 	old-frac: objc_msgSend_fpret [bar sel_getUid "doubleValue"]
 	old-knob: objc_msgSend_f32 [bar sel_getUid "knobProportion"]
 
-	pf32: as pointer! [float32!] :sel
-	pf32/value: knob
 	objc_msgSend [bar sel_getUid "setDoubleValue:" frac]
-	objc_msgSend [bar sel_getUid "setKnobProportion:" pf32/value]
+	objc_msgSend [bar sel_getUid "setKnobProportion:" knob]
 	objc_msgSend [bar sel_getUid "setEnabled:" true]
 	if any [
 		knob <> old-knob
@@ -1757,11 +1815,11 @@ update-rich-text: func [
 ]
 
 set-hint-text: func [
-	hWnd		[integer!]
+	hWnd		[Cocoa-handle!]
 	options		[red-block!]
 	/local
 		text	[red-string!]
-		cell	[integer!]
+		cell	[Cocoa-handle!]
 ][
 	if TYPE_OF(options) <> TYPE_BLOCK [exit]
 	text: as red-string! block/select-word options word/load "hint" no
@@ -1772,7 +1830,7 @@ set-hint-text: func [
 ]
 
 parse-common-opts: func [
-	hWnd	[integer!]
+	hWnd	[Cocoa-handle!]
 	options [red-block!]
 	type	[integer!]
 	/local
@@ -1783,8 +1841,8 @@ parse-common-opts: func [
 		len		[integer!]
 		sym		[integer!]
 		cur		[c-string!]
-		hcur	[integer!]
-		nsimg	[integer!]
+		hcur	[Cocoa-handle!]
+		nsimg	[Cocoa-handle!]
 		btn?	[logic!]
 		pt		[CGPoint! value]
 ][
@@ -1805,8 +1863,8 @@ parse-common-opts: func [
 								OBJC_ALLOC("NSImage")
 								sel_getUid "initWithCGImage:size:" OS-image/to-cgimage img 0 0
 							]
-							pt/x: as float32! IMAGE_WIDTH(img/size) / 2
-							pt/y: as float32! IMAGE_HEIGHT(img/size) / 2
+							pt/x: as Cocoa-float! IMAGE_WIDTH(img/size) / 2
+							pt/y: as Cocoa-float! IMAGE_HEIGHT(img/size) / 2
 							hcur: objc_msgSend [
 								OBJC_ALLOC("NSCursor")
 								sel_getUid "initWithImage:hotSpot:" nsimg pt/x pt/y
@@ -1868,12 +1926,12 @@ parse-common-opts: func [
 	]
 ]
 
-OS-redraw: func [hWnd [integer!]][objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]]
+OS-redraw: func [hWnd [Cocoa-handle!]][objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]]
 
-OS-refresh-window: func [hWnd [integer!]][0]
+OS-refresh-window: func [hWnd [Cocoa-handle!]][0]
 
 OS-show-window: func [
-	hWnd [integer!]
+	hWnd [Cocoa-handle!]
 ][
 	;make-event hWnd 0 EVT_SIZE
 	change-selection hWnd (as red-integer! get-face-values hWnd) + FACE_OBJ_SELECTED window
@@ -1881,8 +1939,8 @@ OS-show-window: func [
 
 OS-make-view: func [
 	face	[red-object!]
-	parent	[integer!]
-	return: [integer!]
+	parent	[Cocoa-handle!]
+	return: [Cocoa-handle!]
 	/local
 		values	[red-value!]
 		type	[red-word!]
@@ -1902,12 +1960,12 @@ OS-make-view: func [
 		flags	[integer!]
 		bits	[integer!]
 		sym		[integer!]
-		id		[integer!]
+		id		[Cocoa-handle!]
 		class	[c-string!]
-		caption [integer!]
+		caption [Cocoa-handle!]
 		len		[integer!]
-		obj		[integer!]
-		hWnd	[integer!]
+		obj		[Cocoa-handle!]
+		hWnd	[Cocoa-handle!]
 		rc		[NSRect!]
 		flt		[float!]
 		p		[ext-class!]
@@ -1967,7 +2025,7 @@ OS-make-view: func [
 			class: "RedWindow"
 			if bits and FACET_FLAGS_MODAL <> 0 [
 				obj: objc_msgSend [NSApp sel_getUid "mainWindow"]
-				if obj <> 0 [vector/rs-append-int active-wins obj]
+				if obj <> 0 [append-cocoa-handle active-wins obj]
 			]
 		]
 		sym = tab-panel [
@@ -2019,13 +2077,13 @@ OS-make-view: func [
 		CFString("")
 	]
 	rc: make-rect 1 1 1 1
-	GET_PAIR_XY(size rc/w rc/h)
-	rc/x: offset/x
-	rc/y: offset/y
+	GET_COCOA_XY(size rc/w rc/h)
+	rc/x: F32_TO_COCOA offset/x
+	rc/y: F32_TO_COCOA offset/y
 	
 	case [
 		sym = window [
-			rc/y: (as float32! screen-size-y) - rc/y - rc/h
+			rc/y: (as Cocoa-float! screen-size-y) - rc/y - rc/h
 			init-window face obj caption bits rc
 		]
 		sym = drop-list [
@@ -2111,7 +2169,7 @@ OS-make-view: func [
 				AppMainMenu: objc_msgSend [NSApp sel_getUid "mainMenu"]
 				build-menu menu AppMainMenu obj
 			]
-			if bits and FACET_FLAGS_MODAL <> 0 [vector/rs-append-int active-wins obj]
+			if bits and FACET_FLAGS_MODAL <> 0 [append-cocoa-handle active-wins obj]
 		]
 		sym = slider [
 			either rc/w > rc/h [flt: as-float rc/w][flt: as-float rc/h]
@@ -2124,7 +2182,7 @@ OS-make-view: func [
 		sym = progress [
 			objc_msgSend [obj sel_getUid "setIndeterminate:" false]
 			if rc/h > rc/w [
-				rc/x: as float32! -90.0
+				rc/x: as Cocoa-float! -90.0
 				objc_msgSend [obj sel_getUid "setBoundsRotation:" rc/x]
 			]
 			flt: get-position-value as red-float! data 100.0
@@ -2195,13 +2253,15 @@ OS-update-view: func [
 		menu	[red-block!]
 		word	[red-word!]
 		int		[red-integer!]
+		handle-value [red-handle!]
 		bool	[red-logic!]
 		s		[series!]
-		hWnd	[integer!]
-		hWnd2	[integer!]
+		hWnd	[Cocoa-handle!]
+		hWnd2	[Cocoa-handle!]
+		temp-hWnd [Cocoa-handle!]
 		flags	[integer!]
 		type	[integer!]
-		nsstr	[integer!]
+		nsstr	[Cocoa-handle!]
 ][
 	ctx: GET_CTX(face)
 	s: resolve-series ctx/values
@@ -2217,9 +2277,9 @@ OS-update-view: func [
 	][exit]
 
 	s: GET_BUFFER(state)
-	int: as red-integer! s/offset
-	hWnd: int/value
-	int: int + 1
+	handle-value: as red-handle! s/offset
+	hWnd: get-cocoa-handle handle-value
+	int: as red-integer! s/offset + 1
 	flags: int/value
 
 	if flags and FACET_FLAG_OFFSET <> 0 [
@@ -2251,16 +2311,16 @@ OS-update-view: func [
 			hWnd2: objc_getAssociatedObject hWnd RedSecureFieldKey
 
 			if flags and FACET_FLAGS_PASSWORD <> 0 [
-				type: hWnd
+				temp-hWnd: hWnd
 				hWnd: hWnd2
-				hWnd2: type
+				hWnd2: temp-hWnd
 			]
 			nsstr: objc_msgSend [hWnd sel_getUid "stringValue"]
 			objc_msgSend [hWnd sel_getUid "setHidden:" yes]
 			objc_msgSend [hWnd2 sel_getUid "setHidden:" no]
 			objc_msgSend [hWnd2 sel_getUid "setStringValue:" nsstr]
 			objc_msgSend [hWnd2 sel_getUid "becomeFirstResponder"]
-			type: objc_msgSend [nsstr sel_getUid "length"]
+			type: as integer! objc_msgSend [nsstr sel_getUid "length"]
 			hWnd: objc_msgSend [hWnd2 sel_getUid "currentEditor"]
 			objc_msgSend [hWnd sel_getUid "setSelectedRange:" type 0]
 		]
@@ -2331,7 +2391,7 @@ OS-destroy-view: func [
 	face	[red-object!]
 	window? [logic!]
 	/local
-		handle [integer!]
+		handle [Cocoa-handle!]
 		values [red-value!]
 		obj	   [red-object!]
 		flags  [integer!]
@@ -2396,22 +2456,22 @@ OS-to-image: func [
 	face	[red-object!]
 	return: [red-image!]
 	/local
-		view	[integer!]
-		cview	[integer!]
+		view	[Cocoa-handle!]
+		cview	[Cocoa-handle!]
 		data	[integer!]
 		rect	[RECT_STRUCT value]
 		rc		[NSRect! value]
 		rc2		[NSRect! value]
-		h		[float32!]
+		h		[Cocoa-float!]
 		sz		[red-pair!]
-		bmp		[integer!]
-		bmp2	[integer!]
-		bmp3	[integer!]
-		img		[integer!]
+		bmp		[Cocoa-handle!]
+		bmp2	[Cocoa-handle!]
+		bmp3	[Cocoa-handle!]
+		img		[Cocoa-handle!]
 		ret		[red-image!]
 		type	[integer!]
 		word	[red-word!]
-		rep		[integer!]
+		rep		[Cocoa-handle!]
 		id		[integer!]
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
@@ -2421,10 +2481,9 @@ OS-to-image: func [
 			rect/left: 0 rect/top: 0 rect/right: 7F800000h rect/bottom: 7F800000h
 			bmp: CGWindowListCreateImage as NSRect! rect 1 0 0		;-- INF
 			ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
-			objc_msgSend [bmp sel_getUid "retain"]
 		]
 		type = camera [
-			view: as-integer face-handle? face
+			view: face-handle? face
 			either zero? view [ret: as red-image! none-value][
 				ret: as red-image! (object/get-values face) + FACE_OBJ_IMAGE
 				ret/header: TYPE_NONE						;@@ TBD release old image?
@@ -2432,7 +2491,7 @@ OS-to-image: func [
 			]
 		]
 		true [
-			view: as-integer face-handle? face
+			view: face-handle? face
 			either zero? view [ret: as red-image! none-value][
 				sz: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
 				either type = window [
@@ -2442,7 +2501,7 @@ OS-to-image: func [
 					h: rc/h - rc2/h
 					rc/y: rc/y - h
 					rc/h: h
-					id: objc_msgSend [view sel_getUid "windowNumber"]
+					id: as integer! objc_msgSend [view sel_getUid "windowNumber"]
 					;-- title
 					bmp: CGWindowListCreateImage rc 8 id 1 or 8
 
@@ -2451,26 +2510,25 @@ OS-to-image: func [
 					objc_msgSend [cview sel_getUid "cacheDisplayInRect:toBitmapImageRep:" rc2/x rc2/y rc2/w rc2/h rep]
 					img: objc_msgSend [
 						objc_msgSend [objc_getClass "NSImage" sel_alloc]
-						sel_getUid "initWithSize:" as float! rc2/w as float! rc2/h
+						sel_getUid "initWithSize:" rc2/w rc2/h
 					]
 					objc_msgSend [img sel_getUid "addRepresentation:" rep]
 					bmp2: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
 
 					;-- combine
-					bmp3: OS-image/combine-image bmp bmp2 0
+					bmp3: as Cocoa-handle! OS-image/combine-image as int-ptr! bmp as int-ptr! bmp2 0
 
 					ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp3
-					;CGImageRelease bmp
+					CGImageRelease bmp
 					;CGImageRelease bmp2
 					objc_msgSend [img sel_release]
-					objc_msgSend [bmp3 sel_getUid "retain"]
 				][
 					rc: objc_msgSend_rect [view sel_getUid "bounds"]
 					rep: objc_msgSend [view sel_getUid "bitmapImageRepForCachingDisplayInRect:" rc/x rc/y rc/w rc/h]
 					objc_msgSend [view sel_getUid "cacheDisplayInRect:toBitmapImageRep:" rc/x rc/y rc/w rc/h rep]
 					img: objc_msgSend [
 						objc_msgSend [objc_getClass "NSImage" sel_alloc]
-						sel_getUid "initWithSize:" as float! rc/w as float! rc/h
+						sel_getUid "initWithSize:" rc/w rc/h
 					]
 					objc_msgSend [img sel_getUid "addRepresentation:" rep]
 					bmp: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
@@ -2494,22 +2552,22 @@ OS-do-draw: func [
 	rc: make-rect IMAGE_WIDTH(img/size) IMAGE_HEIGHT(img/size) 0 0
 	ctx: OS-image/to-bitmap-ctx OS-image/to-cgimage img
 	do-draw ctx as red-image! rc cmds yes no no no
-	OS-image/ctx-to-image img as-integer ctx
+	OS-image/ctx-to-image img ctx
 ]
 
 OS-draw-face: func [
-	hWnd	[handle!]
+	hWnd	[Cocoa-handle!]
 	cmds	[red-block!]
 	flags	[integer!]
 	/local
-		ctx [integer!]
-		obj [integer!]
-		doc [integer!]
+		ctx [Cocoa-handle!]
+		obj [Cocoa-handle!]
+		doc [Cocoa-handle!]
 ][
 	if TYPE_OF(cmds) = TYPE_BLOCK [
 		assert system/thrown = 0
 
-		obj: as-integer hWnd
+		obj: hWnd
 		if flags and FACET_FLAGS_SCROLLABLE <> 0 [
 			doc: objc_msgSend [obj sel_getUid "documentView"]
 			if doc <> 0 [obj: doc]
@@ -2522,12 +2580,85 @@ OS-draw-face: func [
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
 ]
 
-OS-fetch-all-screens: func [][
-	SET_RETURN(none-value)
+fetch-screen-info: func [
+	screen	[Cocoa-handle!]
+	spec	[red-block!]
+	/local
+		blk	[red-block!]
+		s	[series!]
+		frame	[NSRect! value]
+		scale	[Cocoa-float!]
+		width	[integer!]
+		height	[integer!]
+][
+	blk: block/make-at as red-block! ALLOC_TAIL(spec) 4
+	s: GET_BUFFER(blk)
+	frame: objc_msgSend_rect [screen sel_getUid "frame"]
+	scale: objc_msgSend_f32 [screen sel_getUid "backingScaleFactor"]
+	if scale <= (as Cocoa-float! 0.0) [scale: as Cocoa-float! 1.0]
+	width: as-integer (frame/w * scale)
+	height: as-integer (frame/h * scale)
+	pair/make-at alloc-tail s as-integer frame/x as-integer frame/y
+	pair/make-at alloc-tail s width height
+	float/make-at alloc-tail s as-float scale
+	make-cocoa-handle-at as red-value! alloc-tail s screen handle/CLASS_MONITOR
 ]
 
-OS-get-current-screen: func [][
-	SET_RETURN(none-value)
+OS-fetch-all-screens: func [
+	return: [red-block!]
+	/local
+		screens	[Cocoa-handle!]
+		screen	[Cocoa-handle!]
+		blk	[red-block!]
+		n	[integer!]
+		i	[integer!]
+][
+	blk: block/push-only* 2
+	screens: objc_msgSend [objc_getClass "NSScreen" sel_getUid "screens"]
+	if screens = 0 [return blk]
+	n: as integer! objc_msgSend [screens sel_getUid "count"]
+	i: 0
+	while [i < n][
+		screen: objc_msgSend [screens sel_getUid "objectAtIndex:" as NSUInteger! i]
+		if screen <> 0 [fetch-screen-info screen blk]
+		i: i + 1
+	]
+	blk
+]
+
+OS-get-current-screen: func [
+	return: [red-handle!]
+	/local
+		screens	[Cocoa-handle!]
+		screen	[Cocoa-handle!]
+		point	[CGPoint! value]
+		frame	[NSRect! value]
+		n	[integer!]
+		i	[integer!]
+][
+	screens: objc_msgSend [objc_getClass "NSScreen" sel_getUid "screens"]
+	point: objc_msgSend_pt [objc_getClass "NSEvent" sel_getUid "mouseLocation"]
+	if screens <> 0 [
+		n: as integer! objc_msgSend [screens sel_getUid "count"]
+		i: 0
+		while [i < n][
+			screen: objc_msgSend [screens sel_getUid "objectAtIndex:" as NSUInteger! i]
+			if screen <> 0 [
+				frame: objc_msgSend_rect [screen sel_getUid "frame"]
+				if all [
+					point/x >= frame/x
+					point/x < (frame/x + frame/w)
+					point/y >= frame/y
+					point/y < (frame/y + frame/h)
+				][
+					return make-cocoa-handle-at stack/arguments screen handle/CLASS_MONITOR
+				]
+			]
+			i: i + 1
+		]
+	]
+	screen: objc_msgSend [objc_getClass "NSScreen" sel_getUid "mainScreen"]
+	make-cocoa-handle-at stack/arguments screen handle/CLASS_MONITOR
 ]
 
 OS-alert: func [

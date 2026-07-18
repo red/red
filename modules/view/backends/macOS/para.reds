@@ -11,7 +11,7 @@ Red/System [
 ]
 
 change-para: func [
-	hWnd	[integer!]
+	hWnd	[Cocoa-handle!]
 	face	[red-object!]
 	para	[red-object!]
 	font	[red-object!]
@@ -19,7 +19,7 @@ change-para: func [
 	return: [logic!]
 	/local
 		flags [integer!]
-		cell  [integer!]
+		cell  [Cocoa-handle!]
 ][
 	if TYPE_OF(para) <> TYPE_OBJECT [return no]
 

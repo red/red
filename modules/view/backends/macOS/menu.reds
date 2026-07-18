@@ -12,28 +12,28 @@ Red/System [
 
 red-menu-action: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	sender	[integer!]
+	self	[Cocoa-handle!]
+	cmd		[Cocoa-handle!]
+	sender	[Cocoa-handle!]
 	/local
 		id	[integer!]
 ][
-	id: objc_msgSend [sender sel_getUid "tag"]
+	id: as integer! objc_msgSend [sender sel_getUid "tag"]
 	make-event self id EVT_MENU
 ]
 
 create-main-menu: func [
 	/local
-		app-name	[integer!]
-		empty-str	[integer!]
-		item		[integer!]
-		title		[integer!]
-		main-menu	[integer!]
-		apple-menu	[integer!]
-		srv-menu	[integer!]
-		app-item	[integer!]
+		app-name	[Cocoa-handle!]
+		empty-str	[Cocoa-handle!]
+		item		[Cocoa-handle!]
+		title		[Cocoa-handle!]
+		main-menu	[Cocoa-handle!]
+		apple-menu	[Cocoa-handle!]
+		srv-menu	[Cocoa-handle!]
+		app-item	[Cocoa-handle!]
 		s-app		[c-string!]
-		sel-add		[integer!]
+		sel-add		[Cocoa-handle!]
 ][
 	s-app: strrchr system/args-list/item as-integer #"/"
 	s-app: s-app + 1
@@ -47,9 +47,9 @@ create-main-menu: func [
 	apple-menu: objc_msgSend [apple-menu sel_getUid "initWithTitle:" NSString("Apple")]
 	objc_msgSend [NSApp sel_getUid "setAppleMenu:" apple-menu]
 
-	title: NSString("About %@")
+	title: NSString("About ")
 	app-name: NSString(s-app)
-	title: objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithFormat:" title app-name]
+	title: objc_msgSend [title sel_getUid "stringByAppendingString:" app-name]
 	item: objc_msgSend [
 		apple-menu sel-add title sel_getUid "orderFrontStandardAboutPanel:" empty-str
 	]
@@ -70,8 +70,8 @@ create-main-menu: func [
 	objc_msgSend [NSApp sel_getUid "setServicesMenu:" srv-menu]
 	objc_msgSend [apple-menu sel_getUid "addItem:" objc_msgSend [objc_getClass "NSMenuItem" sel_getUid "separatorItem"]]
 
-	title: NSString("Hide %@")
-	title: objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithFormat:" title app-name]
+	title: NSString("Hide ")
+	title: objc_msgSend [title sel_getUid "stringByAppendingString:" app-name]
 	item: objc_msgSend [apple-menu sel-add title sel_getUid "hide:" NSString("h")]
 	objc_msgSend [item sel_getUid "setTarget:" NSApp]
 
@@ -85,8 +85,8 @@ create-main-menu: func [
 	objc_msgSend [item sel_getUid "setTarget:" NSApp]
 	objc_msgSend [apple-menu sel_getUid "addItem:" objc_msgSend [objc_getClass "NSMenuItem" sel_getUid "separatorItem"]]
 
-	title: NSString("Quit %@")
-	title: objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithFormat:" title app-name]
+	title: NSString("Quit ")
+	title: objc_msgSend [title sel_getUid "stringByAppendingString:" app-name]
 	item: objc_msgSend [apple-menu sel-add title sel_getUid "terminate:" NSString("q")]
 	objc_msgSend [item sel_getUid "setTarget:" NSApp]
 
@@ -99,20 +99,20 @@ create-main-menu: func [
 
 build-menu: func [
 	menu	[red-block!]
-	hMenu	[integer!]
-	target	[integer!]
-	return: [integer!]
+	hMenu	[Cocoa-handle!]
+	target	[Cocoa-handle!]
+	return: [Cocoa-handle!]
 	/local
-		item	 [integer!]
-		sub-menu [integer!]
+		item	 [Cocoa-handle!]
+		sub-menu [Cocoa-handle!]
 		value	 [red-value!]
 		tail	 [red-value!]
 		next	 [red-value!]
 		str		 [red-string!]
 		w		 [red-word!]
-		title	 [integer!]
-		key		 [integer!]
-		action	 [integer!]
+		title	 [Cocoa-handle!]
+		key		 [Cocoa-handle!]
+		action	 [Cocoa-handle!]
 ][
 	if TYPE_OF(menu) <> TYPE_BLOCK [return null] 
 
@@ -174,11 +174,11 @@ build-menu: func [
 ]
 
 set-context-menu: func [
-	obj		[integer!]
+	obj		[Cocoa-handle!]
 	menu	[red-block!]
 	/local
-		hMenu		[integer!]
-		empty-str	[integer!]
+		hMenu		[Cocoa-handle!]
+		empty-str	[Cocoa-handle!]
 ][
 	empty-str: NSString("")
 	hMenu: objc_msgSend [objc_getClass "NSMenu" sel_getUid "alloc"]

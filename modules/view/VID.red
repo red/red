@@ -806,7 +806,9 @@ system/view/VID: context [
 							face/type = 'progress
 							face/size/y > face/size/x
 						][dir: 'x]
-						face/offset/:dir: face/offset/:dir + (face/size/:dir - h / 2)
+						offset: opt-as-integer ((face/size/:dir - h) / 2.0)
+						if float? offset [face/offset: to-point2D face/offset]
+						face/offset/:dir: face/offset/:dir + offset
 						face/size/:dir: h
 					]
 				]

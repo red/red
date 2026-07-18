@@ -42,6 +42,14 @@ Red/System [
 				a5 [integer!] a6 [integer!] a7 [integer!] a8 [integer!]
 				return: [integer!]
 			]
+			check-objc-dispatch: "check_objc_dispatch" [[variadic objc]
+				receiver [uint64!] selector [uint64!]
+				return: [integer!]
+			]
+			check-objc-compact-stack: "check_objc_compact_stack" [[variadic objc]
+				receiver [uint64!] selector [uint64!]
+				return: [integer!]
+			]
 			check-pair: "check_pair" [
 				value [pair32! value] marker [integer!]
 				return: [integer!]
@@ -182,6 +190,21 @@ Red/System [
 	if 1 <> check-variadic-after-stack [
 		10 11 12 13 14 15 16 17 18 42
 	][quit 14]
+	if 1 <> check-objc-dispatch [
+		(as uint64! 0000000100000001h)
+		(as uint64! 0000000100000002h)
+		(as float32! 1.25) 2.5
+		(as uint8! 250) (as int16! -300)
+		(as uint64! 0000000100000004h)
+	][quit 15]
+	if 1 <> check-objc-compact-stack [
+		(as uint64! 0000000100000001h)
+		(as uint64! 0000000100000002h)
+		10 11 12 13 14 15
+		(as int8! -2) (as uint8! 250)
+		(as int16! -300) (as uint16! 60000)
+		(as int32! -123456)
+	][quit 16]
 
 	pair: declare pair32!
 	pair/left: 20
