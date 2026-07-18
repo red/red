@@ -53,14 +53,11 @@ encap-fs: context [
 			stk: reduce [copy cdir]
 			emit: func [file /local filename][
 				file: mold filename: file
-				insert tail out "^/^-"
-				insert tail out file
-				insert tail out #" "
+				repend out ["^/^-" file #" "]
 				either find/only text-files suffix? file [
-					insert tail out "^-^-"
-					insert tail out mold read filename
+					repend out ["^-^-" mold read filename]
 				][
-					insert tail out mold read/binary filename
+					append out mold read/binary filename
 				]
 				
 			]
