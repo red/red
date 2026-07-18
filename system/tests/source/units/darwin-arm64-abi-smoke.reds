@@ -37,6 +37,11 @@ Red/System [
 				marker [integer!]
 				return: [integer!]
 			]
+			check-variadic-after-stack: "check_variadic_after_stack" [[variadic]
+				a0 [integer!] a1 [integer!] a2 [integer!] a3 [integer!] a4 [integer!]
+				a5 [integer!] a6 [integer!] a7 [integer!] a8 [integer!]
+				return: [integer!]
+			]
 			check-pair: "check_pair" [
 				value [pair32! value] marker [integer!]
 				return: [integer!]
@@ -174,6 +179,9 @@ Red/System [
 	if 1 <> check-variadic [
 		77 -9 2.5 123 (as uint64! 0000000100000004h)
 	][quit 4]
+	if 1 <> check-variadic-after-stack [
+		10 11 12 13 14 15 16 17 18 42
+	][quit 14]
 
 	pair: declare pair32!
 	pair/left: 20

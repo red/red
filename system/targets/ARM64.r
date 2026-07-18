@@ -646,10 +646,11 @@ make-profilable make target-class [
 
 	emit-call-syscall: func [
 		args [block!] fspec [block!] attribs [block! none!]
-		/local n
+		/local n max-args
 	][
 		n: call-arg-index
-		if n > 8 [compiler/throw-error ["ARM64 syscall with too many args:" n]]
+		max-args: either compiler/job/syscall = 'Linux [6][8]
+		if n > max-args [compiler/throw-error ["ARM64 syscall with too many args:" n]]
 		repeat reg n [emit-pop-arg reg - 1]
 		switch compiler/job/syscall [
 			Linux [
@@ -672,11 +673,13 @@ make-profilable make target-class [
 		/local types classes type int-reg fp-reg stack-size out-size source target class first?
 			aggregate-stack-left aggregate-stack-base aggregate-field-size
 			aggregate-size aggregate-align argument-index variadic-tail? value-size value-align
+			variadic-stack-started?
 	][
 		types: reverse copy/deep call-arg-types
 		classes: make block! n
 		int-reg: fp-reg: stack-size: aggregate-stack-left: 0
 		argument-index: 0
+		variadic-stack-started?: no
 		first?: yes
 		foreach type types [
 			type: compiler/resolve-aliased type
@@ -688,6 +691,10 @@ make-profilable make target-class [
 					argument-index: argument-index + 1
 				]
 				variadic-tail?: all [apple-variadic argument-index > fixed-count]
+			]
+			if all [variadic-tail? not variadic-stack-started?][
+				stack-size: align-stack-offset stack-size 8
+				variadic-stack-started?: yes
 			]
 			case [
 				all [indirect-result first?] [

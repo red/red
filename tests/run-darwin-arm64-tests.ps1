@@ -165,7 +165,7 @@ for suite in $($canonicalExecutables -join ' '); do
     echo "`$suite passed"
     canonical_passed=`$((canonical_passed + 1))
   else
-    echo "****** `$suite failed (exit `$status) *****"
+    echo "****** `$suite failed, exit `$status *****"
     cat .suite-report
     canonical_failures=1
   fi
@@ -190,6 +190,9 @@ for smoke in $($smokes -join ' '); do
   codesign --verify --strict --verbose=4 "`$smoke"
   ./"`$smoke"
 done
+clang -arch arm64 -dynamiclib -O2 -Wall -Wextra \
+  -o libdarwin-arm64-abi-helper.dylib darwin-arm64-abi-helper.c
+codesign --verify --strict --verbose=4 libdarwin-arm64-abi-helper.dylib
 for smoke in $($runtimeSmokes -join ' '); do
   chmod +x "`$smoke"
   file "`$smoke"
@@ -199,9 +202,6 @@ for smoke in $($runtimeSmokes -join ' '); do
   codesign --verify --strict --verbose=4 "`$smoke"
   ./"`$smoke" probe-arg
 done
-clang -arch arm64 -dynamiclib -O2 -Wall -Wextra \
-  -o libdarwin-arm64-abi-helper.dylib darwin-arm64-abi-helper.c
-codesign --verify --strict --verbose=4 libdarwin-arm64-abi-helper.dylib
 for smoke in $($abiSmokes -join ' '); do
   chmod +x "`$smoke"
   file "`$smoke"

@@ -73,7 +73,7 @@ __image!: alias struct! [
 	data	    [integer!]					;-- data segment offset
 	data-size   [integer!]					;-- data segment size
 	bitarray    [integer!]					;-- offset for function args+locals pointer! bitmaps
-	rodata	    [integer!]					;-- protected data offset (dylib: mprotect'd RO on load)
+	rodata	    [integer!]					;-- protected data offset (mprotect'd RO on Darwin)
 	rodata-size [integer!]					;-- protected data size (0 if none / already RO)
 ]
 

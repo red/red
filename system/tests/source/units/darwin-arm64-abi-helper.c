@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <dirent.h>
+#include <mach/mach.h>
+#include <mach/mach_vm.h>
 #include <pthread.h>
 #include <signal.h>
 #include <sys/stat.h>
@@ -94,6 +96,32 @@ int check_variadic(int marker, ...) {
 	va_end(args);
 	return marker == 77 && i0 == -9 && d0 == 2.5 && i1 == 123
 		&& u64 == 0x100000004ULL;
+}
+
+int check_variadic_after_stack(
+	int32_t a0, int32_t a1, int32_t a2, int32_t a3, int32_t a4,
+	int32_t a5, int32_t a6, int32_t a7, int32_t a8, ...
+) {
+	va_list args;
+	va_start(args, a8);
+	int tail = va_arg(args, int);
+	va_end(args);
+	return a0 == 10 && a1 == 11 && a2 == 12 && a3 == 13 && a4 == 14
+		&& a5 == 15 && a6 == 16 && a7 == 17 && a8 == 18 && tail == 42;
+}
+
+int check_readonly(const void *address) {
+	mach_vm_address_t region = (mach_vm_address_t)(uintptr_t)address;
+	mach_vm_size_t size = 0;
+	vm_region_basic_info_data_64_t info;
+	mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
+	mach_port_t object = MACH_PORT_NULL;
+	kern_return_t result = mach_vm_region(
+		mach_task_self(), &region, &size, VM_REGION_BASIC_INFO_64,
+		(vm_region_info_t)&info, &count, &object
+	);
+	if (MACH_PORT_VALID(object)) mach_port_deallocate(mach_task_self(), object);
+	return result == KERN_SUCCESS && (info.protection & VM_PROT_WRITE) == 0;
 }
 
 int check_pair(pair32_t value, int marker) {

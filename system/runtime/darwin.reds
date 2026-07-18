@@ -19,7 +19,7 @@ Red/System [
 		count	[integer!]
 		return: [integer!]
 	]
-	mprotect: 74 [							;-- protect protected-data page(s) in dylibs
+	mprotect: 74 [							;-- protect protected-data page(s) after dyld relocations
 		address	[byte-ptr!]
 		size	[integer!]
 		prot	[integer!]
@@ -165,6 +165,15 @@ siginfo!: alias struct! [
 
 #include %POSIX.reds
 
+protect-image-rodata: does [
+	if system/image/rodata-size > 0 [
+		mprotect
+			system/image/base + system/image/rodata
+			system/image/rodata-size
+			1							;-- PROT_READ
+	]
+]
+
 #switch type [
 	dll [
 		program-vars!: alias struct! [
@@ -192,12 +201,7 @@ siginfo!: alias struct! [
 
 			***-init-system-image
 
-			if system/image/rodata-size > 0 [		;-- lock protected data read-only after dyld relocations
-				mprotect
-					system/image/base + system/image/rodata
-					system/image/rodata-size
-					1							;-- PROT_READ
-			]
+			protect-image-rodata
 
 			#either red-pass? = no [					;-- only for pure R/S DLLs
 				***-boot-rs
@@ -212,6 +216,7 @@ siginfo!: alias struct! [
 		#if all [ABI = 'apple-aarch64 PIC? = yes][
 			system/image/base: (as byte-ptr! ***-exec-image) - (as integer! system/image/base)
 		]
+		protect-image-rodata
 		posix-startup-ctx/init
 	]
 ]
