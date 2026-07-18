@@ -296,26 +296,56 @@ simple-io: context [
 				]
 			]
 			OS = 'macOS [
-				stat!: alias struct! [
-					st_dev		[integer!]
-					st_ino		[integer!]
-					st_modelink	[integer!]				;-- st_mode & st_link are both 16bit fields
-					st_uid		[integer!]
-					st_gid		[integer!]
-					st_rdev		[integer!]
-					st_atime	[timespec! value]		;-- struct timespec inlined
-					st_mtime	[timespec! value]		;-- struct timespec inlined
-					st_ctime	[timespec! value]		;-- struct timespec inlined
-					st_size		[integer!]
-					st_blocks	[integer!]
-					st_blksize	[integer!]
-					st_flags	[integer!]
-					st_gen		[integer!]
-					st_lspare	[integer!]
-					st_qspare_1 [integer!]				;-- int64
-					st_qspare_2 [integer!]
-					st_qspare_3 [integer!]				;-- int64
-					st_qspare_4 [integer!]
+				#either ABI = 'apple-aarch64 [
+					stat!: alias struct! [					;-- __DARWIN_STRUCT_STAT64
+						st_dev		[integer!]
+						st_mode		[uint16!]
+						st_nlink	[uint16!]
+						st_ino		[integer!]				;-- uint64, low/high halves
+						st_ino_high [integer!]
+						st_uid		[integer!]
+						st_gid		[integer!]
+						st_rdev		[integer!]
+						st_pad		[integer!]
+						st_atime	[timespec! value]
+						st_mtime	[timespec! value]
+						st_ctime	[timespec! value]
+						st_birthtime [timespec! value]
+						st_size		[integer!]				;-- int64, low/high halves
+						st_size_high [integer!]
+						st_blocks	[integer!]				;-- int64, low/high halves
+						st_blocks_high [integer!]
+						st_blksize	[integer!]
+						st_flags	[integer!]
+						st_gen		[integer!]
+						st_lspare	[integer!]
+						st_qspare_1 [integer!]
+						st_qspare_2 [integer!]
+						st_qspare_3 [integer!]
+						st_qspare_4 [integer!]
+					]
+				][
+					stat!: alias struct! [
+						st_dev		[integer!]
+						st_ino		[integer!]
+						st_modelink	[integer!]				;-- st_mode & st_link are both 16bit fields
+						st_uid		[integer!]
+						st_gid		[integer!]
+						st_rdev		[integer!]
+						st_atime	[timespec! value]		;-- struct timespec inlined
+						st_mtime	[timespec! value]		;-- struct timespec inlined
+						st_ctime	[timespec! value]		;-- struct timespec inlined
+						st_size		[integer!]
+						st_blocks	[integer!]
+						st_blksize	[integer!]
+						st_flags	[integer!]
+						st_gen		[integer!]
+						st_lspare	[integer!]
+						st_qspare_1 [integer!]				;-- int64
+						st_qspare_2 [integer!]
+						st_qspare_3 [integer!]				;-- int64
+						st_qspare_4 [integer!]
+					]
 				]
 				;;-- #if __DARWIN_64_BIT_INO_T
 				;stat!: alias struct! [				;-- __DARWIN_STRUCT_STAT64
@@ -360,13 +390,24 @@ simple-io: context [
 				;]
 				;;-- #endif
 
-				dirent!: alias struct! [
-					d_ino		[integer!]
-					d_reclen	[byte!]
-					_d_reclen_	[byte!]
-					d_type		[byte!]
-					d_namlen	[byte!]
-					;d_name		[byte! [256]]
+				#either ABI = 'apple-aarch64 [
+					dirent!: alias struct! [
+						d_ino		[int64!]
+						d_seekoff	[int64!]
+						d_reclen	[uint16!]
+						d_namlen	[uint16!]
+						d_type		[byte!]
+						;d_name		[byte! [1024]]
+					]
+				][
+					dirent!: alias struct! [
+						d_ino		[integer!]
+						d_reclen	[byte!]
+						_d_reclen_	[byte!]
+						d_type		[byte!]
+						d_namlen	[byte!]
+						;d_name		[byte! [256]]
+					]
 				]
 			]
 			OS = 'Syllable [
@@ -383,7 +424,7 @@ simple-io: context [
 					st_size		[integer!]
 					;...incomplete...
 				]
-				#define DIRENT_NAME_OFFSET 8
+				DIRENT_NAME_OFFSET: 8
 				dirent!: alias struct! [
 					d_ino		[integer!]
 					d_reclen	[byte!]
@@ -409,7 +450,7 @@ simple-io: context [
 					st_mtime	[timespec!]
 					st_ctime	[timespec!]
 				]
-				#define DIRENT_NAME_OFFSET 8
+				DIRENT_NAME_OFFSET: 8
 				dirent!: alias struct! [
 					d_ino		[integer!]
 					d_reclen	[byte!]
@@ -445,7 +486,7 @@ simple-io: context [
 					st_ino_l	  [integer!]
 					;...optional padding skipped
 				]
-				#define DIRENT_NAME_OFFSET	19
+				DIRENT_NAME_OFFSET: 19
 				dirent!: alias struct! [
 					d_ino		[integer!]
 					_d_ino_		[integer!]
@@ -574,12 +615,12 @@ simple-io: context [
 				]
 
 				#either any [target = 'X86-64 target = 'ARM64] [
-					#define DIRENT_NAME_OFFSET 19
+					DIRENT_NAME_OFFSET: 19
 				][
 					#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
-						#define DIRENT_NAME_OFFSET 19
+						DIRENT_NAME_OFFSET: 19
 					][
-						#define DIRENT_NAME_OFFSET 11
+						DIRENT_NAME_OFFSET: 11
 					]
 				]
 				dirent!: alias struct! [
@@ -666,8 +707,12 @@ simple-io: context [
 				LIBC-file cdecl [
 					lseek: "lseek" [
 						file		[integer!]
-						offset-lo	[integer!]
-						offset-hi	[integer!]
+						#either ABI = 'apple-aarch64 [
+							offset		[integer!]
+						][
+							offset-lo	[integer!]
+							offset-hi	[integer!]
+						]
 						whence		[integer!]
 						return:		[integer!]
 					]
@@ -697,11 +742,19 @@ simple-io: context [
 					mode		[integer!]
 					return:		[integer!]
 				]
-				_open:	"open" [
-					filename	[c-string!]
-					flags		[integer!]
-					mode		[integer!]
-					return:		[integer!]
+				#either all [OS = 'macOS ABI = 'apple-aarch64] [
+					_open:	"open" [[variadic]
+						filename	[c-string!]
+						flags		[integer!]
+						return:		[integer!]
+					]
+				][
+					_open:	"open" [
+						filename	[c-string!]
+						flags		[integer!]
+						mode		[integer!]
+						return:		[integer!]
+					]
 				]
 				_read:	"read" [
 					file		[integer!]
@@ -726,14 +779,14 @@ simple-io: context [
 				]
 				opendir: "opendir" [
 					filename	[c-string!]
-					return:		[integer!]
+					return:		[int-ptr!]
 				]
 				readdir: "readdir" [
-					file		[integer!]
+					file		[int-ptr!]
 					return:		[dirent!]
 				]
 				closedir: "closedir" [
-					file		[integer!]
+					file		[int-ptr!]
 					return:		[integer!]
 				]
 				_remove: "remove" [
@@ -832,7 +885,11 @@ simple-io: context [
 				]
 				access: S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
 			]
-			file: _open filename modes access
+			#either all [OS = 'macOS ABI = 'apple-aarch64] [
+				file: _open [filename modes access]
+			][
+				file: _open filename modes access
+			]
 		]
 		if file = -1 [return -1]
 		file
@@ -850,7 +907,7 @@ simple-io: context [
 			any [target = 'X86-64 target = 'ARM64] [
 				s: as stat! system/stack/allocate 36	;-- x86-64 struct stat is 144 bytes
 				either zero? _stat file s [
-					either s/st_mode and S_IFREG <> 0 [
+					either (as-integer s/st_mode) and S_IFREG <> 0 [
 						s/st_size
 					][-1]
 				][-1]
@@ -892,7 +949,11 @@ simple-io: context [
 				SetFilePointer file offset null SET_FILE_BEGIN
 			]
 			OS = 'macOS [
-				lseek file offset 0 0					;@@ offset is 64bit
+				#either ABI = 'apple-aarch64 [
+					lseek file offset 0					;-- SEEK_SET
+				][
+					lseek file offset 0 0				;@@ offset is 64bit
+				]
 			]
 			true [
 				lseek file offset 0						;-- SEEK_SET
@@ -1233,6 +1294,7 @@ simple-io: context [
 			p		[byte-ptr!]
 			name	[byte-ptr!]
 			handle	[integer!]
+			dir-handle [int-ptr!]
 			blk		[red-block!]
 			str		[red-string!]
 			len		[integer!]
@@ -1354,11 +1416,11 @@ simple-io: context [
 				blk
 			]
 			true [
-				handle: opendir file/to-OS-path filename
-				if zero? handle [fire [TO_ERROR(access cannot-open) filename]]
+				dir-handle: opendir file/to-OS-path filename
+				if null? dir-handle [fire [TO_ERROR(access cannot-open) filename]]
 				blk: block/push-only* 1
 				while [
-					info: readdir handle
+					info: readdir dir-handle
 					info <> null
 				][
 					name: (as byte-ptr! info) + DIRENT_NAME_OFFSET
@@ -1388,7 +1450,7 @@ simple-io: context [
 					s: GET_BUFFER(filename)
 					s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s)
 				]
-				closedir handle
+				closedir dir-handle
 				blk
 			]
 		]
@@ -1851,50 +1913,60 @@ simple-io: context [
 		]
 	][
 		#either OS = 'macOS [
-		#define libcurl-file "libcurl.dylib"
+		#define libcurl-file "/usr/lib/libcurl.4.dylib"
 		#import [
 			LIBC-file cdecl [
 				objc_getClass: "objc_getClass" [
 					class		[c-string!]
-					return:		[integer!]
+					return:		[int-ptr!]
 				]
 				sel_getUid: "sel_getUid" [
 					name		[c-string!]
-					return:		[integer!]
+					return:		[int-ptr!]
 				]
-				objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
+				objc_msgSend0: "objc_msgSend" [
+					receiver	[int-ptr!]
+					selector	[int-ptr!]
+					return:		[int-ptr!]
+				]
+				objc_msgSend-cstr: "objc_msgSend" [
+					receiver	[int-ptr!]
+					selector	[int-ptr!]
+					arg			[c-string!]
+					return:		[int-ptr!]
+				]
 			]
 			"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
-				kCFBooleanTrue: "kCFBooleanTrue" [integer!]
+				kCFBooleanTrue: "kCFBooleanTrue" [int-ptr!]
 				CFStringCreateWithCString: "CFStringCreateWithCString" [
-					allocator	[integer!]
+					allocator	[int-ptr!]
 					cStr		[c-string!]
 					encoding	[integer!]
-					return:		[integer!]
+					return:		[int-ptr!]
 				]
 				CFURLCreateStringByAddingPercentEscapes: "CFURLCreateStringByAddingPercentEscapes" [
-					allocator	[integer!]
-					cf-str		[integer!]
-					unescaped	[integer!]
-					escaped		[integer!]
+					allocator	[int-ptr!]
+					cf-str		[int-ptr!]
+					unescaped	[int-ptr!]
+					escaped		[int-ptr!]
 					encoding	[integer!]
-					return:		[integer!]
+					return:		[int-ptr!]
 				]
 				CFURLCreateWithFileSystemPath: "CFURLCreateWithFileSystemPath" [
-					allocator	[integer!]
-					filePath	[integer!]
+					allocator	[int-ptr!]
+					filePath	[int-ptr!]
 					pathStyle	[integer!]
 					isDir		[logic!]
-					return:		[integer!]
+					return:		[int-ptr!]
 				]
 				CFURLCreateWithString: "CFURLCreateWithString" [
-					allocator	[integer!]
-					url			[integer!]
-					baseUrl		[integer!]
-					return:		[integer!]
+					allocator	[int-ptr!]
+					url			[int-ptr!]
+					baseUrl		[int-ptr!]
+					return:		[int-ptr!]
 				]
 				CFRelease: "CFRelease" [
-					cf			[integer!]
+					cf			[int-ptr!]
 				]
 			]
 		]
@@ -1903,34 +1975,33 @@ simple-io: context [
 		#define kCFStringEncodingMacRoman	0
 
 		#define CFSTR(cStr)		[__CFStringMakeConstantString cStr]
-		#define CFString(cStr)	[CFStringCreateWithCString 0 cStr kCFStringEncodingUTF8]
+		#define CFString(cStr)	[CFStringCreateWithCString null cStr kCFStringEncodingUTF8]
 
-		to-NSString: func [str [red-string!] return: [integer!] /local len][
+		to-NSString: func [str [red-string!] return: [int-ptr!] /local len][
 			len: -1
-			objc_msgSend [
+			objc_msgSend-cstr
 				objc_getClass "NSString"
 				sel_getUid "stringWithUTF8String:"
 				unicode/to-utf8 str :len
-			]
 		]
 
 		to-NSURL: func [
 			str		[red-string!]
 			file?	[logic!]						;-- local file path or url?
-			return: [integer!]
+			return: [int-ptr!]
 			/local
-				nsstr	[integer!]
-				url		[integer!]
-				path	[integer!]
+				nsstr	[int-ptr!]
+				url		[int-ptr!]
+				path	[int-ptr!]
 		][
 			nsstr: to-NSString str
 			either file? [
-				path: objc_msgSend [nsstr sel_getUid "stringByExpandingTildeInPath"]
+				path: objc_msgSend0 nsstr sel_getUid "stringByExpandingTildeInPath"
 				;@@ release path ? Does it already autoreleased?
-				path: CFURLCreateWithFileSystemPath 0 path 0 false
+				path: CFURLCreateWithFileSystemPath null path 0 false
 			][
-				url: CFURLCreateStringByAddingPercentEscapes 0 nsstr 0 0 kCFStringEncodingUTF8
-				path: CFURLCreateWithString 0 url 0
+				url: CFURLCreateStringByAddingPercentEscapes null nsstr null null kCFStringEncodingUTF8
+				path: CFURLCreateWithString null url null
 				CFRelease url
 			]
 			path

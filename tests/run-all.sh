@@ -2,11 +2,18 @@
 echo "\nstarting Red tests\n"
 echo "Red test log\n" > quick-test.log
 failures=0;
+platform=`uname -s`;
 for exe in *;
  do
   if [ "$exe" != "run-all.sh" ] && [ "$exe" != "quick-test.log" ]
    then
      chmod +x "$exe";
+     if [ "$platform" = "Darwin" ]; then
+       if ! codesign --force --sign - "$exe"; then
+         echo "****** failed to sign $exe *****";
+         exit 1;
+       fi
+     fi
      printf "$exe is running \r";
      report=`./"$exe" 2>&1`;
      status=$?;

@@ -127,6 +127,60 @@ make-profilable make target-class [
 
 	float32-type?: func [type [block!]][type/1 = 'float32!]
 
+	apple-aarch64?: does [compiler/job/ABI = 'apple-aarch64]
+
+	stack-type-size: func [type [block!] /local size][
+		type: compiler/resolve-aliased type
+		case [
+			all [5 <= length? type type/2 = 'arm64-aggregate] [
+				any [all [6 <= length? type type/6] type/4 * either float32-type? type [4][8]]
+			]
+			compiler/any-float? type [either float32-type? type [4][8]]
+			true [any [emitter/size-of? type stack-width]]
+		]
+	]
+
+	stack-type-align: func [type [block!] /local size][
+		either all [7 <= length? type type/2 = 'arm64-aggregate][
+			type/7
+		][
+			size: stack-type-size type
+			min size stack-width
+		]
+	]
+
+	align-stack-offset: func [offset alignment [integer!]][
+		round/to/ceiling offset alignment
+	]
+
+	incoming-stack-offset: func [offset [integer!] apple? [logic!]][
+		16 + either apple? [offset][offset * stack-width]
+	]
+
+	emit-copy-stack-value: func [source target size [integer!] /local load store][
+		set [load store] switch size [
+			1 [reduce [#{38400000} #{38000000}]]
+			2 [reduce [#{78400000} #{78000000}]]
+			4 [reduce [#{B8400000} #{B8000000}]]
+			8 [reduce [#{F8400000} #{F8000000}]]
+		]
+		emit-sp-insn load source 16
+		emit-sp-insn store target 16
+	]
+
+	emit-load-external-stack-integer: func [type [block!] offset reg [integer!] /local opcode][
+		type: compiler/resolve-aliased type
+		opcode: switch/default type/1 [
+			byte! logic! uint8! [#{38400000}]
+			int8!                [#{38C00000}]
+			uint16!              [#{78400000}]
+			int16!               [#{78C00000}]
+			integer! int32! uint32! [#{B8400000}]
+			int64! uint64! pointer! c-string! function! subroutine! [#{F8400000}]
+		][#{F8400000}]
+		emit-frame-insn opcode offset reg
+	]
+
 	emit-load-float-literal: func [value type [block!] /reg rd [integer!] /local spec][
 		rd: any [rd 0]
 		spec: emitter/store-value none value type
@@ -595,28 +649,69 @@ make-profilable make target-class [
 		/local n
 	][
 		n: call-arg-index
-		if n > 6 [compiler/throw-error ["ARM64 syscall with too many args:" n]]
+		if n > 8 [compiler/throw-error ["ARM64 syscall with too many args:" n]]
 		repeat reg n [emit-pop-arg reg - 1]
-		emit-mov-imm32/reg last fspec 8                      ; x8 = syscall number
-		emit-i32 #{D4000001}                                  ; SVC #0
+		switch compiler/job/syscall [
+			Linux [
+				emit-mov-imm32/reg last fspec 8                  ; x8 = syscall number
+				emit-i32 #{D4000001}                              ; SVC #0
+			]
+			BSD [
+				emit-mov-imm32/reg last fspec 16                 ; x16 = syscall number
+				emit-i32 #{D4001001}                              ; SVC #80h
+			]
+		]
 		reset-call-state
 	]
 
 	prepare-call-args: func [
 		n [integer!]
 		/indirect-result
+		/apple-abi
+		/apple-variadic fixed-count [integer!]
 		/local types classes type int-reg fp-reg stack-size out-size source target class first?
 			aggregate-stack-left aggregate-stack-base aggregate-field-size
+			aggregate-size aggregate-align argument-index variadic-tail? value-size value-align
 	][
 		types: reverse copy/deep call-arg-types
 		classes: make block! n
 		int-reg: fp-reg: stack-size: aggregate-stack-left: 0
+		argument-index: 0
 		first?: yes
 		foreach type types [
 			type: compiler/resolve-aliased type
+			variadic-tail?: no
+			unless all [indirect-result first?][
+				either all [5 <= length? type type/2 = 'arm64-aggregate][
+					if type/5 = 1 [argument-index: argument-index + 1]
+				][
+					argument-index: argument-index + 1
+				]
+				variadic-tail?: all [apple-variadic argument-index > fixed-count]
+			]
 			case [
 				all [indirect-result first?] [
 					append/only classes reduce ['result 8 type]
+				]
+				all [
+					variadic-tail?
+					5 <= length? type
+					type/2 = 'arm64-aggregate
+				][
+					if type/5 = 1 [
+						aggregate-field-size: either float32-type? type [4][8]
+						aggregate-size: stack-type-size type
+						aggregate-align: stack-type-align type
+						aggregate-stack-base: align-stack-offset stack-size aggregate-align
+						stack-size: aggregate-stack-base + (round/to/ceiling aggregate-size 8)
+					]
+					target: aggregate-stack-base + ((type/5 - 1) * aggregate-field-size)
+					value-size: either 8 <= length? type [type/8][aggregate-field-size]
+					append/only classes reduce ['stack target type value-size]
+				]
+				variadic-tail? [
+					append/only classes reduce ['stack stack-size type]
+					stack-size: stack-size + 8
 				]
 				all [5 <= length? type type/2 = 'arm64-aggregate] [
 					if type/5 = 1 [
@@ -633,14 +728,16 @@ make-profilable make target-class [
 						]
 						if positive? aggregate-stack-left [
 							aggregate-field-size: either float32-type? type [4][8]
-							aggregate-stack-base: stack-size
-			stack-size: stack-size + (round/to/ceiling
-				(type/4 * aggregate-field-size) 8)
+							aggregate-size: stack-type-size type
+							aggregate-align: either apple-abi [stack-type-align type][8]
+							aggregate-stack-base: align-stack-offset stack-size aggregate-align
+							stack-size: aggregate-stack-base + (round/to/ceiling aggregate-size 8)
 						]
 					]
 					either positive? aggregate-stack-left [
 						target: aggregate-stack-base + ((type/5 - 1) * aggregate-field-size)
-						append/only classes reduce ['stack target type aggregate-field-size]
+						value-size: either 8 <= length? type [type/8][aggregate-field-size]
+						append/only classes reduce ['stack target type value-size]
 						aggregate-stack-left: aggregate-stack-left - 1
 					][
 						either type/3 = 'hfa [
@@ -657,8 +754,11 @@ make-profilable make target-class [
 						append/only classes reduce ['fp fp-reg type]
 						fp-reg: fp-reg + 1
 					][
-						append/only classes reduce ['stack stack-size type]
-						stack-size: stack-size + 8
+						value-size: either apple-abi [stack-type-size type][8]
+						value-align: either apple-abi [stack-type-align type][8]
+						stack-size: align-stack-offset stack-size value-align
+						append/only classes reduce ['stack stack-size type value-size]
+						stack-size: stack-size + value-size
 					]
 				]
 				true [
@@ -666,8 +766,11 @@ make-profilable make target-class [
 						append/only classes reduce ['int int-reg type]
 						int-reg: int-reg + 1
 					][
-						append/only classes reduce ['stack stack-size type]
-						stack-size: stack-size + 8
+						value-size: either apple-abi [stack-type-size type][8]
+						value-align: either apple-abi [stack-type-align type][8]
+						stack-size: align-stack-offset stack-size value-align
+						append/only classes reduce ['stack stack-size type value-size]
+						stack-size: stack-size + value-size
 					]
 				]
 			]
@@ -690,13 +793,7 @@ make-profilable make target-class [
 				]
 				stack [
 					target: class/2
-					either all [4 <= length? class class/4 = 4][
-						emit-sp-insn #{B8400000} source 16
-						emit-sp-insn #{B8000000} target 16
-					][
-						emit-sp-insn #{F8400000} source 16
-						emit-sp-insn #{F8000000} target 16
-					]
+					emit-copy-stack-value source target any [all [4 <= length? class class/4] 8]
 				]
 			]
 		]
@@ -710,7 +807,7 @@ make-profilable make target-class [
 	emit-call-native: func [
 		args [block!] fspec [block!] spec [block!] attribs [block! none!]
 		/routine name [word!]
-		/local n target target-type path-target? call-reg
+		/local n target target-type path-target? call-reg apple-call?
 	][
 		if all [compiler/variadic? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
 		n: call-arg-index
@@ -727,7 +824,10 @@ make-profilable make target-class [
 				path-target?: yes
 			]
 		]
-		call-stack-slots: (prepare-call-args n) + call-extra-slots
+		apple-call?: to logic! all [apple-aarch64? compiler/external-abi-call? fspec]
+		call-stack-slots: (either apple-call? [
+			prepare-call-args/apple-abi n
+		][prepare-call-args n]) + call-extra-slots
 		either routine [
 			call-reg: either path-target? [9][16]
 			unless path-target? [
@@ -752,15 +852,26 @@ make-profilable make target-class [
 
 	emit-call-import: func [
 		args [block!] fspec [block!] spec [block!] attribs [block! none!]
-		/local n indirect-result?
+		/local n indirect-result? apple-call? apple-variadic?
 	][
 		if all [compiler/variadic? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
 		n: call-arg-index
 		indirect-result?: to logic! emitter/struct-ptr? fspec/4
-		call-stack-slots: (either indirect-result? [
-			prepare-call-args/indirect-result n
-		][
-			prepare-call-args n
+		apple-call?: apple-aarch64?
+		apple-variadic?: to logic! all [
+			apple-call?
+			fspec/3 = 'cdecl
+			compiler/variadic? args/1
+		]
+		call-stack-slots: (case [
+			all [indirect-result? apple-variadic?] [
+				prepare-call-args/indirect-result/apple-abi/apple-variadic n fspec/1
+			]
+			all [indirect-result? apple-call?] [prepare-call-args/indirect-result/apple-abi n]
+			indirect-result? [prepare-call-args/indirect-result n]
+			apple-variadic? [prepare-call-args/apple-abi/apple-variadic n fspec/1]
+			apple-call? [prepare-call-args/apple-abi n]
+			true [prepare-call-args n]
 		]) + call-extra-slots
 		append spec/3 emitter/tail-ptr
 		unless empty? emitter/chunks/queue [
@@ -1295,8 +1406,12 @@ make-profilable make target-class [
 		/aggregate type [block!]
 		/returned
 		/local hfa field-type field-size i descriptor register-result?
+			aggregate-type aggregate-size aggregate-align
 	][
-		hfa: homogeneous-aggregate? any [type compiler/last-type]
+		aggregate-type: compiler/resolve-aliased any [type compiler/last-type]
+		hfa: homogeneous-aggregate? aggregate-type
+		aggregate-size: emitter/struct-size? aggregate-type
+		aggregate-align: emitter/type-align? aggregate-type
 		register-result?: all [returned any [hfa/1 slots <= 2]]
 		case [
 			all [register-result? hfa/1] [
@@ -1305,7 +1420,10 @@ make-profilable make target-class [
 					emit-i32 #{D10043FF}                          ; SUB sp, sp, #16
 					emit-i32 (to integer! either hfa/2 [#{BC0003E0}][#{FC0003E0}])
 						or (i - 1)                                  ; STR sN/dN, [sp]
-					descriptor: reduce [field-type/1 'arm64-aggregate 'hfa hfa/3 i]
+					descriptor: reduce [
+						field-type/1 'arm64-aggregate 'hfa hfa/3 i
+						aggregate-size aggregate-align field-size
+					]
 					append/only call-arg-types descriptor
 					call-arg-index: call-arg-index + 1
 				]
@@ -1314,7 +1432,10 @@ make-profilable make target-class [
 				for i slots 1 -1 [
 					emit-i32 #{D10043FF}                          ; SUB sp, sp, #16
 					emit-i32 (to integer! #{F90003E0}) or (i - 1) ; STR xN, [sp]
-					descriptor: reduce ['uint64! 'arm64-aggregate 'integer slots i]
+					descriptor: reduce [
+						'uint64! 'arm64-aggregate 'integer slots i
+						aggregate-size aggregate-align stack-width
+					]
 					append/only call-arg-types descriptor
 					call-arg-index: call-arg-index + 1
 				]
@@ -1327,7 +1448,10 @@ make-profilable make target-class [
 					emit-load-memory field-type 3 (i - 1) * field-size
 					emit-i32 #{D10043FF}                      ; SUB sp, sp, #16
 					emit-i32 either hfa/2 [#{BC0003E0}][#{FC0003E0}]
-					descriptor: reduce [field-type/1 'arm64-aggregate 'hfa hfa/3 i]
+					descriptor: reduce [
+						field-type/1 'arm64-aggregate 'hfa hfa/3 i
+						aggregate-size aggregate-align field-size
+					]
 					append/only call-arg-types descriptor
 					call-arg-index: call-arg-index + 1
 				]
@@ -1338,7 +1462,10 @@ make-profilable make target-class [
 					emit-load-memory [uint64!] 3 (i - 1) * stack-width
 					emit-i32 #{D10043FF}                      ; SUB sp, sp, #16
 					emit-i32 #{F90003E0}                      ; STR x0, [sp]
-					descriptor: reduce ['uint64! 'arm64-aggregate 'integer slots i]
+					descriptor: reduce [
+						'uint64! 'arm64-aggregate 'integer slots i
+						aggregate-size aggregate-align stack-width
+					]
 					append/only call-arg-types descriptor
 					call-arg-index: call-arg-index + 1
 				]
@@ -2194,7 +2321,10 @@ make-profilable make target-class [
 
 	emit-prolog: func [
 		name [word!] locals [block!] bitmap [integer!]
-		/local argc arg-slots slots base i hfa field-type field-size locals-size frame-size offset int-reg fp-reg stack-arg arg-name arg-type resolved pos ret-ptr? fspec external? pointer-reg slot-offset
+		/local argc arg-slots slots base i hfa field-type field-size locals-size frame-size offset
+			int-reg fp-reg stack-arg arg-name arg-type resolved pos ret-ptr? fspec external?
+			apple-external? pointer-reg slot-offset arg-size arg-align aggregate-size
+			aggregate-align
 	][
 		clear by-value-args
 		argc: argument-count? locals
@@ -2202,6 +2332,7 @@ make-profilable make target-class [
 		ret-ptr?: to logic! emitter/struct-ptr? locals
 		fspec: select compiler/functions name
 		external?: to logic! all [fspec compiler/external-abi-call? fspec]
+		apple-external?: to logic! all [external? apple-aarch64?]
 		locals-offset: 4 * stack-width + (arg-slots * stack-width)
 		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
 		frame-size: round/to/ceiling locals-offset + locals-size 16
@@ -2243,9 +2374,11 @@ make-profilable make target-class [
 									pointer-reg: int-reg
 									int-reg: int-reg + 1
 								][
-									emit-frame-insn #{F8400000} 16 + (stack-arg * 8) 16
+									if apple-external? [stack-arg: align-stack-offset stack-arg 8]
+									emit-frame-insn #{F8400000}
+										incoming-stack-offset stack-arg apple-external? 16
 									pointer-reg: 16
-									stack-arg: stack-arg + 1
+									stack-arg: stack-arg + either apple-external? [8][1]
 								]
 								repeat i slots [
 									slot-offset: (i - 1) * stack-width
@@ -2275,23 +2408,41 @@ make-profilable make target-class [
 							]
 							]
 							true [
+								if apple-external? [
+									aggregate-size: emitter/struct-size? resolved
+									aggregate-align: emitter/type-align? resolved
+									stack-arg: align-stack-offset stack-arg aggregate-align
+								]
 								either hfa/1 [
 									fp-reg: 8
 									field-size: either hfa/2 [4][8]
 									repeat i hfa/3 [
 										emit-frame-fp-insn either hfa/2 [#{BC400000}][#{FC400000}]
-											16 + (stack-arg * 8) + ((i - 1) * field-size) 16
+											(incoming-stack-offset stack-arg apple-external?)
+												+ ((i - 1) * field-size) 16
 										emit-frame-fp-insn either hfa/2 [#{BC000000}][#{FC000000}]
 											base + ((i - 1) * field-size) 16
 									]
-									stack-arg: stack-arg + slots
+					stack-arg: stack-arg + either apple-external? [
+						round/to/ceiling aggregate-size 8
+					][slots]
 								][
 									int-reg: 8
 									repeat i slots [
-										emit-frame-insn #{F8400000} 16 + (stack-arg * 8) 16
+										either apple-external? [
+											emit-frame-insn #{F8400000}
+												(incoming-stack-offset stack-arg true)
+													+ ((i - 1) * stack-width) 16
+										][
+											emit-frame-insn #{F8400000}
+												incoming-stack-offset stack-arg false 16
+										]
 										emit-frame-insn #{F8000000} base + ((i - 1) * 8) 16
-										stack-arg: stack-arg + 1
+										unless apple-external? [stack-arg: stack-arg + 1]
 									]
+					if apple-external? [
+						stack-arg: stack-arg + (round/to/ceiling aggregate-size 8)
+					]
 								]
 							]
 						]
@@ -2304,20 +2455,36 @@ make-profilable make target-class [
 									offset fp-reg
 								fp-reg: fp-reg + 1
 							][
+								if apple-external? [
+									arg-size: stack-type-size resolved
+									arg-align: stack-type-align resolved
+									stack-arg: align-stack-offset stack-arg arg-align
+								]
 								emit-frame-fp-insn either float32-type? resolved [#{BC400000}][#{FC400000}]
-									16 + (stack-arg * 8) 16
+									incoming-stack-offset stack-arg apple-external? 16
 								emit-frame-fp-insn either float32-type? resolved [#{BC000000}][#{FC000000}]
 									offset 16
-								stack-arg: stack-arg + 1
+								stack-arg: stack-arg + either apple-external? [arg-size][1]
 							]
 						][
 							either int-reg < 8 [
 								emit-frame-insn #{F8000000} offset int-reg
 								int-reg: int-reg + 1
 							][
-								emit-frame-insn #{F8400000} 16 + (stack-arg * 8) 16
+								if apple-external? [
+									arg-size: stack-type-size resolved
+									arg-align: stack-type-align resolved
+									stack-arg: align-stack-offset stack-arg arg-align
+								]
+								either apple-external? [
+									emit-load-external-stack-integer resolved
+										incoming-stack-offset stack-arg true 16
+								][
+									emit-frame-insn #{F8400000}
+										incoming-stack-offset stack-arg false 16
+								]
 								emit-frame-insn #{F8000000} offset 16
-								stack-arg: stack-arg + 1
+								stack-arg: stack-arg + either apple-external? [arg-size][1]
 							]
 						]
 						patch-stack-offset arg-name offset
@@ -2385,7 +2552,12 @@ make-profilable make target-class [
 	]
 	emit-release-stack: func [slots [integer!] /bytes][]
 
-	on-init: :noop
+	on-init: does [
+		if system-dialect/job/OS = 'macOS [
+			emit-i32 #{AA0003F3}                                  ; MOV x19, x0 (argc)
+			emit-i32 #{AA0103F4}                                  ; MOV x20, x1 (argv)
+		]
+	]
 	on-global-prolog: func [runtime? [logic!] type [word!]][]
 	on-global-epilog: func [runtime? [logic!] type [word!]][
 		unless runtime? [

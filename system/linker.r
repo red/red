@@ -393,7 +393,7 @@ linker: context [
 		join any [job/build-prefix %""] base
 	]
 	
-	build: func [job [object!] /local file fun][
+	build: func [job [object!] /local file fun format-file][
 		unless job/target [job/target: cpu-class]
 		job/buffer: make binary! 512 * 1024
 
@@ -405,10 +405,14 @@ linker: context [
 
 		clean-imports job/sections/import
 	
+		format-file: either all [
+			job/format = 'Mach-O
+			job/target = 'ARM64
+		][%Mach-O-ARM64.r][rejoin [job/format %.r]]
 		file-emitter: either encap? [
-			do-cache rejoin [%system/formats/ job/format %.r]
+			do-cache join %system/formats/ format-file
 		][
-			do rejoin [%formats/ job/format %.r]
+			do join %formats/ format-file
 		]
 		file-emitter/build job
 

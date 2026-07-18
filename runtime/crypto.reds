@@ -684,11 +684,22 @@ crypto: context [
 		]
 	]
 	true [											;-- macOS,Android,Syllable,FreeBSD,Linux-ARM
-		;-- Using OpenSSL Crypto library
+		;-- macOS exposes the one-shot digest API through CommonCrypto in libSystem.
+		;-- Other platforms use the source-compatible OpenSSL entry points.
+		#either OS = 'macOS [
+			#define LIBCRYPTO-file "libc.dylib"
+			#define MD5-NAME    "CC_MD5"
+			#define SHA1-NAME   "CC_SHA1"
+			#define SHA256-NAME "CC_SHA256"
+			#define SHA384-NAME "CC_SHA384"
+			#define SHA512-NAME "CC_SHA512"
+		][
+			#define MD5-NAME    "MD5"
+			#define SHA1-NAME   "SHA1"
+			#define SHA256-NAME "SHA256"
+			#define SHA384-NAME "SHA384"
+			#define SHA512-NAME "SHA512"
 		#switch OS [
-			macOS [
-				#define LIBCRYPTO-file "libcrypto.dylib"
-			]
 			FreeBSD [
 				#define LIBCRYPTO-file "libcrypto.so.30"
 			]
@@ -703,7 +714,7 @@ crypto: context [
 					#default  [#define LIBCRYPTO-file "libcrypto.so.1.0.2"]
 				]
 			]
-		]
+		]]
 		#either config-name = 'Pico [
 			;-- stub functions
 			compute-md5: func [
@@ -739,31 +750,31 @@ crypto: context [
 		][
 		#import [
 			LIBCRYPTO-file cdecl [
-				compute-md5: "MD5" [
+				compute-md5: MD5-NAME [
 					data	[byte-ptr!]
 					len		[integer!]
 					output	[byte-ptr!]
 					return: [byte-ptr!]
 				]
-				compute-sha1: "SHA1" [
+				compute-sha1: SHA1-NAME [
 					data	[byte-ptr!]
 					len		[integer!]
 					output	[byte-ptr!]
 					return: [byte-ptr!]
 				]
-				compute-sha256: "SHA256" [
+				compute-sha256: SHA256-NAME [
 					data	[byte-ptr!]
 					len		[integer!]
 					output	[byte-ptr!]
 					return: [byte-ptr!]
 				]
-				compute-sha384: "SHA384" [
+				compute-sha384: SHA384-NAME [
 					data	[byte-ptr!]
 					len		[integer!]
 					output	[byte-ptr!]
 					return: [byte-ptr!]
 				]
-				compute-sha512: "SHA512" [
+				compute-sha512: SHA512-NAME [
 					data	[byte-ptr!]
 					len		[integer!]
 					output	[byte-ptr!]

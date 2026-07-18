@@ -1,0 +1,87 @@
+name: macOS ARM64
+
+on: [push, pull_request]
+
+jobs:
+  Build-macOS-ARM64-Tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Build macOS ARM64 tests
+      uses: ./CI/Linux-32
+      with:
+        command: rebol -qws system/tests/build-arm-tests.r -t Darwin-ARM64 && rebol -qws tests/build-arm-tests.r -t Darwin-ARM64
+
+    - name: Validate macOS ARM64 test package
+      shell: bash
+      run: |
+        system_package=quick-test/runnable/arm-tests/system
+        red_package=quick-test/runnable/arm-tests/red
+
+        test -f "$system_package/run-all.sh"
+        test -f "$system_package/structlib.c"
+        test -f "$system_package/darwin-arm64-abi-helper.c"
+        test -f "$system_package/libtest-dll1.dylib"
+        test -f "$system_package/libtest-dll2.dylib"
+
+        system_count=$(find "$system_package" -maxdepth 1 -type f \
+          ! -name 'run-all.sh' ! -name '*.c' ! -name '*.dylib' | wc -l)
+        test "$system_count" -eq 49
+
+        for binary in "$system_package"/*.dylib; do
+          file "$binary" | grep -q 'Mach-O 64-bit arm64'
+        done
+        for binary in "$system_package"/*; do
+          case "$binary" in
+            *.c|*.dylib|*/run-all.sh) continue ;;
+          esac
+          file "$binary" | grep -q 'Mach-O 64-bit arm64 executable'
+        done
+
+        test -f "$red_package/run-all.sh"
+        for binary in run-all-comp1 run-all-comp2 run-all-interp; do
+          test -f "$red_package/$binary"
+          file "$red_package/$binary" | grep -q 'Mach-O 64-bit arm64 executable'
+        done
+
+    - name: Upload macOS ARM64 test package
+      uses: actions/upload-artifact@v7
+      with:
+        name: macos-arm64-tests
+        path: quick-test/runnable/arm-tests/
+        retention-days: 3
+
+  Run-macOS-ARM64-Tests:
+    runs-on: macos-15
+    timeout-minutes: 30
+    needs: Build-macOS-ARM64-Tests
+    steps:
+    - name: Download macOS ARM64 test package
+      uses: actions/download-artifact@v8
+      with:
+        name: macos-arm64-tests
+        path: arm-tests
+
+    - name: Verify native Apple Silicon runner
+      shell: bash
+      run: test "$(uname -m)" = arm64
+
+    - name: Run macOS ARM64 Red/System tests
+      working-directory: arm-tests/system
+      run: sh ./run-all.sh
+
+    - name: Run macOS ARM64 Red tests
+      working-directory: arm-tests/red
+      run: sh ./run-all.sh
+
+    - name: Upload failure logs
+      if: failure()
+      uses: actions/upload-artifact@v7
+      with:
+        name: macos-arm64-test-logs
+        path: |
+          arm-tests/system/quick-test.log
+          arm-tests/red/quick-test.log

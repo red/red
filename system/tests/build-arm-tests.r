@@ -40,6 +40,7 @@ if system/script/args  [
 	    target = "RPi"
 		target = "Linux-ARM"
 		target = "Linux-ARM64"
+		target = "Darwin-ARM64"
 	][
 	    target: none
 	]
@@ -58,19 +59,23 @@ unless target [
         2) Android
         3) Linux armhf (ARMv7+)
 		4) Linux arm64 (AArch64)
+		5) Darwin arm64 (Apple Silicon)
         => }
-	target: pick ["Linux-ARM" "Android" "RPi" "Linux-ARM64"] to-integer target
+	target: pick ["Linux-ARM" "Android" "RPi" "Linux-ARM64" "Darwin-ARM64"] to-integer target
 ]
+
+arm64?: not none? find ["Linux-ARM64" "Darwin-ARM64"] target
 
 ;; helper function
 output: copy ""
-compile-test: func [test-file [file!]] [
+compile-test: func [test-file [file!] /no-runtime] [
 	exe: copy find/last/tail test-file "/"
 	exe: to file! replace exe ".reds" ""
 	exe: arm-dir/:exe
 	cmd: join "" [  to-local-file system/options/boot " -sc "
                     to-local-file clean-path %../../red.r
-                    " -r -t " target " -o " exe " "
+					" -r -t " target " -o " exe " "
+					either no-runtime ["--no-runtime "][""]
     				to-local-file test-file	
     			]
 	if exists? exe [delete exe]
@@ -106,7 +111,7 @@ compile-test arm-dir/dylib-auto-test.reds
 if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
 
 ;; get the correct structlib
-either target = "Linux-ARM64" [
+either arm64? [
 	;; The checked-in libraries are 32-bit. Build this source on the ARM64 host.
 	write/binary arm-dir/structlib.c read/binary %source/units/libs/structlib.c
 ][
@@ -126,7 +131,7 @@ parse/all all-tests [any [a-test-file (append test-files to file! file) | skip] 
 ;; run-all.r contains both 32-bit and 64-bit variants behind runtime conditions.
 filtered-tests: copy []
 foreach test-file test-files [
-	either target = "Linux-ARM64" [
+	either arm64? [
 		unless any [
 			find test-file "/struct-test.reds"
 			find test-file "/size-test.reds"
@@ -148,21 +153,36 @@ foreach test-file test-files [
 
 ;; ARM64 backend smokes return a process status instead of a quick-test report.
 ;; Package them beside the regular suites; run-all.sh handles their contract.
-if target = "Linux-ARM64" [
+if arm64? [
+	smoke-prefix: either target = "Darwin-ARM64" ["darwin-arm64-"]["arm64-"]
 	smoke-files: copy []
 	foreach file read %source/units/ [
 		name: form file
 		if all [
-			find/match name "arm64-"
+			find/match name smoke-prefix
 			find name ".reds"
 		][append smoke-files join %source/units/ file]
 	]
-	foreach smoke-file sort smoke-files [compile-test clean-path smoke-file]
-	generated-smoke: arm-dir/arm64-long-branch-smoke.reds
-	do %source/units/generate-arm64-long-branch-smoke.r
-	generate-arm64-long-branch-smoke generated-smoke
-	compile-test generated-smoke
-	if exists? generated-smoke [delete generated-smoke]
+	foreach smoke-file sort smoke-files [
+		either all [
+			target = "Darwin-ARM64"
+			none? find smoke-file "runtime-smoke.reds"
+		][
+			compile-test/no-runtime clean-path smoke-file
+		][
+			compile-test clean-path smoke-file
+		]
+	]
+	either target = "Darwin-ARM64" [
+		write/binary arm-dir/darwin-arm64-abi-helper.c
+			read/binary %source/units/darwin-arm64-abi-helper.c
+	][
+		generated-smoke: arm-dir/arm64-long-branch-smoke.reds
+		do %source/units/generate-arm64-long-branch-smoke.r
+		generate-arm64-long-branch-smoke generated-smoke
+		compile-test generated-smoke
+		if exists? generated-smoke [delete generated-smoke]
+	]
 ]
 
 ;; generate the dylib tests

@@ -688,7 +688,11 @@ Red/System [
 			#define	O_NONBLOCK	4
 			#define	O_CLOEXEC	01000000h
 			
-			#define DIRENT_NAME_OFFSET 8
+			#either all [OS = 'macOS ABI = 'apple-aarch64] [
+				#define DIRENT_NAME_OFFSET 21
+			][
+				#define DIRENT_NAME_OFFSET 8
+			]
 		]
 		true [	;-- Linux
 			#define O_CREAT		64
@@ -697,7 +701,7 @@ Red/System [
 			#define O_APPEND	1024
 			#define	O_NONBLOCK	2048
 			#define	O_CLOEXEC	524288
-			#either any [target = 'ARM target = 'ARM64] [
+			#either target = 'ARM [
 				#define O_DIRECTORY 4000h
 			][
 				#define O_DIRECTORY 00010000h

@@ -70,6 +70,10 @@ posix-startup-ctx: context [
 				system/debug/frame: UCTX_GET_STACK_FRAME(ctx)
 				system/debug/top: UCTX_GET_STACK_TOP(ctx)
 			]
+			ARM64 [
+				system/debug/frame: UCTX_GET_STACK_FRAME(ctx)
+				system/debug/top: UCTX_GET_STACK_TOP(ctx)
+			]
 			#default [
 				system/debug/frame: as int-ptr! UCTX_GET_STACK_FRAME(ctx)
 				system/debug/top: as int-ptr! UCTX_GET_STACK_TOP(ctx)
@@ -131,7 +135,19 @@ posix-startup-ctx: context [
 	][
 		__sigaction-options: declare sigaction!
 
-		__sigaction-options/sigaction: 	as byte-ptr! :***-on-signal
+		__sigaction-options/sigaction: 	#either OS = 'macOS [
+			#either ABI = 'apple-aarch64 [
+				as byte-ptr! :***-on-signal
+			][
+				as integer! :***-on-signal
+			]
+		][
+			#either any [OS = 'FreeBSD OS = 'NetBSD] [
+				as integer! :***-on-signal
+			][
+				as byte-ptr! :***-on-signal
+			]
+		]
 		__sigaction-options/flags: 		SA_SIGINFO ;or SA_RESTART
 
 		sigaction SIGILL  __sigaction-options as sigaction! 0

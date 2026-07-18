@@ -13,6 +13,12 @@ Red/System [
 #define IMG_NODE_HAS_BUFFER		1
 #define IMG_NODE_MODIFIED		2
 
+#either ABI = 'apple-aarch64 [
+	#define CGFloat! float!
+][
+	#define CGFloat! float32!
+]
+
 OS-image: context [
 
 	img-node!: alias struct! [
@@ -24,44 +30,44 @@ OS-image: context [
 	]
 
 	NSRect!: alias struct! [
-		x		[float32!]
-		y		[float32!]
-		w		[float32!]
-		h		[float32!]
+		x		[CGFloat!]
+		y		[CGFloat!]
+		w		[CGFloat!]
+		h		[CGFloat!]
 	]
 
 	#import [
 		"/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices" cdecl [
 			CGImageDestinationCreateWithURL: "CGImageDestinationCreateWithURL" [
-				url			[integer!]
-				type		[integer!]
+				url			[int-ptr!]
+				type		[int-ptr!]
 				count		[integer!]
-				options		[integer!]
-				return:		[integer!]
+				options		[int-ptr!]
+				return:		[int-ptr!]
 			]
 			CGImageDestinationAddImage: "CGImageDestinationAddImage" [
-				dst			[integer!]
-				image		[integer!]
-				properties	[integer!]
+				dst			[int-ptr!]
+				image		[int-ptr!]
+				properties	[int-ptr!]
 			]
 			CGImageDestinationFinalize: "CGImageDestinationFinalize" [
-				dst			[integer!]
+				dst			[int-ptr!]
 				return:		[logic!]
 			]
 			CGImageSourceCreateWithURL: "CGImageSourceCreateWithURL" [
-				url			[integer!]
-				options		[integer!]
-				return:		[integer!]
+				url			[int-ptr!]
+				options		[int-ptr!]
+				return:		[int-ptr!]
 			]
 			CGColorSpaceCreateDeviceRGB: "CGColorSpaceCreateDeviceRGB" [
-				return:		[integer!]
+				return:		[int-ptr!]
 			]
 			CGColorSpaceRelease: "CGColorSpaceRelease" [
-				color-space [integer!]
+				color-space [int-ptr!]
 			]
 			CGBitmapContextCreateImage: "CGBitmapContextCreateImage" [
-				ctx			[integer!]
-				return:		[integer!]
+				ctx			[int-ptr!]
+				return:		[int-ptr!]
 			]
 			CGBitmapContextCreate: "CGBitmapContextCreate" [
 				buffer		[byte-ptr!]
@@ -69,48 +75,48 @@ OS-image: context [
 				height		[integer!]
 				bits		[integer!]
 				bytes-row	[integer!]
-				color-space [integer!]
+				color-space [int-ptr!]
 				bmp-info	[integer!]
-				return:		[integer!]
+				return:		[int-ptr!]
 			]
 			CGBitmapContextGetWidth: "CGBitmapContextGetWidth" [
-				ctx			[integer!]
+				ctx			[int-ptr!]
 				return:		[integer!]
 			]
 			CGBitmapContextGetHeight: "CGBitmapContextGetHeight" [
-				ctx			[integer!]
+				ctx			[int-ptr!]
 				return:		[integer!]
 			]
 			CGBitmapContextGetData: "CGBitmapContextGetData" [
-				ctx			[integer!]
+				ctx			[int-ptr!]
 				return:		[byte-ptr!]
 			]
 			CGContextRelease: "CGContextRelease" [
-				ctx			[integer!]
+				ctx			[int-ptr!]
 			]
 			CGContextDrawImage: "CGContextDrawImage" [
-				ctx			[integer!]
-				x			[float32!]
-				y			[float32!]
-				w			[float32!]
-				h			[float32!]
-				src			[integer!]
+				ctx			[int-ptr!]
+				x			[CGFloat!]
+				y			[CGFloat!]
+				w			[CGFloat!]
+				h			[CGFloat!]
+				src			[int-ptr!]
 			]
 			CGContextScaleCTM: "CGContextScaleCTM" [
-				c			[integer!]
-				sx			[float32!]
-				sy			[float32!]
+				c			[int-ptr!]
+				sx			[CGFloat!]
+				sy			[CGFloat!]
 			]
 			CGImageSourceCreateWithData: "CGImageSourceCreateWithData" [
 				data		[int-ptr!]
-				options		[integer!]
-				return:		[integer!]
+				options		[int-ptr!]
+				return:		[int-ptr!]
 			]
 			CGImageSourceCreateImageAtIndex: "CGImageSourceCreateImageAtIndex" [
-				src			[integer!]
+				src			[int-ptr!]
 				index		[integer!]
-				options		[integer!]
-				return:		[integer!]
+				options		[int-ptr!]
+				return:		[int-ptr!]
 			]
 			CGImageGetWidth: "CGImageGetWidth" [
 				image		[int-ptr!]
@@ -121,11 +127,11 @@ OS-image: context [
 				return:		[integer!]
 			]
 			CGImageGetAlphaInfo: "CGImageGetAlphaInfo" [
-				image		[integer!]
+				image		[int-ptr!]
 				return:		[integer!]
 			]
 			CGImageRelease: "CGImageRelease" [
-				image		[integer!]
+				image		[int-ptr!]
 			]
 			CGImageCreate: "CGImageCreate" [
 				width		[integer!]
@@ -133,13 +139,13 @@ OS-image: context [
 				bits-part	[integer!]
 				bits-pixel	[integer!]
 				bytes-row	[integer!]
-				color-space [integer!]
+				color-space [int-ptr!]
 				bmp-info	[integer!]
-				provider	[integer!]
+				provider	[int-ptr!]
 				decode		[float32-ptr!]
 				interpolate [logic!]
 				intent		[integer!]
-				return:		[integer!]
+				return:		[int-ptr!]
 			]
 			CGImageCreateCopy: "CGImageCreateCopy" [
 				image		[int-ptr!]
@@ -147,48 +153,48 @@ OS-image: context [
 			]
 			CGImageCreateWithImageInRect: "CGImageCreateWithImageInRect" [
 				image		[int-ptr!]
-				x			[float32!]
-				y			[float32!]
-				w			[float32!]
-				h			[float32!]
+				x			[CGFloat!]
+				y			[CGFloat!]
+				w			[CGFloat!]
+				h			[CGFloat!]
 				return:		[int-ptr!]
 			]
 			CGDataProviderCreateWithData: "CGDataProviderCreateWithData" [
 				info		[int-ptr!]
 				data		[int-ptr!]
 				size		[integer!]
-				releaseData [integer!]
-				return:		[integer!]
+				releaseData [int-ptr!]
+				return:		[int-ptr!]
 			]
 			CGDataProviderRelease: "CGDataProviderRelease" [
-				provider	[integer!]
+				provider	[int-ptr!]
 			]
 		]
 		"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
 			CFDataCreate: "CFDataCreate" [
-				allocator	[integer!]
+				allocator	[int-ptr!]
 				data		[byte-ptr!]
 				length		[integer!]
-				return:		[integer!]
+				return:		[int-ptr!]
 			]
 			CFDataCreateWithBytesNoCopy: "CFDataCreateWithBytesNoCopy" [
-				allocator	[integer!]
+				allocator	[int-ptr!]
 				bytes		[byte-ptr!]
 				length		[integer!]
-				deallocator [integer!]
-				return:		[integer!]
+				deallocator [int-ptr!]
+				return:		[int-ptr!]
 			]
 			CFRelease: "CFRelease" [
-				cf			[integer!]
+				cf			[int-ptr!]
 			]
-			kCFAllocatorNull: "kCFAllocatorNull" [integer!]
+			kCFAllocatorNull: "kCFAllocatorNull" [int-ptr!]
 		]
 		"/System/Library/Frameworks/CoreServices.framework/CoreServices" cdecl [
-			kUTTypeJPEG: "kUTTypeJPEG" [integer!]
-			kUTTypeTIFF: "kUTTypeTIFF" [integer!]
-			kUTTypeGIF: "kUTTypeGIF" [integer!]
-			kUTTypePNG: "kUTTypePNG" [integer!]
-			kUTTypeBMP: "kUTTypeBMP" [integer!]
+			kUTTypeJPEG: "kUTTypeJPEG" [int-ptr!]
+			kUTTypeTIFF: "kUTTypeTIFF" [int-ptr!]
+			kUTTypeGIF: "kUTTypeGIF" [int-ptr!]
+			kUTTypePNG: "kUTTypePNG" [int-ptr!]
+			kUTTypeBMP: "kUTTypeBMP" [int-ptr!]
 		]
 	]
 
@@ -202,10 +208,10 @@ OS-image: context [
 			r	[NSRect!]
 	][
 		r: declare NSRect!
-		r/x: as float32! x
-		r/y: as float32! y
-		r/w: as float32! w
-		r/h: as float32! h
+		r/x: as CGFloat! x
+		r/y: as CGFloat! y
+		r/w: as CGFloat! w
+		r/h: as CGFloat! h
 		r
 	]
 
@@ -307,7 +313,7 @@ OS-image: context [
 	delete: func [node [node!] /local inode [img-node!]][
 		inode: as img-node! (as series! node/value) + 1
 		if inode/handle <> null [
-			CGImageRelease as-integer inode/handle
+			CGImageRelease inode/handle
 			inode/handle: null
 		]
 		if inode/buffer <> null [
@@ -324,11 +330,11 @@ OS-image: context [
 		/local
 			old-w		[integer!]
 			old-h		[integer!]
-			handle		[integer!]
+			handle		[int-ptr!]
 			rect		[NSRect!]
-			color-space [integer!]
-			ctx			[integer!]
-			nhandle		[integer!]
+			color-space [int-ptr!]
+			ctx			[int-ptr!]
+			nhandle		[int-ptr!]
 	][
 		old-w: IMAGE_WIDTH(img/size)
 		old-h: IMAGE_HEIGHT(img/size)
@@ -338,13 +344,13 @@ OS-image: context [
 		rect: make-rect 0 0 width height
 		color-space: CGColorSpaceCreateDeviceRGB
 		ctx: CGBitmapContextCreate null width height 32 width * 16 color-space 2101h
-		CGContextScaleCTM ctx as float32! 1.0 as float32! 1.0
+		CGContextScaleCTM ctx as CGFloat! 1.0 as CGFloat! 1.0
 		CGContextDrawImage ctx rect/x rect/y rect/w rect/h handle
 		nhandle: CGBitmapContextCreateImage ctx
 		CGColorSpaceRelease color-space
 		CGContextRelease ctx
 
-		make-node as int-ptr! nhandle null 0 width height
+		make-node nhandle null 0 width height
 	]
 
 	copy-rect: func [
@@ -394,7 +400,7 @@ OS-image: context [
 	]
 
 	alpha-channel?: func [
-		image	[integer!]
+		image	[int-ptr!]
 		return:	[logic!]
 		/local
 			info [integer!]
@@ -452,14 +458,14 @@ OS-image: context [
 		edit?		[logic!]
 		return: 	[int-ptr!]
 		/local
-			color-space [integer!]
+			color-space [int-ptr!]
 			width		[integer!]
 			height		[integer!]
-			ctx			[integer!]
+			ctx			[int-ptr!]
 			rect		[NSRect!]
 			bytes-row	[integer!]
-			image-data	[integer!]
-			image		[integer!]
+			image-data	[int-ptr!]
+			image		[int-ptr!]
 			n			[integer!]
 			info		[integer!]
 			alpha?		[logic!]
@@ -467,18 +473,18 @@ OS-image: context [
 			p			[byte-ptr!]
 	][
 		either cgimage? [
-			image: as-integer data
+			image: data
 		][
-			image-data: CGImageSourceCreateWithData data 0
-			image: CGImageSourceCreateImageAtIndex image-data 0 0
+			image-data: CGImageSourceCreateWithData data null
+			image: CGImageSourceCreateImageAtIndex image-data 0 null
 		]
 
-		unless edit? [return as int-ptr! image]
+		unless edit? [return image]
 
 		alpha?: alpha-channel? image
 		color-space: CGColorSpaceCreateDeviceRGB
-		width: CGImageGetWidth as int-ptr! image
-		height: CGImageGetHeight as int-ptr! image
+		width: CGImageGetWidth image
+		height: CGImageGetHeight image
 
 		bytes-row: width * 4
 		either alpha? [
@@ -516,7 +522,7 @@ OS-image: context [
 		/local
 			h	[int-ptr!]
 	][
-		h: data-to-image as int-ptr! CFDataCreateWithBytesNoCopy 0 data len kCFAllocatorNull no no
+		h: data-to-image CFDataCreateWithBytesNoCopy null data len kCFAllocatorNull no no
 		make-node h null 0 CGImageGetWidth h CGImageGetHeight h
 	]
 
@@ -541,15 +547,15 @@ OS-image: context [
 		src			[red-string!]
 		return:		[node!]
 		/local
-			img-data [integer!]
-			path	 [integer!]
+			img-data [int-ptr!]
+			path	 [int-ptr!]
 			h		 [int-ptr!]
 	][
 		path: simple-io/to-NSURL src yes
-		img-data: CGImageSourceCreateWithURL path 0
+		img-data: CGImageSourceCreateWithURL path null
 		CFRelease path
-		if zero? img-data [return null]
-		h: as int-ptr! CGImageSourceCreateImageAtIndex img-data 0 0
+		if null? img-data [return null]
+		h: CGImageSourceCreateImageAtIndex img-data 0 null
 		CFRelease img-data
 		either null? h [null][
 			make-node h null 0 CGImageGetWidth h CGImageGetHeight h
@@ -634,25 +640,25 @@ OS-image: context [
 		/local
 			w	 [integer!]
 			h	 [integer!]
-			data [integer!]
-			clr  [integer!]
-			img  [integer!]
+			data [int-ptr!]
+			clr  [int-ptr!]
+			img  [int-ptr!]
 			node [img-node!]
 	][
 		node: as img-node! (resolve-series image/node) + 1
 		w: IMAGE_WIDTH(image/size)
 		h: IMAGE_HEIGHT(image/size)
-		data: CGDataProviderCreateWithData null node/buffer w * h * 4 0
+		data: CGDataProviderCreateWithData null node/buffer w * h * 4 null
 		clr: CGColorSpaceCreateDeviceRGB
 		img: CGImageCreate w h 8 32 w * 4 clr 2004h data null true 0 ;-- kCGRenderingIntentDefault
 		CGDataProviderRelease data
 		CGColorSpaceRelease clr
-		as int-ptr! img
+		img
 	]
 
 	to-cgimage: func [
 		img		[red-image!]
-		return: [integer!]
+		return: [int-ptr!]
 		/local
 			inode	[img-node!]
 			cgimage [int-ptr!]
@@ -660,45 +666,45 @@ OS-image: context [
 		inode: as img-node! (resolve-series img/node) + 1
 		if inode/flags and IMG_NODE_MODIFIED <> 0 [
 			cgimage: make-cgimage img
-			if inode/handle <> null [CGImageRelease as-integer inode/handle]
+			if inode/handle <> null [CGImageRelease inode/handle]
 			inode/handle: cgimage
 			inode/flags: IMG_NODE_HAS_BUFFER
 		]
-		as-integer inode/handle
+		inode/handle
 	]
 
 	to-bitmap-ctx: func [
-		img		[integer!]
+		img		[int-ptr!]
 		return: [int-ptr!]
 		/local
-			color-space [integer!]
+			color-space [int-ptr!]
 			width		[integer!]
 			height		[integer!]
 			rect		[NSRect!]
-			ctx			[integer!]
+			ctx			[int-ptr!]
 	][
 		color-space: CGColorSpaceCreateDeviceRGB
-		width: CGImageGetWidth as int-ptr! img
-		height: CGImageGetHeight as int-ptr! img
+		width: CGImageGetWidth img
+		height: CGImageGetHeight img
 
 		rect: make-rect 0 0 width height
 		ctx: CGBitmapContextCreate null width height 32 width * 16 color-space 2101h
 		CGContextDrawImage ctx rect/x rect/y rect/w rect/h img
 		CGColorSpaceRelease color-space
-		as int-ptr! ctx
+		ctx
 	]
 
 	ctx-to-image: func [
 		img		[red-image!]
-		ctx		[integer!]
+		ctx		[int-ptr!]
 		/local
 			data	[float32-ptr!]
 			buf		[int-ptr!]
 			inode	[img-node!]
 	][
 		inode: as img-node! (resolve-series img/node) + 1
-		CGImageRelease as-integer inode/handle
-		inode/handle: as int-ptr! CGBitmapContextCreateImage ctx
+		CGImageRelease inode/handle
+		inode/handle: CGBitmapContextCreateImage ctx
 		if inode/flags <> 0 [
 			data: as float32-ptr! CGBitmapContextGetData ctx
 			unpremultiply-data inode/buffer data IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
@@ -713,10 +719,10 @@ OS-image: context [
 		format	[integer!]
 		return: [red-value!]
 		/local
-			type		[integer!]
-			path		[integer!]
-			dst			[integer!]
-			img			[integer!]
+			type		[int-ptr!]
+			path		[int-ptr!]
+			dst			[int-ptr!]
+			img			[int-ptr!]
 	][
 		switch format [
 			IMAGE_BMP  [type: kUTTypeBMP]
@@ -732,9 +738,9 @@ OS-image: context [
 			TYPE_URL
 			TYPE_FILE [
 				path: simple-io/to-NSURL as red-string! slot yes
-				dst: CGImageDestinationCreateWithURL path type 1 0
+				dst: CGImageDestinationCreateWithURL path type 1 null
 				;if zero? dst []				;-- error
-				CGImageDestinationAddImage dst img 0
+				CGImageDestinationAddImage dst img null
 				unless CGImageDestinationFinalize dst [
 					0 ;-- error
 				]
@@ -747,10 +753,10 @@ OS-image: context [
 	]
 
 	combine-image: func [
-		img1	[integer!]
-		img2	[integer!]
+		img1	[int-ptr!]
+		img2	[int-ptr!]
 		mode	[integer!]		;-- TBD, default w = max (w1 w2), h = h1 + h2
-		return:	[integer!]
+		return:	[int-ptr!]
 		/local
 			w1		[integer!]
 			h1		[integer!]
@@ -758,15 +764,15 @@ OS-image: context [
 			h2		[integer!]
 			w		[integer!]
 			h		[integer!]
-			cs		[integer!]
+			cs		[int-ptr!]
 			rect	[NSRect!]
-			ctx		[integer!]
-			handle	[integer!]
+			ctx		[int-ptr!]
+			handle	[int-ptr!]
 	][
-		w1: CGImageGetWidth as int-ptr! img1
-		h1: CGImageGetHeight as int-ptr! img1
-		w2: CGImageGetWidth as int-ptr! img2
-		h2: CGImageGetHeight as int-ptr! img2
+		w1: CGImageGetWidth img1
+		h1: CGImageGetHeight img1
+		w2: CGImageGetWidth img2
+		h2: CGImageGetHeight img2
 
 		w: w1
 		if w1 < w2 [w: w2]
@@ -846,7 +852,7 @@ OS-image: context [
 			copy-rect dst-buf w * 4 src-buf width * 4 x y h
 		][
 			handle: CGImageCreateWithImageInRect
-				handle0 as float32! x as float32! y as float32! w as float32! h
+				handle0 as CGFloat! x as CGFloat! y as CGFloat! w as CGFloat! h
 			dst/node: node-handle-of make-node handle null 0 w h
 		]
 		dst/size: h << 16 or w

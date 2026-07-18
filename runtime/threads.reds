@@ -145,25 +145,33 @@ thread: context [
 
 	#define	ESRCH		3
 
-	pthread_attr_t: alias struct! [		;-- 36 bytes
-		_pad1	[integer!]
-		_pad2	[integer!]
-		_pad3	[integer!]
-		_pad4	[integer!]
-		_pad5	[integer!]
-		_pad6	[integer!]
-		_pad7	[integer!]
-		_pad8	[integer!]
-		_pad9	[integer!]
+	#either ABI = 'apple-aarch64 [
+		pthread_attr_t: alias struct! [	;-- Darwin arm64 pthread_attr_t is 64 bytes
+			_pad1 [int64!] _pad2 [int64!] _pad3 [int64!] _pad4 [int64!]
+			_pad5 [int64!] _pad6 [int64!] _pad7 [int64!] _pad8 [int64!]
+		]
+	][
+		pthread_attr_t: alias struct! [	;-- 36 bytes
+			_pad1 [integer!] _pad2 [integer!] _pad3 [integer!]
+			_pad4 [integer!] _pad5 [integer!] _pad6 [integer!]
+			_pad7 [integer!] _pad8 [integer!] _pad9 [integer!]
+		]
 	]
 
 	pthread_slot_t: alias struct! [
 		value	[int-ptr!]
 	]
 
-	timespec!: alias struct! [
-		sec    [integer!] ;Seconds
-		nsec   [integer!] ;Nanoseconds
+	#either ABI = 'apple-aarch64 [
+		timespec!: alias struct! [
+			sec  [int64!]
+			nsec [int64!]
+		]
+	][
+		timespec!: alias struct! [
+			sec  [integer!]
+			nsec [integer!]
+		]
 	]
 
 	#switch OS [

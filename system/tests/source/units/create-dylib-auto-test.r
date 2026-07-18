@@ -30,7 +30,8 @@ create-dylib-auto-test: func [
 
 	;; workout dll names 
 	suffix: switch/default target [
-		"Darwin"	[".dylib"]
+		"Darwin"		[".dylib"]
+		"Darwin-ARM64"	[".dylib"]
 		"Windows"	[".dll"]
 		"MSDOS"		[".dll"]
 		"Windows-X86-64-DLL" [".dll"]

@@ -32,6 +32,7 @@ if system/script/args  [
         target = "Linux-ARM"
 	    target = "Linux-ARM64"
 	    target = "Darwin"
+	    target = "Darwin-ARM64"
 	][
 	    target: none
 	]
@@ -45,8 +46,9 @@ unless target [
         2) Android
         3) Linux armhf (ARMv7+)
 		4) Linux ARM64
+		5) Darwin ARM64 (Apple Silicon)
         => }
-    target: pick ["Linux-ARM" "Android" "RPi" "Linux-ARM64"] to-integer target
+    target: pick ["Linux-ARM" "Android" "RPi" "Linux-ARM64" "Darwin-ARM64"] to-integer target
 ]
 
 ;; make the Arm dir if needed
@@ -68,8 +70,8 @@ foreach file [
 ][
     print ["Compiling" file] "..." 
     test-file: join %source/units/auto-tests/ file
-    exe: replace file ".red" ""
-    exe: to-local-file join arm-dir exe
+    exe-file: join arm-dir to file! replace copy file ".red" ""
+    exe: to-local-file exe-file
     cmd: join "" [  to-local-file system/options/boot " -sc "
         to-local-file clean-path %../red.r
         " -r -t " target " -o " exe " "
@@ -77,7 +79,13 @@ foreach file [
     ]
     clear output
     compilation-status: call/output cmd output
-    if compilation-status <> 0 [ quit/return compilation-status ]
+    if any [
+        compilation-status <> 0
+        not exists? exe-file
+    ][
+        print output
+        quit/return either compilation-status <> 0 [compilation-status][1]
+    ]
     print output
 ]
 

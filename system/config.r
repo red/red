@@ -327,12 +327,55 @@ DarwinSO [
 	PIC?:		yes
 ]
 ;-------------------------
+Darwin-ARM64 [
+	OS:			'macOS
+	format:		'Mach-O
+	target:		'ARM64
+	type:		'exe
+	sub-system:	'console
+	syscall:	'BSD
+	ABI:		'apple-aarch64
+	cpu-version:	8.0
+	PIC?:		yes
+	PIE?:		yes
+	stack-align-16?: yes
+]
+;-------------------------
+Darwin-ARM64-SO [
+	OS:			'macOS
+	format:		'Mach-O
+	target:		'ARM64
+	type:		'dll
+	sub-system:	'console
+	syscall:	'BSD
+	ABI:		'apple-aarch64
+	cpu-version:	8.0
+	PIC?:		yes
+	stack-align-16?: yes
+]
+;-------------------------
 macOS [
 	OS:			'macOS
 	format: 	'Mach-O
 	type:		'exe
 	sub-system: 'GUI
 	syscall:	'BSD
+	stack-align-16?: yes
+	packager:	'Mach-APP
+	dev-mode?:	no
+]
+;-------------------------
+macOS-ARM64 [
+	OS:			'macOS
+	format:		'Mach-O
+	target:		'ARM64
+	type:		'exe
+	sub-system:	'GUI
+	syscall:	'BSD
+	ABI:		'apple-aarch64
+	cpu-version:	8.0
+	PIC?:		yes
+	PIE?:		yes
 	stack-align-16?: yes
 	packager:	'Mach-APP
 	dev-mode?:	no

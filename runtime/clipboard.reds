@@ -535,21 +535,63 @@ clipboard: context [
 			LIBC-file cdecl [
 				objc_getClass: "objc_getClass" [
 					class		[c-string!]
-					return:		[integer!]
+					return:		[int-ptr!]
 				]
 				sel_getUid: "sel_getUid" [
 					name		[c-string!]
+					return:		[int-ptr!]
+				]
+				objc_msgSend0: "objc_msgSend" [
+					receiver	[int-ptr!]
+					selector	[int-ptr!]
+					return:		[int-ptr!]
+				]
+				objc_msgSend-ptr: "objc_msgSend" [
+					receiver	[int-ptr!]
+					selector	[int-ptr!]
+					arg			[int-ptr!]
+					return:		[int-ptr!]
+				]
+				objc_msgSend-ptr2: "objc_msgSend" [
+					receiver	[int-ptr!]
+					selector	[int-ptr!]
+					arg1		[int-ptr!]
+					arg2		[int-ptr!]
+					return:		[int-ptr!]
+				]
+				objc_msgSend-cstr: "objc_msgSend" [
+					receiver	[int-ptr!]
+					selector	[int-ptr!]
+					arg			[c-string!]
+					return:		[int-ptr!]
+				]
+				objc_msgSend-int: "objc_msgSend" [
+					receiver	[int-ptr!]
+					selector	[int-ptr!]
+					arg			[integer!]
 					return:		[integer!]
 				]
-				objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
+				objc_msgSend-cstr0: "objc_msgSend" [
+					receiver	[int-ptr!]
+					selector	[int-ptr!]
+					return:		[c-string!]
+				]
+				objc_msgSend-int-ptr: "objc_msgSend" [
+					receiver	[int-ptr!]
+					selector	[int-ptr!]
+					arg			[int-ptr!]
+					return:		[integer!]
+				]
 			]
 			"/System/Library/Frameworks/AppKit.framework/Versions/Current/AppKit" cdecl [
-				NSBeep: "NSBeep" []
+				NSApplicationLoad: "NSApplicationLoad" [
+					return: [logic!]
+				]
 			]
 		]
 
 		to-red-string: func [
-			nsstr	[integer!]
+			nsstr	[int-ptr!]
 			slot	[red-value!]
 			return: [red-string!]
 			/local
@@ -557,37 +599,37 @@ clipboard: context [
 				size [integer!]
 				cstr [c-string!]
 		][
-			size: objc_msgSend [nsstr sel_getUid "lengthOfBytesUsingEncoding:" 4]
-			cstr: as c-string! objc_msgSend [nsstr sel_getUid "UTF8String"]
+			size: objc_msgSend-int nsstr sel_getUid "lengthOfBytesUsingEncoding:" 4
+			cstr: objc_msgSend-cstr0 nsstr sel_getUid "UTF8String"
 			if null? slot [slot: stack/push*]
 			str: string/make-at slot size Latin1
 			unicode/load-utf8-stream cstr size str null
 			str
 		]
 
-		to-NSString: func [str [red-string!] return: [integer!] /local len][
+		to-NSString: func [str [red-string!] return: [int-ptr!] /local len][
 			len: -1
-			objc_msgSend [
+			objc_msgSend-cstr
 				objc_getClass "NSString"
 				sel_getUid "stringWithUTF8String:"
 				unicode/to-utf8 str :len
-			]
 		]
 
 		read: func [
 			return:		[red-value!]
 			/local
-				pasteboard	[integer!]
-				classes		[integer!]
-				obj			[integer!]
-				options		[integer!]
+				pasteboard	[int-ptr!]
+				classes		[int-ptr!]
+				obj			[int-ptr!]
+				options		[int-ptr!]
 		][
-			pasteboard: objc_msgSend [objc_getClass "NSPasteboard" sel_getUid "generalPasteboard"]
-			classes: objc_msgSend [objc_getClass "NSArray" sel_getUid "arrayWithObject:" objc_getClass "NSString"]
-			options: objc_msgSend [objc_getClass "NSDictionary" sel_getUid "dictionary"]
-			obj: objc_msgSend [pasteboard sel_getUid "readObjectsForClasses:options:" classes options]
-			either zero? obj [none-value][
-				as red-value! to-red-string objc_msgSend [obj sel_getUid "firstObject"] null
+			unless NSApplicationLoad [return as red-value! none-value]
+			pasteboard: objc_msgSend0 objc_getClass "NSPasteboard" sel_getUid "generalPasteboard"
+			classes: objc_msgSend-ptr objc_getClass "NSArray" sel_getUid "arrayWithObject:" objc_getClass "NSString"
+			options: objc_msgSend0 objc_getClass "NSDictionary" sel_getUid "dictionary"
+			obj: objc_msgSend-ptr2 pasteboard sel_getUid "readObjectsForClasses:options:" classes options
+			either null? obj [none-value][
+				as red-value! to-red-string objc_msgSend0 obj sel_getUid "firstObject" null
 			]
 		]
 
@@ -595,23 +637,24 @@ clipboard: context [
 			data		[red-value!]
 			return:		[logic!]
 			/local
-				pasteboard	[integer!]
-				arr			[integer!]
-				obj			[integer!]
+				pasteboard	[int-ptr!]
+				arr			[int-ptr!]
+				obj			[int-ptr!]
 				res			[integer!]
 		][
 			res: 0
+			unless NSApplicationLoad [return false]
 			obj: switch TYPE_OF(data) [
 				TYPE_STRING [to-NSString as red-string! data]
-				TYPE_IMAGE	[0]
-				default		[0]
+				TYPE_IMAGE	[null]
+				default		[null]
 			]
 
-			if obj <> 0 [
-				pasteboard: objc_msgSend [objc_getClass "NSPasteboard" sel_getUid "generalPasteboard"]
-				objc_msgSend [pasteboard sel_getUid "clearContents"]
-				arr: objc_msgSend [objc_getClass "NSArray" sel_getUid "arrayWithObject:" obj]
-				res: objc_msgSend [pasteboard sel_getUid "writeObjects:" arr]
+			if obj <> null [
+				pasteboard: objc_msgSend0 objc_getClass "NSPasteboard" sel_getUid "generalPasteboard"
+				objc_msgSend0 pasteboard sel_getUid "clearContents"
+				arr: objc_msgSend-ptr objc_getClass "NSArray" sel_getUid "arrayWithObject:" obj
+				res: objc_msgSend-int-ptr pasteboard sel_getUid "writeObjects:" arr
 			]
 			as logic! res
 		]
