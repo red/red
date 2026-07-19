@@ -87,6 +87,7 @@ redbin: context [
 	sym-str-size: 0									;-- byte size of the strings blob (bounds read-sym offsets)
 	cp-val:		0									;-- scalar produced by the last read-* helper
 	cp-ref:		as red-value! 0						;-- value produced by read-reference-cp (transient)
+	path-block:	declare red-block!					;-- cp-ref retains this synthetic spec block after resolve-path returns
 	dec-ref?:	no									;-- referral-form flag returned by read-spec-block-cp
 
 	cp-refs:	as int-ptr! 0						;-- scratch buffer for reference waypoints
@@ -2449,7 +2450,6 @@ redbin: context [
 			value   [red-value!]
 			object  [red-object!]
 			ctx     [red-context!]
-			blk     [red-block! value]
 			rblk    [red-block!]
 			node    [node!]
 			handle  [node-handle!]
@@ -2480,10 +2480,11 @@ redbin: context [
 				node:   resolve-node node-handle-from-cell value/data2
 
 				either zero? count [
-					blk/node: node-handle-of node
-					blk/head: 0
-					blk/header: TYPE_BLOCK
-					as red-value! blk
+					path-block/header: TYPE_BLOCK
+					path-block/head: 0
+					path-block/node: node-handle-of node
+					path-block/extra: 0
+					as red-value! path-block
 				][
 					series: as series! node/value
 					n: (as-integer series/tail - series/offset) >> log-b size? cell!
