@@ -149,7 +149,7 @@ button-mouse-down: func [
 		objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
 		switch type [
 			NSLeftMouseDragged [
-				make-event self 0 EVT_OVER
+				make-event self EVT_FLAG_DOWN EVT_OVER
 			]
 			NSLeftMouseUp [
 				make-event self 0 EVT_LEFT_UP
