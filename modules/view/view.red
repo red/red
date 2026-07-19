@@ -1296,31 +1296,41 @@ insert-event-func 'dragging function [face event][
 			unless system/view/auto-sync? [show face]
 		][
 			if drag-info: face/state/4 [
+				done?: no
 				either type = 'over [
 					unless event/away? [
-						new: (any [face/offset 0x0]) + event/offset - drag-info/1
-						if face/offset <> new [
-							if box: drag-info/2 [new: min box/max max box/min new]
-							if face/offset <> new [face/offset: new]
-							set/any 'result do-actor face event 'drag ;-- avoid calling on-over actor
-							show face/parent
-							return :result
+						either any [
+							not find [down mid-down] drag-evt	;-- other buttons not reliably reported in motion events
+							find event/flags drag-evt
+							all [drag-evt = 'mid-down find event/flags 'down]	;-- terminal backend reports only `down` in motion events
+						][
+							new: (any [face/offset 0x0]) + event/offset - drag-info/1
+							if face/offset <> new [
+								if box: drag-info/2 [new: min box/max max box/min new]
+								if face/offset <> new [face/offset: new]
+								set/any 'result do-actor face event 'drag ;-- avoid calling on-over actor
+								show face/parent
+								return :result
+							]
+						][
+							done?: yes				;-- button no longer held: `up` event was lost (#5544)
 						]
 					]
 				][
-					if drag-evt = select [
+					done?: drag-evt = select [
 						up		down
 						mid-up	mid-down
 						alt-up	alt-down
 						aux-up	aux-down
-					] type [
-						do-actor face event 'drop
-						if face/state [face/state/4: none]
-						face/flags: all [
-							block? flags: face/flags
-							remove find flags 'all-over
-							flags
-						]
+					] type
+				]
+				if done? [
+					do-actor face event 'drop
+					if face/state [face/state/4: none]
+					face/flags: all [
+						block? flags: face/flags
+						remove find flags 'all-over
+						flags
 					]
 				]
 			]
