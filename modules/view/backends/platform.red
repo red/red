@@ -177,6 +177,7 @@ system/view/platform: context [
 			]
 			
 			#enum event-flag! [
+				EVT_FLAG_SYNTHETIC:		00010000h		;-- `make event!`-built value: msg is a Red cell-node, not an OS handle (see runtime/datatypes/event.reds)
 				EVT_FLAG_AX2_DOWN:		00200000h
 				EVT_FLAG_AUX_DOWN:		00400000h
 				EVT_FLAG_ALT_DOWN:		00800000h

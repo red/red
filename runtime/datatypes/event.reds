@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-#define EVT_FLAG_SYNTHETIC	00010000h		;-- synthetic (`make event!`-built) marker: msg points to a Red cell-node, not an OS struct (read in push-field; marked by the GC, see runtime/collector.reds)
-
 event: context [
 	verbose: 0
 	
@@ -55,7 +53,7 @@ event: context [
 			v	[red-value!]
 	][
 		v: null
-		if (evt/flags and EVT_FLAG_SYNTHETIC) <> 0 [	;-- synthetic event (built via `make event!`)
+		if (evt/flags and gui/EVT_FLAG_SYNTHETIC) <> 0 [	;-- synthetic event (built via `make event!`)
 			s: null										;-- extras node [face window offset picked], null if none were given
 			if evt/msg <> null [n: as node! evt/msg  s: as series! n/value]
 			v: switch field [
@@ -153,7 +151,7 @@ event: context [
 		evt/header: TYPE_EVENT
 		evt/type:   0
 		evt/msg:    null
-		evt/flags:  EVT_FLAG_SYNTHETIC					;-- every make-event value is synthetic
+		evt/flags:  gui/EVT_FLAG_SYNTHETIC				;-- every make-event value is synthetic (marked by the GC, see runtime/collector.reds)
 		face:	    null
 		window:     null
 		off-x:      0
