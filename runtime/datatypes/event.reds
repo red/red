@@ -62,10 +62,10 @@ event: context [
 				2  [either null? s [as red-value! none-value][copy-cell s/offset as cell! stack/push*]]				;-- face
 				3  [either null? s [as red-value! none-value][copy-cell (s/offset + 1) as cell! stack/push*]]		;-- window
 				4  [either null? s [as red-value! pair/push 0 0][copy-cell (s/offset + 2) as cell! stack/push*]]	;-- offset
-				5  [as red-value! char/push (evt/flags and FFFFh)]													;-- key (cell, not OS msg)
+				5  [either zero? (evt/flags and FFFFh) [as red-value! none-value][as red-value! char/push (evt/flags and FFFFh)]]	;-- key: none when not given (as real backends do)
 				6  [either null? s [as red-value! integer/push 0][copy-cell (s/offset + 3) as cell! stack/push*]]	;-- picked
 				15 [as red-value! none-value]			;-- orientation
-				default [null]							;-- type/key/flags/modifiers live in the cell
+				default [null]							;-- type/flags/modifiers live in the cell
 			]
 		]
 		if null? v [

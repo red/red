@@ -660,7 +660,8 @@ OS-send-event: func [
 		mouse? [logic!]
 		x	   [integer!]
 		y	   [integer!]
-		m	   [tagMSG]
+		m	   [tagMSG value]
+		pt	   [tagPOINT value]
 		pk	   [red-integer!]
 ][
 	if null? evt/msg [return false]						;-- needs a target face (synthetic extras node)
@@ -688,7 +689,7 @@ OS-send-event: func [
 		EVT_AUX_DOWN	[wmsg: WM_XBUTTONDOWN	wParam: 00010020h]	;-- XBUTTON1 (hi) + MK_XBUTTON1 (lo)
 		EVT_AUX_UP		[wmsg: WM_XBUTTONUP		wParam: 00010000h]	;-- XBUTTON1 (hi)
 		EVT_DBL_CLICK	[wmsg: WM_LBUTTONDBLCLK	wParam: 0001h]
-		EVT_WHEEL		[wmsg: 020Ah]								;-- WM_MOUSEWHEEL
+		EVT_WHEEL		[wmsg: WM_MOUSEWHEEL]
 		EVT_OVER		[wmsg: WM_MOUSEMOVE]
 		EVT_KEY_DOWN	[wmsg: WM_KEYDOWN	wParam: (VkKeyScan (flags and FFFFh)) and 00FFh	 mouse?: no]	;-- char -> virtual-key code
 		EVT_KEY_UP		[wmsg: WM_KEYUP		wParam: (VkKeyScan (flags and FFFFh)) and 00FFh	 mouse?: no]
@@ -706,6 +707,13 @@ OS-send-event: func [
 			;-- mouse (exact at integer DPI scaling); not improvable without diverging from real events.
 			x: dpi-scale as float32! pr/x
 			y: dpi-scale as float32! pr/y
+			if evt/type = EVT_WHEEL [					;-- real WM_MOUSEWHEEL carries *screen* coords (get-event-offset converts them back)
+				pt/x: x
+				pt/y: y
+				ClientToScreen hWnd pt
+				x: pt/x
+				y: pt/y
+			]
 			lParam: (y << 16) or (x and FFFFh)			;-- MAKELPARAM(x, y)
 		]
 		if evt/type = EVT_WHEEL [						;-- wheel delta: notches * 120 -> wParam hi-word
@@ -716,8 +724,7 @@ OS-send-event: func [
 	either queued? [
 		PostMessage hWnd wmsg wParam lParam				;-- async: post to the OS queue (fires under a live message pump)
 	][
-		m: declare tagMSG								;-- sync: synthesize the MSG and dispatch through `process` (no pump needed)
-		m/hWnd:   hWnd
+		m/hWnd:   hWnd									;-- sync: synthesize the MSG and dispatch through `process` (no pump needed)
 		m/msg:    wmsg
 		m/wParam: wParam
 		m/lParam: lParam

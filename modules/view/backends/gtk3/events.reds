@@ -779,9 +779,12 @@ OS-send-event: func [
 	mods:  flags and (EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MENU_DOWN or EVT_FLAG_CMD_DOWN)
 														;-- keep only keyboard modifiers; raw evt/flags has bits make-event mis-reads
 	pr: as red-pair! (s/offset + 2)						;-- cell 2 = offset (logical; GTK event coords are logical -> exact round-trip)
-	if TYPE_OF(pr) = TYPE_PAIR [
+	either TYPE_OF(pr) = TYPE_PAIR [
 		evt-motion/x_new: pr/x							;-- get-event-offset reads these globals, not the GdkEvent
 		evt-motion/y_new: pr/y
+	][
+		evt-motion/x_new: 0								;-- no offset given -> 0x0, not the stale coords of a previous event
+		evt-motion/y_new: 0								;-- (matching the Windows and macOS backends)
 	]
 
 	switch evt/type [

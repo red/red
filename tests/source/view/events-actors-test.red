@@ -72,6 +72,11 @@ got-face: got-window: got-offset: got-picked: bx: e: none
 		--assert none? got-window
 		--assert got-offset = 0x0
 		--assert got-picked = 0
+	--test-- "event/key: the given char, or none when not given (as real backends)"
+		e: make event! [type: 'key key: #"Q"]
+		--assert e/key = #"Q"
+		e: make event! [type: 'down]
+		--assert none? e/key
 ===end-group===
 
 ===start-group=== "dispatching a change event fires on-change"
