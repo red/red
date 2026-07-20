@@ -12,10 +12,10 @@ Red [
 		compiled with Config: [GUI-engine: 'test] -- no per-test compilation and
 		no display required.
 
-		This complements %run-view-headless-tests.r (which compiles each test):
-		compile this interpreter ONCE, then interpret the whole suite in seconds.
+		%run-view-headless-tests.r builds this interpreter once per run, then
+		feeds it every test file: the whole suite runs in seconds.
 
-		Build it (run from the repo root). -r is essential: the encapped
+		To use it standalone, build it from the repo root. -r is essential: the encapped
 		compiler otherwise links a prebuilt libRedRT built with the *native* GUI
 		backend, which is incompatible with the `test` backend. Swap the -t
 		target per host (MSDOS = Windows console, Darwin = macOS, Linux = else):
@@ -38,4 +38,9 @@ Red [
 ]
 
 args: system/options/args
-do to-file either block? args [first args][args]
+if block? args [args: first args]
+either any [none? args empty? args][
+	print "Usage: view-headless-interpreter <script.red>"
+][
+	do to-red-file args								;-- to-red-file: accept OS-native (backslash) paths too
+]
