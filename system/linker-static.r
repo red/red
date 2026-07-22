@@ -2651,28 +2651,37 @@ static-link: context [
 	;-- libcpmt, libvcruntime, oldnames, libconcrt, comsuppw...), the SDK's
 	;-- ucrt (libucrt) and um (uuid, mfuuid, strmiids...). Returns a block
 	;-- of existing directories, possibly empty.
-	find-msvc-lib-dirs: func [/local out best root ver dir sub][
+	find-msvc-lib-dirs: func [/local out best root ver v dir sub][
 		out: make block! 3
-		best: none									;-- newest toolset across every instance
-		foreach root vs-install-roots [
-			if all [
-				exists? dir: join root %VC/Tools/MSVC/
-				ver: newest-subdir dir
-				any [none? best  ver > best/2]
-			][
-				best: reduce [dir ver]
+		best: none									;-- newest toolset CARRYING x86 libs, across
+		foreach root vs-install-roots [				;-- every version of every instance: a newer
+			if dir: attempt [read join root %VC/Tools/MSVC/][	;-- ARM-only or partial install
+				foreach ver dir [					;-- must not shadow an older usable one
+					if all [
+						subdir? ver
+						exists? rejoin [root %VC/Tools/MSVC/ ver %lib/x86/]
+						any [none? best  ver > best/2]
+					][
+						best: reduce [join root %VC/Tools/MSVC/ ver]
+					]
+				]
 			]
 		]
-		if best [
-			dir: rejoin [best/1 best/2 %lib/x86/]
-			if exists? dir [append out dir]
-		]
+		if best [append out rejoin [best/1 best/2 %lib/x86/]]
 		if root: reg-read "HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots" "KitsRoot10" [
 			dir: rejoin [to-rebol-file root %Lib/]
-			if ver: newest-subdir dir [
-				foreach sub [%ucrt/x86/ %um/x86/][
-					if exists? rejoin [dir ver sub][append out rejoin [dir ver sub]]
+			foreach sub [%ucrt/x86/ %um/x86/][		;-- newest SDK version carrying each set
+				ver: none
+				foreach v any [attempt [read dir] []][
+					if all [
+						subdir? v
+						exists? rejoin [dir v sub]
+						any [none? ver  v > ver]
+					][
+						ver: v
+					]
 				]
+				if ver [append out rejoin [dir ver sub]]
 			]
 		]
 		out
