@@ -2545,6 +2545,20 @@ static-link: context [
 		either empty? subs [none][last sort subs]
 	]
 
+	;-- Run a Windows command capturing stdout. The encapped SDK kernel's
+	;-- native CALL leaves the process console broken -- every console
+	;-- write from that point on is silently lost, while pipes still work.
+	;-- Go through win-call (utils/call.r, loaded by red.r at startup),
+	;-- which spawns through CreateProcess instead, exactly as red.r's own
+	;-- shell-outs do; from sources the native call keeps serving.
+	call-output: func [cmd [string!] buf [string!]][
+		either all [encap?  value? 'win-call][
+			win-call/output cmd buf
+		][
+			call/shell/wait/output cmd buf
+		]
+	]
+
 	;-- Read one HKLM string value through reg.exe, trying the 32- then the
 	;-- 64-bit registry view; returns the value string, or none if absent.
 	;-- reg.exe is a Windows built-in, so this needs nothing installed.
@@ -2552,7 +2566,7 @@ static-link: context [
 		foreach view ["/reg:32" "/reg:64"][
 			out: copy ""
 			unless error? try [
-				call/shell/wait/output
+				call-output
 					rejoin [{reg query "} key {" /v "} value {" } view] out
 			][
 				foreach line parse/all out "^/" [
@@ -2601,7 +2615,7 @@ static-link: context [
 		if exists? vswhere-path [
 			root: copy ""
 			unless error? try [
-				call/shell/wait/output rejoin [
+				call-output rejoin [
 					{"} to-local-file vswhere-path {"}
 					{ -products * -latest}
 					{ -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64}
