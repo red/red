@@ -25,6 +25,7 @@ do-cache %system/formats/ELF-obj.r
 do-cache %system/formats/Mach-O-obj.r
 do-cache %system/formats/libc-exports.r
 do-cache %system/formats/win32-exports.r
+do-cache %system/formats/guid-exports.r
 do-cache %system/formats/mac-cxx-exports.r
 do-cache %system/formats/mac-libsystem.r
 do-cache %system/formats/crt-helpers.r
@@ -139,6 +140,7 @@ static-link: context [
 	syslib-index: none				;-- symbol => DLL hash, PE __imp_ resolution
 	imp-table:  make hash! 64		;-- __imp_<decorated> => [DLL bare-name]
 	helper-libs: none				;-- registry-located static helper archives
+	guid-set:    none				;-- name => 16-byte payload hash (guid-exports.r), built once
 
 	;-- 4-byte little-endian serializer (target endianness is set up by the
 	;-- time `apply-relocs` runs, during linking).
@@ -1061,7 +1063,7 @@ static-link: context [
 		obj-arch:   job/target
 		if obj-format = 'PE [
 			build-syslib-index
-			helper-libs: find-helper-libs
+			unless guid-set [guid-set: make hash! guid-exports/x86]
 		]
 		if all [obj-format = 'ELF  job/OS = 'Linux][
 			helper-libs: find-linux-helper-libs
@@ -1823,7 +1825,7 @@ static-link: context [
 	;-- emitting a libc import trampoline or the __chkstk stub.
 	resolve-externals: func [
 		job [object!]
-		/local path obj section sym name bare code data tramp-off disp-ref sz data-off imp res stub pending sec-kind dn fa
+		/local path obj section sym name bare code data tramp-off disp-ref sz data-off imp res stub pending sec-kind dn fa payload
 	][
 		code: job/sections/code/2
 		data: job/sections/data/2
@@ -2074,6 +2076,23 @@ static-link: context [
 								;-- them to address 0; callers null-check.
 								repend sym-addr [name reduce ['absolute 0 false]]
 								0
+							]
+							all [
+								guid-set
+								;-- /case: FourCC media subtypes come in pairs
+								;-- differing only by letter case (H264/h264...)
+								;-- with DIFFERENT payloads
+								payload: select/case guid-set name
+							][
+								;-- COM/DirectX GUID constant: 16 bytes of pure
+								;-- data that no DLL exports. The SDK's x86
+								;-- uuid.lib/dxguid.lib payloads ride embedded
+								;-- (guid-exports.r), so a fresh Windows links
+								;-- COM/MF/DirectX-touching code without any
+								;-- SDK installed.
+								pad-to crodata-buf 4
+								repend sym-addr [name reduce ['crodata length? crodata-buf false]]
+								append crodata-buf payload
 							]
 							true [
 								abort reduce ["unresolved external symbol:" name "(in" path ")"]
@@ -2581,56 +2600,72 @@ static-link: context [
 		none
 	]
 
-	;-- Locate the static helper archives from their registered install
-	;-- roots; returns a block of resolved archive paths, possibly empty.
-	find-helper-libs: func [/local out root libdir ver p lib][
-		out: make block! 3
-		;-- Windows SDK (uuid.lib / dxguid.lib): the COM and DirectX GUID
-		;-- constants -- pure data, exported by no DLL.
-		root: reg-read "HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots" "KitsRoot10"
-		if root [
-			libdir: rejoin [to-rebol-file root %Lib/]
-			if ver: newest-subdir libdir [
-				foreach lib [%uuid.lib %dxguid.lib][
-					p: rejoin [libdir ver %um/x86/ lib]
-					if exists? p [append out p]
+	;-- ===== MSVC toolset / Windows SDK static-library location =====
+
+	;-- Visual Studio install roots, WITHOUT vswhere.exe (absent from a
+	;-- fresh Windows until a modern VS installer has run): first the
+	;-- installer's own per-instance database under ProgramData -- the very
+	;-- files vswhere itself reads, covering custom install paths -- then
+	;-- the default install roots under both Program Files trees, any year,
+	;-- any edition. Plain file access only; nothing needs installing.
+	vs-install-roots: func [/local out dir entry file text path var root year edition][
+		out: make block! 4
+		if all [
+			path: get-env "ProgramData"
+			exists? dir: join dirize to-rebol-file path %Microsoft/VisualStudio/Packages/_Instances/
+		][
+			foreach entry read dir [
+				if all [
+					subdir? entry
+					exists? file: rejoin [dir entry %state.json]
+					text: attempt [read file]
+					parse/all text [thru {"installationPath":} thru {"} copy path to {"} to end]
+				][
+					replace/all path "\\" "\"
+					path: dirize to-rebol-file path
+					if exists? path [append out path]
+				]
+			]
+		]
+		foreach var ["ProgramFiles" "ProgramFiles(x86)"][
+			if all [
+				root: get-env var
+				exists? root: join dirize to-rebol-file root %"Microsoft Visual Studio/"
+			][
+				foreach year read root [
+					if parse/all form year [some digits "/"][	;-- 2017/, 2019/, 2022/... not Installer/
+						foreach edition any [attempt [read rejoin [root year]] []][
+							if subdir? edition [
+								path: rejoin [root year edition]
+								unless find out path [append out path]
+							]
+						]
+					]
 				]
 			]
 		]
 		out
 	]
 
-	;-- ===== MSVC toolset / Windows SDK static-library location =====
-
-	;-- vswhere.exe has one fixed, documented install location; it reports
-	;-- the newest Visual Studio (or Build Tools) carrying the C++ toolset.
-	vswhere-path: %"/C/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
-
 	;-- Locate the x86 static-library directories: the VC toolset's (libcmt,
 	;-- libcpmt, libvcruntime, oldnames, libconcrt, comsuppw...), the SDK's
 	;-- ucrt (libucrt) and um (uuid, mfuuid, strmiids...). Returns a block
 	;-- of existing directories, possibly empty.
-	find-msvc-lib-dirs: func [/local out root ver dir sub][
+	find-msvc-lib-dirs: func [/local out best root ver dir sub][
 		out: make block! 3
-		if exists? vswhere-path [
-			root: copy ""
-			unless error? try [
-				call-output rejoin [
-					{"} to-local-file vswhere-path {"}
-					{ -products * -latest}
-					{ -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64}
-					{ -property installationPath}
-				] root
+		best: none									;-- newest toolset across every instance
+		foreach root vs-install-roots [
+			if all [
+				exists? dir: join root %VC/Tools/MSVC/
+				ver: newest-subdir dir
+				any [none? best  ver > best/2]
 			][
-				trim/tail root
-				if all [
-					not empty? root
-					ver: newest-subdir dir: join to-rebol-file root %/VC/Tools/MSVC/
-				][
-					dir: rejoin [dir ver %lib/x86/]
-					if exists? dir [append out dir]
-				]
+				best: reduce [dir ver]
 			]
+		]
+		if best [
+			dir: rejoin [best/1 best/2 %lib/x86/]
+			if exists? dir [append out dir]
 		]
 		if root: reg-read "HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots" "KitsRoot10" [
 			dir: rejoin [to-rebol-file root %Lib/]
