@@ -26,7 +26,7 @@ send-event-os: routine [event [event!] queued? [logic!] return: [logic!]][
 ]
 
 send-event: function [
-	"Sends a synthetic event! (from `make event!`) into the active GUI backend's loop, for user-level automation"
+	"Sends a synthetic event! into the active GUI event loop"
 	event	[event!]
 	/no-wait "Post asynchronously to the OS queue (return without waiting) instead of dispatching synchronously"
 	return:	[logic!]						;-- TRUE if injected, FALSE if the target has no live handle or the type isn't OS-injectable
