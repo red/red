@@ -65,6 +65,8 @@ do %source/units/run-post-extra-tests.r
 ;	--run-test-file-quiet %source/view/base-self-test.red
 ;===end-group===
 
+do %run-view-headless-tests.r						;-- View/VID headless suite (test GUI backend), joins this run
+
 ***end-run-quiet***
 
 --delete-temp-files
