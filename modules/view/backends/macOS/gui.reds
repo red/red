@@ -1061,16 +1061,17 @@ change-selection: func [
 		]
 		type = text-list [
 			hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
-			if idx = -1 [
-				objc_msgSend [hWnd sel_getUid "deselectAll:" hWnd]
+			if idx < 0 [									;-- selected < 1 -> deselect; idx = selected - 1, so 0 -> -1, -1 -> -2, ...
+				objc_msgSend [hWnd sel_getUid "deselectAll:" hWnd]	;-- guarding only idx = -1 let -2 reach indexSetWithIndex: (NSRangeException)
 				exit
 			]
 			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfRows"]
 			if any [sz < 0 sz < idx][exit]
-			idx: objc_msgSend [objc_getClass "NSIndexSet" sel_getUid "indexSetWithIndex:" idx]
+			wnd: objc_msgSend [objc_getClass "NSIndexSet" sel_getUid "indexSetWithIndex:" idx]
 			objc_msgSend [
-				hWnd sel_getUid "selectRowIndexes:byExtendingSelection:" idx no
+				hWnd sel_getUid "selectRowIndexes:byExtendingSelection:" wnd no
 			]
+			objc_msgSend [hWnd sel_getUid "scrollRowToVisible:" idx]	;-- bring the selected row into view (auto-scroll, matching Windows LB_SETCURSEL)
 		]
 		any [type = drop-list type = drop-down][
 			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfItems"]
@@ -2554,12 +2555,57 @@ OS-draw-face: func [
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
 ]
 
-OS-fetch-all-screens: func [][
-	SET_RETURN(none-value)
+OS-fetch-all-screens: func [
+	return: [red-block!]
+	/local
+		blk		[red-block!]
+		sub		[red-block!]
+		s		[series!]
+		screens	[integer!]
+		screen	[integer!]
+		n i		[integer!]
+		frame	[NSRect! value]
+		scale	[float32!]
+		sc		[float!]
+		px py	[integer!]
+		pw ph	[integer!]
+][
+	blk: block/push-only* 2
+
+	screens: objc_msgSend [objc_getClass "NSScreen" sel_getUid "screens"]
+	n: objc_msgSend [screens sel_getUid "count"]
+	i: 0
+	while [i < n][
+		screen: objc_msgSend [screens sel_getUid "objectAtIndex:" i]
+		frame:  objc_msgSend_rect [screen sel_getUid "frame"]
+		scale:  as float32! 1.0
+		if mac-version >= 1070 [
+			scale: objc_msgSend_f32 [screen sel_getUid "backingScaleFactor"]
+		]
+		px: as-integer frame/x
+		py: as-integer frame/y
+		pw: as-integer frame/w * scale				;-- size in device pixels (refresh-screens divides by scale)
+		ph: as-integer frame/h * scale
+		sc: as-float scale
+
+		sub: block/make-at as red-block! ALLOC_TAIL(blk) 4
+		s: GET_BUFFER(sub)
+		pair/make-at   alloc-tail s px py
+		pair/make-at   alloc-tail s pw ph
+		float/make-at  alloc-tail s sc
+		handle/make-at alloc-tail s screen handle/CLASS_MONITOR
+		i: i + 1
+	]
+	blk
 ]
 
-OS-get-current-screen: func [][
-	SET_RETURN(none-value)
+OS-get-current-screen: func [
+	return: [red-handle!]
+	/local
+		screen	[integer!]
+][
+	screen: objc_msgSend [objc_getClass "NSScreen" sel_getUid "mainScreen"]
+	handle/make-at stack/arguments screen handle/CLASS_MONITOR
 ]
 
 OS-alert: func [

@@ -635,6 +635,107 @@ make-event: func [
 	state
 ]
 
+;-- Phase 3: send a synthetic `make event!` value into the OS loop (user-level automation).
+;-- We synthesize the Win32 message and Send/Post it to the target face's HWND, so it rides
+;-- the normal WndProc -> make-event -> awake path. Returns FALSE if the target has no live
+;-- handle or the event type isn't an OS-injectable one (click/select/change/... are
+;-- synthesized by View *from* these raw events).
+OS-send-event: func [
+	evt		[red-event!]
+	queued?	[logic!]
+	return:	[logic!]
+	/local
+		node   [node!]
+		s	   [series!]
+		cell   [red-value!]
+		obj	   [red-object!]
+		state  [red-block!]
+		hd	   [red-handle!]
+		hWnd   [handle!]
+		pr	   [red-pair!]
+		wmsg   [integer!]
+		wParam [integer!]
+		lParam [integer!]
+		flags  [integer!]
+		mouse? [logic!]
+		x	   [integer!]
+		y	   [integer!]
+		m	   [tagMSG value]
+		pt	   [tagPOINT value]
+		pk	   [red-integer!]
+][
+	if null? evt/msg [return false]						;-- needs a target face (synthetic extras node)
+	node: as node!   evt/msg
+	s:	  as series! node/value
+	cell: s/offset										;-- cell 0 = face
+	if TYPE_OF(cell) <> TYPE_OBJECT [return false]
+	obj:   as red-object! cell
+	state: as red-block! get-node-facet obj/ctx FACE_OBJ_STATE
+	if TYPE_OF(state) <> TYPE_BLOCK [return false]		;-- face not shown -> no OS handle
+	hd: as red-handle! block/rs-head state
+	if TYPE_OF(hd) <> TYPE_HANDLE [return false]
+	hWnd: as handle! hd/value
+
+	flags:  evt/flags
+	wParam: 0
+	mouse?: yes
+	switch evt/type [
+		EVT_LEFT_DOWN	[wmsg: WM_LBUTTONDOWN	wParam: 0001h]		;-- MK_LBUTTON
+		EVT_LEFT_UP		[wmsg: WM_LBUTTONUP]
+		EVT_MIDDLE_DOWN	[wmsg: WM_MBUTTONDOWN	wParam: 0010h]		;-- MK_MBUTTON
+		EVT_MIDDLE_UP	[wmsg: WM_MBUTTONUP]
+		EVT_RIGHT_DOWN	[wmsg: WM_RBUTTONDOWN	wParam: 0002h]		;-- MK_RBUTTON
+		EVT_RIGHT_UP	[wmsg: WM_RBUTTONUP]
+		EVT_AUX_DOWN	[wmsg: WM_XBUTTONDOWN	wParam: 00010020h]	;-- XBUTTON1 (hi) + MK_XBUTTON1 (lo)
+		EVT_AUX_UP		[wmsg: WM_XBUTTONUP		wParam: 00010000h]	;-- XBUTTON1 (hi)
+		EVT_DBL_CLICK	[wmsg: WM_LBUTTONDBLCLK	wParam: 0001h]
+		EVT_WHEEL		[wmsg: WM_MOUSEWHEEL]
+		EVT_OVER		[wmsg: WM_MOUSEMOVE]
+		EVT_KEY_DOWN	[wmsg: WM_KEYDOWN	wParam: (VkKeyScan (flags and FFFFh)) and 00FFh	 mouse?: no]	;-- char -> virtual-key code
+		EVT_KEY_UP		[wmsg: WM_KEYUP		wParam: (VkKeyScan (flags and FFFFh)) and 00FFh	 mouse?: no]
+		EVT_KEY			[wmsg: WM_CHAR		wParam: flags and FFFFh	 mouse?: no]
+		default			[return false]								;-- not OS-injectable
+	]
+	lParam: 0
+	if mouse? [
+		if flags and EVT_FLAG_CTRL_DOWN  <> 0 [wParam: wParam or 0008h]	;-- MK_CONTROL
+		if flags and EVT_FLAG_SHIFT_DOWN <> 0 [wParam: wParam or 0004h]	;-- MK_SHIFT
+		pr: as red-pair! (s/offset + 2)					;-- cell 2 = offset
+		if TYPE_OF(pr) = TYPE_PAIR [
+			;-- offset (logical) -> physical px. event/offset re-derives it via dpi-unscale, so it
+			;-- round-trips within +/-0.5 physical px -- pixel quantization, identical to a real
+			;-- mouse (exact at integer DPI scaling); not improvable without diverging from real events.
+			x: dpi-scale as float32! pr/x
+			y: dpi-scale as float32! pr/y
+			if evt/type = EVT_WHEEL [					;-- real WM_MOUSEWHEEL carries *screen* coords (get-event-offset converts them back)
+				pt/x: x
+				pt/y: y
+				ClientToScreen hWnd pt
+				x: pt/x
+				y: pt/y
+			]
+			lParam: (y << 16) or (x and FFFFh)			;-- MAKELPARAM(x, y)
+		]
+		if evt/type = EVT_WHEEL [						;-- wheel delta: notches * 120 -> wParam hi-word
+			pk: as red-integer! (s/offset + 3)			;-- cell 3 = picked (notches)
+			if TYPE_OF(pk) = TYPE_INTEGER [wParam: wParam or ((pk/value * 120) << 16)]
+		]
+	]
+	either queued? [
+		PostMessage hWnd wmsg wParam lParam				;-- async: post to the OS queue (fires under a live message pump)
+	][
+		m/hWnd:   hWnd									;-- sync: synthesize the MSG and dispatch through `process` (no pump needed)
+		m/msg:    wmsg
+		m/wParam: wParam
+		m/lParam: lParam
+		m/time:   0
+		m/x:      0
+		m/y:      0
+		process m
+	]
+	true
+]
+
 call-custom-proc: func [
 	hWnd	[handle!]
 	msg		[integer!]
@@ -1802,6 +1903,8 @@ process: func [
 		WM_RBUTTONUP	[make-event msg flags EVT_RIGHT_UP]
 		WM_MBUTTONDOWN	[make-event msg flags EVT_MIDDLE_DOWN]
 		WM_MBUTTONUP	[make-event msg flags EVT_MIDDLE_UP]
+		WM_XBUTTONDOWN	[make-event msg flags EVT_AUX_DOWN]
+		WM_XBUTTONUP	[make-event msg flags EVT_AUX_UP]
 		WM_KEYDOWN		[
 			res: make-event msg 0 EVT_KEY_DOWN
 			if res <> EVT_NO_DISPATCH [

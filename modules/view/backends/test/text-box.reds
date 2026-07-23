@@ -11,6 +11,39 @@ Red/System [
 ]
 
 
+adjust-index: func [
+	str		[red-string!]
+	offset	[integer!]
+	idx		[integer!]
+	adjust	[integer!]
+	return: [integer!]
+	/local
+		s		[series!]
+		unit	[integer!]
+		head	[byte-ptr!]
+		tail	[byte-ptr!]
+		i		[integer!]
+		c		[integer!]
+][
+	assert TYPE_OF(str) = TYPE_STRING
+	s: GET_BUFFER(str)
+	unit: GET_UNIT(s)
+	if unit = UCS-4 [
+		head: (as byte-ptr! s/offset) + (str/head + offset << 2)
+		tail: head + (idx * 4)
+		i: 0
+		while [head < tail][
+			c: string/get-char head unit
+			if c >= 00010000h [
+				idx: idx + adjust
+				if adjust < 0 [tail: tail - unit]
+			]
+			head: head + unit
+		]
+	]
+	idx
+]
+
 OS-text-box-color: func [
 	dc		[handle!]
 	layout	[handle!]
