@@ -2565,6 +2565,8 @@ OS-fetch-all-screens: func [
 		screen	[integer!]
 		n i		[integer!]
 		frame	[NSRect! value]
+		pframe	[NSRect! value]
+		prim-h	[float32!]
 		scale	[float32!]
 		sc		[float!]
 		px py	[integer!]
@@ -2574,6 +2576,12 @@ OS-fetch-all-screens: func [
 
 	screens: objc_msgSend [objc_getClass "NSScreen" sel_getUid "screens"]
 	n: objc_msgSend [screens sel_getUid "count"]
+	prim-h: as float32! 0.0
+	if n > 0 [										;-- screens[0] = primary (menu-bar) screen; its height flips Cocoa's
+		screen: objc_msgSend [screens sel_getUid "objectAtIndex:" 0]	;-- bottom-left origin to Red's top-left convention
+		pframe: objc_msgSend_rect [screen sel_getUid "frame"]
+		prim-h: pframe/h
+	]
 	i: 0
 	while [i < n][
 		screen: objc_msgSend [screens sel_getUid "objectAtIndex:" i]
@@ -2583,7 +2591,7 @@ OS-fetch-all-screens: func [
 			scale: objc_msgSend_f32 [screen sel_getUid "backingScaleFactor"]
 		]
 		px: as-integer frame/x
-		py: as-integer frame/y
+		py: as-integer (prim-h - (frame/y + frame/h))	;-- Cocoa bottom-left -> top-left (0x0 for the primary; negative above it)
 		pw: as-integer frame/w * scale				;-- size in device pixels (refresh-screens divides by scale)
 		ph: as-integer frame/h * scale
 		sc: as-float scale

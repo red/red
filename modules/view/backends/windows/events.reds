@@ -28,6 +28,7 @@ modal-loop-type: 0										;-- remanence of last EVT_MOVE or EVT_SIZE
 zoom-distance:	 0
 special-key: 	-1										;-- <> -1 if a non-displayable key is pressed
 key-flags:		 0										;-- last key-flags, needed in mouseleave event
+inject-key-flags: -1									;-- >= 0 during a synthetic key dispatch (OS-send-event): the injected modifier bits to use instead of the physical GetKeyState (see key-extra-keys)
 utf16-char:		 0
 
 flags-blk: declare red-block!							;-- static block value for event/flags
@@ -459,6 +460,20 @@ check-extra-keys: func [
 	key
 ]
 
+key-extra-keys: func [									;-- modifier bits for a key event: injected ones (synthetic) else physical
+	return: [integer!]
+	/local
+		k [integer!]
+][
+	either inject-key-flags >= 0 [
+		k: inject-key-flags
+		inject-key-flags: -1							;-- one-shot: consumed here, before the actor runs, so a
+		k												;-- reentrant do-events in the handler can't see stale mods
+	][
+		check-extra-keys no
+	]
+]
+
 char-key?: func [
 	key	    [byte!]									;-- virtual key code
 	return: [logic!]
@@ -537,16 +552,16 @@ make-event: func [
 			][-1][map-left-right key msg/lParam]
 
 			VKEY_TO_CHAR(key)
-			gui-evt/flags: key or check-extra-keys no
+			gui-evt/flags: key or key-extra-keys
 		]
 		EVT_KEY_UP [
 			key: msg/wParam and FFFFh
 			special-key: either char-key? as-byte key [-1][map-left-right key msg/lParam]
 			VKEY_TO_CHAR(key)
-			gui-evt/flags: key or check-extra-keys no
+			gui-evt/flags: key or key-extra-keys
 		]
 		EVT_KEY [
-			key: check-extra-keys no
+			key: key-extra-keys
 			char: msg/wParam
 			case [
 				all [char >= D800h char <= DBFFh][		;-- surrogate pair
@@ -723,7 +738,7 @@ OS-send-event: func [
 	]
 	either queued? [
 		PostMessage hWnd wmsg wParam lParam				;-- async: post to the OS queue (fires under a live message pump)
-	][
+	][													;-- (async key modifiers fall back to physical state; see key-extra-keys)
 		m/hWnd:   hWnd									;-- sync: synthesize the MSG and dispatch through `process` (no pump needed)
 		m/msg:    wmsg
 		m/wParam: wParam
@@ -731,7 +746,11 @@ OS-send-event: func [
 		m/time:   0
 		m/x:      0
 		m/y:      0
+		unless mouse? [									;-- key event: hand the injected modifiers to make-event via key-extra-keys
+			inject-key-flags: flags and (EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_MENU_DOWN)
+		]
 		process m
+		inject-key-flags: -1							;-- clear (defensive: covers make-event early-returns that skip key-extra-keys)
 	]
 	true
 ]

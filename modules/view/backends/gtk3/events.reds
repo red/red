@@ -737,7 +737,7 @@ get-event-picked: func [
 
 entry-buf: as byte-ptr! 0								;-- lazy scratch for gtk-entry-append-char
 
-gtk-entry-append-char: func [							;-- append one BMP-low (UTF-8 single-byte) codepoint to a GtkEntry
+gtk-entry-append-char: func [							;-- append one BMP codepoint to a GtkEntry (UTF-8 encoded)
 	widget	[handle!]
 	ch		[integer!]
 	/local
@@ -751,24 +751,39 @@ gtk-entry-append-char: func [							;-- append one BMP-low (UTF-8 single-byte) c
 	p: as byte-ptr! cur
 	q: entry-buf
 	n: 0
-	while [all [p/value <> null-byte n < 4093]][		;-- copy the current text into the scratch buffer
+	while [all [p/value <> null-byte n < 4090]][		;-- copy current text; leave room for a 3-byte char + NUL
 		q/value: p/value
 		p: p + 1  q: q + 1  n: n + 1
 	]
-	q/value: as byte! ch								;-- append the codepoint (ASCII / single UTF-8 byte)
-	q: q + 1  q/value: null-byte
+	case [												;-- append the codepoint as UTF-8 (GtkEntry text is UTF-8)
+		ch <= 007Fh [									;-- 1 byte: ASCII
+			q/value: as byte! ch  q: q + 1
+		]
+		ch <= 07FFh [									;-- 2 bytes: U+0080..U+07FF (e.g. U+00E9 -> C3 A9)
+			q/value: as byte! (ch >> 6)   and 1Fh or 0C0h  q: q + 1
+			q/value: as byte! ch          and 3Fh or 80h   q: q + 1
+		]
+		true [											;-- 3 bytes: U+0800..U+FFFF (e.g. U+4E2D -> E4 B8 AD)
+			q/value: as byte! (ch >> 12)  and 0Fh or 0E0h  q: q + 1
+			q/value: as byte! (ch >> 6)   and 3Fh or 80h   q: q + 1
+			q/value: as byte! ch          and 3Fh or 80h   q: q + 1
+		]
+	]
+	q/value: null-byte
 	gtk_entry_set_text widget as c-string! entry-buf	;-- emits "changed" -> syncs the Red `text` facet
 ]
 
 OS-send-event: func [
 	evt		[red-event!]
-	queued?	[logic!]									;-- /no-wait: also actuate native widgets (button/check/field)
+	queued?	[logic!]									;-- /no-wait (async post) selector; NOT yet honored here: GTK dispatches synchronously in both modes (unlike Windows PostMessage) -- see note below
 	return:	[logic!]
 	/local
 		node	[node!]
 		s		[series!]
 		cell	[red-value!]
 		obj		[red-object!]
+		state	[red-block!]
+		hd		[red-handle!]
 		widget	[handle!]
 		pr		[red-pair!]
 		pk		[red-integer!]
@@ -779,13 +794,23 @@ OS-send-event: func [
 		wd		[red-word!]
 		ftype	[integer!]
 ][
+	;-- NOTE: `queued?` (/no-wait) is not yet honored on this backend: every branch below dispatches
+	;-- synchronously (make-event + native actuation run before this returns), whereas the Windows
+	;-- backend posts asynchronously for /no-wait. True async here needs deferring the dispatch to a
+	;-- g_idle_add callback with the event params snapshotted as primitives (widget/type/mods/offset/
+	;-- picked) -- tracked as a follow-up. Native actuation itself is correct in both modes (it also
+	;-- happens on Windows via the pumped WndProc).
 	if null? evt/msg [return false]						;-- needs a target face (synthetic extras node)
 	node: as node!   evt/msg
 	s:	  as series! node/value
 	cell: s/offset										;-- cell 0 = face
 	if TYPE_OF(cell) <> TYPE_OBJECT [return false]
 	obj:    as red-object! cell
-	widget: get-face-handle obj							;-- face must be realized (shown)
+	state:  as red-block! get-node-facet obj/ctx FACE_OBJ_STATE
+	if TYPE_OF(state) <> TYPE_BLOCK [return false]		;-- face not realized -> no live handle (get-face-handle would assert)
+	hd:     as red-handle! block/rs-head state
+	if TYPE_OF(hd) <> TYPE_HANDLE [return false]
+	widget: as handle! hd/value
 	if null? widget [return false]
 	vals:  get-face-values widget
 	wd:    as red-word! vals + FACE_OBJ_TYPE

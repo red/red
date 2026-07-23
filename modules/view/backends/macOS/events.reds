@@ -515,13 +515,15 @@ field-append-char: func [								;-- append one BMP codepoint to a native field'
 
 OS-send-event: func [
 	evt		[red-event!]
-	queued?	[logic!]									;-- /no-wait: also actuate native NSControls (button/check/field)
+	queued?	[logic!]									;-- /no-wait (async post) selector; NOT yet honored here: macOS dispatches synchronously in both modes (unlike Windows PostMessage) -- see note below
 	return:	[logic!]
 	/local
 		node	[node!]
 		s		[series!]
 		cell	[red-value!]
 		obj		[red-object!]
+		state	[red-block!]
+		hd		[red-handle!]
 		view	[integer!]
 		pr		[red-pair!]
 		flags	[integer!]
@@ -529,13 +531,23 @@ OS-send-event: func [
 		pk		[red-integer!]
 		synth	[synth-event!]
 ][
+	;-- NOTE: `queued?` (/no-wait) is not yet honored on this backend: every branch below dispatches
+	;-- synchronously (make-event + native actuation run before this returns), whereas the Windows
+	;-- backend posts asynchronously for /no-wait. True async here needs deferring the dispatch (e.g.
+	;-- dispatch_async_f on the main queue) with the event params snapshotted as primitives -- tracked
+	;-- as a follow-up. Native actuation itself is correct in both modes (it also happens on Windows
+	;-- via the pumped WndProc).
 	if null? evt/msg [return false]						;-- needs a target face (synthetic extras node)
 	node: as node!   evt/msg
 	s:	  as series! node/value
 	cell: s/offset										;-- cell 0 = face
 	if TYPE_OF(cell) <> TYPE_OBJECT [return false]
 	obj:  as red-object! cell
-	view: as-integer get-face-handle obj				;-- the NSView (face must be realized)
+	state: as red-block! get-node-facet obj/ctx FACE_OBJ_STATE
+	if TYPE_OF(state) <> TYPE_BLOCK [return false]		;-- face not realized -> no live handle (get-face-handle would assert)
+	hd:   as red-handle! block/rs-head state
+	if TYPE_OF(hd) <> TYPE_HANDLE [return false]
+	view: hd/value
 	if zero? view [return false]
 
 	flags: evt/flags									;-- synthetic flags: low word = key codepoint, high bits = View EVT_FLAG_*
