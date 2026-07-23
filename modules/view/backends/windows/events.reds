@@ -462,15 +462,11 @@ check-extra-keys: func [
 
 key-extra-keys: func [									;-- modifier bits for a key event: injected ones (synthetic) else physical
 	return: [integer!]
-	/local
-		k [integer!]
 ][
 	either inject-key-flags >= 0 [
-		k: inject-key-flags
-		inject-key-flags: -1							;-- one-shot: consumed here, before the actor runs, so a
-		k												;-- reentrant do-events in the handler can't see stale mods
-	][
-		check-extra-keys no
+		inject-key-flags							;-- injected mods stay live for every event of the current synthetic
+	][												;-- dispatch: WM_KEYDOWN of a special key fires EVT_KEY_DOWN *and* a
+		check-extra-keys no							;-- forced EVT_KEY; both must see them. Cleared after `process` returns.
 	]
 ]
 
@@ -749,8 +745,8 @@ OS-send-event: func [
 		unless mouse? [									;-- key event: hand the injected modifiers to make-event via key-extra-keys
 			inject-key-flags: flags and (EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_MENU_DOWN)
 		]
-		process m
-		inject-key-flags: -1							;-- clear (defensive: covers make-event early-returns that skip key-extra-keys)
+		process m										;-- stays live across the whole dispatch: a special key's
+		inject-key-flags: -1							;-- EVT_KEY_DOWN + forced EVT_KEY both read it; cleared here
 	]
 	true
 ]

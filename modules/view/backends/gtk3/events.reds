@@ -741,17 +741,21 @@ gtk-entry-append-char: func [							;-- append one BMP codepoint to a GtkEntry (
 	widget	[handle!]
 	ch		[integer!]
 	/local
-		cur	[c-string!]
-		p	[byte-ptr!]
-		q	[byte-ptr!]
-		n	[integer!]
+		cur	 [c-string!]
+		p	 [byte-ptr!]
+		q	 [byte-ptr!]
+		n	 [integer!]
+		need [integer!]
+		lim	 [integer!]
 ][
 	if null? entry-buf [entry-buf: allocate 4096]
+	need: case [ch <= 007Fh [1] ch <= 07FFh [2] true [3]]	;-- UTF-8 encoded length of the codepoint to append
+	lim:  4096 - need - 1								;-- keep room for the encoded char + NUL (4092..4094 by width)
 	cur: gtk_entry_get_text widget						;-- current UTF-8 text (const)
 	p: as byte-ptr! cur
 	q: entry-buf
 	n: 0
-	while [all [p/value <> null-byte n < 4090]][		;-- copy current text; leave room for a 3-byte char + NUL
+	while [all [p/value <> null-byte n < lim]][			;-- copy as much current text as fits before the new char
 		q/value: p/value
 		p: p + 1  q: q + 1  n: n + 1
 	]
