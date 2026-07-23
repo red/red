@@ -744,9 +744,12 @@ gtk-entry-append-char: func [							;-- append one BMP codepoint to a GtkEntry (
 		cur	 [c-string!]
 		p	 [byte-ptr!]
 		q	 [byte-ptr!]
+		b	 [byte-ptr!]
 		n	 [integer!]
 		need [integer!]
 		lim	 [integer!]
+		k	 [integer!]
+		len	 [integer!]
 ][
 	if null? entry-buf [entry-buf: allocate 4096]
 	need: case [ch <= 007Fh [1] ch <= 07FFh [2] true [3]]	;-- UTF-8 encoded length of the codepoint to append
@@ -758,6 +761,22 @@ gtk-entry-append-char: func [							;-- append one BMP codepoint to a GtkEntry (
 	while [all [p/value <> null-byte n < lim]][			;-- copy as much current text as fits before the new char
 		q/value: p/value
 		p: p + 1  q: q + 1  n: n + 1
+	]
+	if p/value <> null-byte [							;-- text was cut at lim: never split a UTF-8 sequence
+		k: 0											;-- count trailing continuation bytes (10xxxxxx)
+		while [all [k < n  k < 3]][
+			b: q - k - 1
+			if b/value and (as byte! C0h) <> as byte! 80h [break]	;-- reached the lead (or an ASCII) byte
+			k: k + 1
+		]
+		b: q - k - 1									;-- the sequence's first byte
+		len: case [										;-- its expected encoded length
+			b/value < as byte! 80h [1]
+			b/value < as byte! E0h [2]
+			b/value < as byte! F0h [3]
+			true				   [4]
+		]
+		if len > (k + 1) [q: b  n: n - k - 1]			;-- incomplete sequence: cut before its lead byte
 	]
 	case [												;-- append the codepoint as UTF-8 (GtkEntry text is UTF-8)
 		ch <= 007Fh [									;-- 1 byte: ASCII

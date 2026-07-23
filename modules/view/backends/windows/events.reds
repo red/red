@@ -466,8 +466,8 @@ key-extra-keys: func [									;-- modifier bits for a key event: injected ones 
 	either inject-key-flags >= 0 [
 		inject-key-flags							;-- injected mods stay live for every event of the current synthetic
 	][												;-- dispatch: WM_KEYDOWN of a special key fires EVT_KEY_DOWN *and* a
-		check-extra-keys no							;-- forced EVT_KEY; both must see them. Cleared after `process` returns.
-	]
+		check-extra-keys no							;-- forced EVT_KEY; both must see them. do-events masks the override
+	]												;-- (queued real keys read the physical state); OS-send-event restores it.
 ]
 
 char-key?: func [
@@ -674,6 +674,7 @@ OS-send-event: func [
 		m	   [tagMSG value]
 		pt	   [tagPOINT value]
 		pk	   [red-integer!]
+		saved-keys [integer!]
 ][
 	if null? evt/msg [return false]						;-- needs a target face (synthetic extras node)
 	node: as node!   evt/msg
@@ -742,11 +743,12 @@ OS-send-event: func [
 		m/time:   0
 		m/x:      0
 		m/y:      0
-		unless mouse? [									;-- key event: hand the injected modifiers to make-event via key-extra-keys
+		saved-keys: inject-key-flags					;-- save/restore: a nested send-event from an actor must not
+		unless mouse? [									;-- clobber the outer dispatch's injected modifiers
 			inject-key-flags: flags and (EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_MENU_DOWN)
 		]
 		process m										;-- stays live across the whole dispatch: a special key's
-		inject-key-flags: -1							;-- EVT_KEY_DOWN + forced EVT_KEY both read it; cleared here
+		inject-key-flags: saved-keys					;-- EVT_KEY_DOWN + forced EVT_KEY both read it (do-events masks it)
 	]
 	true
 ]
@@ -1968,8 +1970,11 @@ do-events: func [
 		state [integer!]
 		msg?  [logic!]
 		saved [tagMSG]
+		saved-keys [integer!]
 ][
-	msg?: no
+	saved-keys: inject-key-flags				;-- a reentrant pump (do-events called from a synthetic key's
+	inject-key-flags: -1						;-- actor) must read physical modifiers for queued real keys,
+	msg?: no									;-- not the outer send-event's injected override; restored on exit
 	unless no-wait? [loop-cnt: loop-cnt + 1]
 
 	while [
@@ -1988,11 +1993,12 @@ do-events: func [
 			DispatchMessage :msg
 			current-msg: saved
 		]
-		if no-wait? [return msg?]
+		if no-wait? [inject-key-flags: saved-keys  return msg?]
 	]
 	unless no-wait? [
 		exit-loop: exit-loop - 1
 		if exit-loop > 0 [PostQuitMessage 0]
 	]
+	inject-key-flags: saved-keys
 	msg?
 ]
