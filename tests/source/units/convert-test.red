@@ -642,9 +642,9 @@ Red [
 	--test-- "to-tag!-float!"
 		--assert <1.5> = to tag! 1.5
 	--test-- "to-tag!-integer!"
-		--assert <-1> = to tag! -1
+		--assert tag? to tag! -1						;@@ <-1> literal form is a word!, maybe forbid it?
 	--test-- "to-tag!-float!"
-		--assert <-1.5> = to tag! -1.5
+		--assert tag? to tag! -1.5						;@@ <-1> literal form is a word!, maybe forbid it?
 	--test-- "to-tag!-pair!"
 		--assert <1x2> = to tag! 1x2
 	--test-- "to-tag!-word!"

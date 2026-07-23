@@ -109,7 +109,7 @@ lexer: context [
 	not-ref-char:   union ws-ASCII charset {#$@'",;=\^^^/<>[](){}}
 	not-str-char:	#"^""
 	not-mstr-char:	#"}"
-	not-tag-1st:	complement union ws-ASCII charset "=><[](){};^""
+	not-tag-1st:	complement union ws-ASCII charset "-=><[](){};^""
 	not-tag-char:	complement charset ">"
 	tag-char:		charset "<>"
 	caret-Uchar:	charset [#"^(40)" - #"^(5F)"]
