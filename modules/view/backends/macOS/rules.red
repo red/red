@@ -83,13 +83,15 @@ adjust-buttons: function [
 			marg:  select svmm face/options/class
 			def-marg: def-margins/:axis
 
-			face/offset/:axis: face/offset/:axis + switch align [ ;-- adjust to alignment
-				top		[def-marg - marg/2/x]
-				middle  [negate marg/2/y / 2]
-				bottom	[marg/2/y - def-marg - marg/2/x]
-				left	[def-marg - marg/1/x]
-				center  [0]								;-- margin-independent
-				right	[marg/1/y - def-marg]
+			if marg [									;-- no engine margins (e.g. headless test backend): keep the flow offset
+				face/offset/:axis: face/offset/:axis + switch align [ ;-- adjust to alignment
+					top		[def-marg - marg/2/x]
+					middle  [negate marg/2/y / 2]
+					bottom	[marg/2/y - def-marg - marg/2/x]
+					left	[def-marg - marg/1/x]
+					center  [0]							;-- margin-independent
+					right	[marg/1/y - def-marg]
+				]
 			]
 		]
 	][

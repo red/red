@@ -51,22 +51,47 @@ fld: none
 		--assert same? fld p/pane/1
 ===end-group===
 
-===start-group=== "GUI-rules: Windows OK-Cancel reorder"
+===start-group=== "GUI-rules: OK/Cancel button ordering"
 	--test-- "rules off: declared order kept (cancel left of ok)"
 		system/view/VID/GUI-rules/active?: no
 		p: layout [button "cancel" button "ok"]
 		--assert p/pane/1/text = "cancel"
 		--assert p/pane/1/offset/x < p/pane/2/offset/x
-	--test-- "rules on: cancel pushed to the right of ok"
-		system/view/VID/GUI-rules/active?: yes
-		p: layout [button "cancel" button "ok"]
-		ok-face: cancel-face: none
-		foreach face p/pane [
-			if face/text = "ok"     [ok-face: face]
-			if face/text = "cancel" [cancel-face: face]
-		]
-		--assert cancel-face/offset/x > ok-face/offset/x
-		system/view/VID/GUI-rules/active?: no
+	if system/platform = 'Windows [					;-- OK-Cancel reorder is a Windows-only rule (macOS: Cancel-OK/capitalize, Linux: no rules)
+		--test-- "rules on: cancel pushed to the right of ok"
+			system/view/VID/GUI-rules/active?: yes
+			p: layout [button "cancel" button "ok"]
+			ok-face: cancel-face: none
+			foreach face p/pane [
+				if face/text = "ok"     [ok-face: face]
+				if face/text = "cancel" [cancel-face: face]
+			]
+			--assert cancel-face/offset/x > ok-face/offset/x
+			system/view/VID/GUI-rules/active?: no
+	]
+	if system/platform = 'Linux [					;-- no GUI rules on Linux: rules on must keep the declared order
+		--test-- "rules on: declared order kept (no rules on this platform)"
+			system/view/VID/GUI-rules/active?: yes
+			p: layout [button "cancel" button "ok"]
+			--assert p/pane/1/text = "cancel"
+			--assert p/pane/1/offset/x < p/pane/2/offset/x
+			system/view/VID/GUI-rules/active?: no
+	]
+	if system/platform = 'macOS [					;-- macOS rules: adjust-buttons + capitalize + Cancel-OK
+		--test-- "rules on: ok pushed to the right of cancel, captions title-ized"
+			system/view/VID/GUI-rules/active?: yes
+			p: layout [button "ok" button "cancel"]	;-- declared ok-first: Cancel-OK must put OK last
+			ok-face: cancel-face: none
+			foreach face p/pane [					;-- = is case-insensitive: finds them capitalized or not
+				if face/text = "ok"     [ok-face: face]
+				if face/text = "cancel" [cancel-face: face]
+			]
+			--assert "Ok" == ok-face/text			;-- capitalize: title-ized captions (strict compare)
+			--assert "Cancel" == cancel-face/text
+			--assert ok-face/offset/x > cancel-face/offset/x	;-- Cancel-OK: the OK button goes last
+			--assert ok-face/size/y = 28			;-- adjust-buttons: 23 -> 'small class -> 28
+			system/view/VID/GUI-rules/active?: no
+	]
 ===end-group===
 
 ~~~end-file~~~
