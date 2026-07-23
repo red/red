@@ -22,21 +22,24 @@ rate-values: [1 0:0:0.66 2 3 5]		;-- parallel to rate-labels: Hz integers or tim
 
 ;-- the action list: each entry is [ make-event-spec-block  delivery-mode ].
 ;-- the SAME spec block is both sent (make event! spec) and shown in the queue (mold spec).
-;-- sync for the actor-drawn base/list; /no-wait (full pump) for native widgets (field/button/check).
-actions: collect [
-	keep/only reduce [[type: 'down      face: hit offset: 90x22] 'sync]
-	keep/only reduce [[type: 'down      face: hit offset: 90x22] 'sync]
-	keep/only reduce [[type: 'over      face: hit offset: 90x22] 'sync]
-	keep/only reduce [[type: 'dbl-click  face: hit offset: 90x22] 'sync]
-	keep/only reduce [[type: 'key-down   key: #"r" face: hit] 'sync]		;-- char->VK: lowercase r must arrive as 'R, not VK_F3
-	keep/only reduce [[type: 'aux-down   face: hit] 'sync]				;-- aux/X1 button (newly dispatched on Windows)
-	keep/only reduce [[type: 'aux-up     face: hit] 'sync]
-	keep/only reduce [[type: 'wheel      picked: 5 face: lst] 'sync]		;-- wheel delta -> scrolls the list selection
-	foreach ch "Red" [keep/only reduce [compose [type: 'key key: (ch) face: fld] 'nowait]]
-	keep/only reduce [[type: 'down face: btn offset: 40x14] 'nowait]
-	keep/only reduce [[type: 'up   face: btn offset: 40x14] 'nowait]
-	keep/only reduce [[type: 'down face: chk offset: 8x8]   'nowait]
-	keep/only reduce [[type: 'up   face: chk offset: 8x8]   'nowait]
+;-- sync for the actor-drawn base/list; nowait (full pump) for native widgets (field/button/check).
+;-- fully static: `make event!` resolves the face words (hit/lst/fld/...) at send time, so nothing needs composing.
+actions: [
+	[[type: 'down      face: hit offset: 90x22] sync]
+	[[type: 'down      face: hit offset: 90x22] sync]
+	[[type: 'over      face: hit offset: 90x22] sync]
+	[[type: 'dbl-click face: hit offset: 90x22] sync]
+	[[type: 'key-down  key: #"r" face: hit] sync]		;-- char->VK: lowercase r must arrive as 'R, not VK_F3
+	[[type: 'aux-down  face: hit] sync]					;-- aux/X1 button (newly dispatched on Windows)
+	[[type: 'aux-up    face: hit] sync]
+	[[type: 'wheel     picked: 5 face: lst] sync]		;-- wheel delta -> scrolls the list selection
+	[[type: 'key key: #"R" face: fld] nowait]			;-- type "Red" into the field, one key event per char
+	[[type: 'key key: #"e" face: fld] nowait]
+	[[type: 'key key: #"d" face: fld] nowait]
+	[[type: 'down face: btn offset: 40x14] nowait]
+	[[type: 'up   face: btn offset: 40x14] nowait]
+	[[type: 'down face: chk offset: 8x8]  nowait]
+	[[type: 'up   face: chk offset: 8x8]  nowait]
 ]
 
 me-text:   function [idx [integer!]][rejoin ["make event! " mold actions/:idx/1]]
