@@ -770,13 +770,8 @@ gtk-entry-append-char: func [							;-- append one BMP codepoint to a GtkEntry (
 			k: k + 1
 		]
 		b: q - k - 1									;-- the sequence's first byte
-		len: case [										;-- its expected encoded length
-			b/value < as byte! 80h [1]
-			b/value < as byte! E0h [2]
-			b/value < as byte! F0h [3]
-			true				   [4]
-		]
-		if len > (k + 1) [q: b  n: n - k - 1]			;-- incomplete sequence: cut before its lead byte
+		len: unicode/utf8-char-size? as-integer b/value	;-- its expected encoded length (0 for an ASCII lead byte)
+		if len > (k + 1) [q: b  n: n - k - 1]			;-- incomplete sequence (0/1 for ASCII never trips this): cut before its lead byte
 	]
 	case [												;-- append the codepoint as UTF-8 (GtkEntry text is UTF-8)
 		ch <= 007Fh [									;-- 1 byte: ASCII
