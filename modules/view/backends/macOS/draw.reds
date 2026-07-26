@@ -891,6 +891,7 @@ OS-draw-arc: func [
 		angle-end	[float32!]
 		begin-deg	[float32!]
 		delta		[float32!]
+		dir			[float32!]
 		rad			[float32!]
 		current		[float32!]
 		drawn		[float32!]
@@ -921,14 +922,14 @@ OS-draw-arc: func [
 	][
 		either rad-x <> rad-y [								;-- elliptical arc
 			delta: as float32! (PI / 2.0)
-			drawn: as float32! 0.0
+			dir: either sweep < F32_0 [as float32! -1.0][F32_1]	;-- segment along the sweep
+			drawn: F32_0
 			i: 0
 			until [
 				current: angle-begin + drawn
 				rad: angle-end - current
-				either rad > delta [rad: delta][
-					if rad <= as float32! 0.000001 [break]
-				]
+				if (rad * dir) > delta [rad: delta * dir]
+				if (rad * dir) <= as float32! 0.000001 [break]
 				_draw-arc ctx cx cy rad-x rad-y current current + rad zero? i closed?
 				drawn: drawn + rad
 				i: i + 1
