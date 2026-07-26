@@ -889,11 +889,12 @@ OS-draw-arc: func [
 		rad-y		[float32!]
 		angle-begin [float32!]
 		angle-end	[float32!]
+		begin-deg	[float32!]
 		delta		[float32!]
 		rad			[float32!]
 		current		[float32!]
 		drawn		[float32!]
-		sweep		[integer!]
+		sweep		[float32!]
 		i			[integer!]
 		closed?		[logic!]
 		pt			[red-point2D!]
@@ -905,17 +906,17 @@ OS-draw-arc: func [
 	radius: center + 1
 	GET_PAIR_XY(radius rad-x rad-y)
 	begin: as red-integer! radius + 1
-	angle-begin: rad * as float32! begin/value
+	begin-deg: get-float32 begin
+	angle-begin: rad * begin-deg
 	angle: begin + 1
-	sweep: angle/value
-	i: begin/value + sweep
-	angle-end: rad * as float32! i
+	sweep: get-float32 angle
+	angle-end: rad * (begin-deg + sweep)
 
 	closed?: angle < end
 
 	CGContextBeginPath ctx
 	if closed? [CGContextMoveToPoint ctx cx cy]
-	either any [sweep >= 360 sweep <= -360][
+	either FULL_CIRCLE_F32?(sweep) [
 		CGContextAddEllipseInRect ctx cx - rad-x cy - rad-y rad-x * as float32! 2.0 rad-y * as float32! 2.0
 	][
 		either rad-x <> rad-y [								;-- elliptical arc
@@ -934,7 +935,7 @@ OS-draw-arc: func [
 				i = 4
 			]
 		][
-			CGContextAddArc ctx cx cy rad-x angle-begin angle-end as-integer sweep < 0
+			CGContextAddArc ctx cx cy rad-x angle-begin angle-end as-integer sweep < F32_0
 		]
 	]
 	either closed? [
