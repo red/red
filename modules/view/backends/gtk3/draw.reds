@@ -2698,10 +2698,11 @@ OS-draw-arc: func [
 		rad-y		[float!]
 		angle-begin [float!]
 		angle-end	[float!]
+		begin-deg	[float!]
 		rad			[float!]
-		sweep		[integer!]
-		i			[integer!]
+		sweep		[float!]
 		closed?		[logic!]
+		full?		[logic!]
 		saved		[cairo_matrix_t! value]
 		pt			[red-point2D!]
 ][
@@ -2712,14 +2713,19 @@ OS-draw-arc: func [
 	radius: center + 1
 	GET_PAIR_XY_F(radius rad-x rad-y)
 	begin: as red-integer! radius + 1
-	angle-begin: rad * as float! begin/value
+	begin-deg: get-float begin
+	angle-begin: rad * begin-deg
 	angle: begin + 1
-	sweep: angle/value
-	i: begin/value + sweep
-	angle-end: rad * as float! i
+	sweep: get-float angle
+	full?: FULL_CIRCLE?(sweep)
+	angle-end: either full? [
+		either sweep < 0.0 [angle-begin - (PI * 2.0)][angle-begin + (PI * 2.0)]
+	][
+		rad * (begin-deg + sweep)
+	]
 
-	;-- adjust angles for ellipses
-	if rad-x <> rad-y [
+	;-- adjust angles for ellipses; a full turn is periodic, remapping would collapse it to nothing
+	if all [rad-x <> rad-y not full?][
 		angle-begin: atan2 (sin angle-begin) * rad-x (cos angle-begin) * rad-y
 		angle-end:   atan2 (sin angle-end)  * rad-x (cos angle-end) * rad-y
 
@@ -2745,7 +2751,7 @@ OS-draw-arc: func [
 	]
 	cairo_translate cr cx    cy
 	cairo_scale     cr rad-x rad-y
-	either sweep < 0 [
+	either sweep < 0.0 [
 		cairo_arc_negative cr 0.0 0.0 1.0 angle-begin angle-end
 	][
 		cairo_arc cr 0.0 0.0 1.0 angle-begin angle-end

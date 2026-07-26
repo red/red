@@ -332,6 +332,8 @@ Red/System [
 #define WM_RBUTTONUP		0205h
 #define WM_MBUTTONDOWN		0207h
 #define WM_MBUTTONUP		0208h
+#define WM_XBUTTONDOWN		020Bh
+#define WM_XBUTTONUP		020Ch
 #define	WM_MOUSEWHEEL		020Ah
 #define WM_ENTERMENULOOP	0211h
 #define WM_SIZING			0214h
@@ -1316,6 +1318,10 @@ XFORM!: alias struct! [
 		MapVirtualKey: "MapVirtualKeyW" [
 			uCode		[integer!]
 			uMapType	[integer!]
+			return:		[integer!]
+		]
+		VkKeyScan: "VkKeyScanW" [
+			ch			[integer!]
 			return:		[integer!]
 		]
 		ToUnicode: "ToUnicode" [

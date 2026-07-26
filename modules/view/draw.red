@@ -826,7 +826,7 @@ Red/System [
 							]
 							sym = _arc [
 								loop 2 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)]	;-- center/radius (of the circle/ellipse)
-								loop 2 [DRAW_FETCH_VALUE(TYPE_INTEGER)]	;-- angle begin/length (degrees)
+								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]	;-- angle begin/length (degrees)
 								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
 								word: as red-word! cmd
 								if all [

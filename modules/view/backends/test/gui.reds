@@ -167,6 +167,13 @@ get-text-size: func [
 	point2D/push F32_1 F32_1
 ]
 
+get-text-alt: func [
+	face [red-object!]
+	idx	 [integer!]
+][
+	exit
+]
+
 
 make-font: func [
 	face [red-object!]
@@ -248,6 +255,44 @@ update-scroller: func [
 
 ]
 
+
+OS-get-current-screen: func [
+	return: [red-handle!]
+][
+	handle/make-at stack/arguments 0 handle/CLASS_MONITOR	;-- single headless screen
+]
+
+OS-fetch-all-screens: func [
+	return: [red-block!]
+	/local
+		blk		[red-block!]
+		scr		[red-block!]
+		s		[series!]
+][
+	blk: block/push-only* 1								;-- outer list of screens
+	scr: block/make-at as red-block! ALLOC_TAIL(blk) 4	;-- one dummy headless screen
+	s: GET_BUFFER(scr)
+	pair/make-at   alloc-tail s 0 0						;-- offset
+	pair/make-at   alloc-tail s 2000 1000				;-- size (matches get-screen-size)
+	float/make-at  alloc-tail s 1.0						;-- scale factor
+	handle/make-at alloc-tail s 0 handle/CLASS_MONITOR	;-- monitor handle (none)
+	blk
+]
+
+support-dark-mode?: func [
+	return: [logic!]
+][
+	false
+]
+
+set-dark-mode: func [
+	hWnd		[handle!]
+	dark?		[logic!]
+	top-level?	[logic!]
+][
+]
+
+DX-create-dev: func [][]								;-- GPU device init: no-op for headless engine
 
 OS-redraw: func [hWnd [integer!]][]
 

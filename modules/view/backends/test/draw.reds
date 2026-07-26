@@ -12,6 +12,23 @@ Red/System [
 
 draw-state!: alias struct! [unused [integer!]]
 
+draw-ctx!: alias struct! [
+	dc			[handle!]
+	x			[integer!]
+	y			[integer!]
+	left		[integer!]
+	top			[integer!]
+	right		[integer!]
+	bottom		[integer!]
+	pen-type	[integer!]
+	pen-color	[integer!]
+	brush-color	[integer!]
+	brush-type	[integer!]
+	font-color	[integer!]
+	font-color?	[logic!]
+	flags		[integer!]
+]
+
 draw-begin: func [
 	ctx			[draw-ctx!]
 	hWnd		[handle!]
@@ -20,7 +37,7 @@ draw-begin: func [
 	paint?		[logic!]
 	return: 	[draw-ctx!]
 ][
-
+	ctx
 ]
 
 draw-end: func [
@@ -45,7 +62,7 @@ OS-draw-shape-endpath: func [
 	close?		[logic!]
 	return:		[logic!]
 ][
-
+	false
 ]
 
 OS-draw-shape-close: func [
@@ -272,6 +289,23 @@ OS-draw-line-cap: func [
 
 ]
 
+OS-draw-line-pattern: func [
+	ctx		[draw-ctx!]
+	start	[red-integer!]
+	end		[red-integer!]
+][
+]
+
+OS-draw-shadow: func [
+	ctx		[draw-ctx!]
+	offset	[red-pair!]
+	blur	[integer!]
+	spread	[integer!]
+	color	[integer!]
+	inset?	[logic!]
+][
+]
+
 OS-draw-image: func [
 	ctx			[draw-ctx!]
 	image		[red-image!]
@@ -281,8 +315,9 @@ OS-draw-image: func [
 	border?		[logic!]
 	crop1		[red-pair!]
 	pattern		[red-word!]
+	return:		[integer!]
 ][
-
+	0
 ]
 
 
@@ -370,8 +405,7 @@ OS-matrix-scale: func [
 OS-matrix-translate: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
-	x			[integer!]
-	y			[integer!]
+	pair		[red-pair!]
 ][
 
 ]

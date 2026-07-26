@@ -64,6 +64,20 @@ do-event: function [
 		]
 		remove args
 	]
+	if flag-list [									;-- modifier keys -> OR their event-flag bits
+		foreach f flag-list [
+			if bit: select [
+				control  268435456					;-- 10000000h  EVT_FLAG_CTRL_DOWN
+				shift    536870912					;-- 20000000h  EVT_FLAG_SHIFT_DOWN
+				alt      1073741824					;-- 40000000h  EVT_FLAG_MENU_DOWN (ALT)
+				alt-down 8388608					;-- 00800000h  EVT_FLAG_ALT_DOWN
+				aux-down 4194304					;-- 00400000h  EVT_FLAG_AUX_DOWN
+				mid-down 16777216					;-- 01000000h  EVT_FLAG_MID_DOWN
+				down     33554432					;-- 02000000h  EVT_FLAG_DOWN
+				away     67108864					;-- 04000000h  EVT_FLAG_AWAY
+			] f [flags: flags or bit]
+		]
+	]
 	all [
 		find [click dbl-click down up] evt-name
 		find [check radio] face/type

@@ -47,31 +47,71 @@ event: context [
 		evt		[red-event!]
 		field	[integer!]
 		return: [red-value!]
+		/local
+			s	[series!]
+			n	[node!]
+			v	[red-value!]
 	][
-		switch field [
-			1  [gui/get-event-type evt]
-			2  [gui/get-event-face evt]
-			3  [gui/get-event-window evt]
-			4  [gui/get-event-offset evt]
-			5  [gui/get-event-key evt]
-			6  [gui/get-event-picked evt]
-			7  [gui/get-event-flags evt]
-			8  [gui/get-event-flag evt/flags gui/EVT_FLAG_AWAY]
-			9  [gui/get-event-flag evt/flags gui/EVT_FLAG_DOWN]
-			10 [gui/get-event-flag evt/flags gui/EVT_FLAG_MID_DOWN]
-			11 [gui/get-event-flag evt/flags gui/EVT_FLAG_ALT_DOWN]
-			12 [gui/get-event-flag evt/flags gui/EVT_FLAG_AUX_DOWN]
-			13 [gui/get-event-flag evt/flags gui/EVT_FLAG_CTRL_DOWN]
-			14 [gui/get-event-flag evt/flags gui/EVT_FLAG_SHIFT_DOWN]
-			15 [gui/get-event-orientation evt]
-			default [assert false null]
+		v: null
+		if (evt/flags and gui/EVT_FLAG_SYNTHETIC) <> 0 [	;-- synthetic event (built via `make event!`)
+			s: null										;-- extras node [face window offset picked], null if none were given
+			if evt/msg <> null [n: as node! evt/msg  s: as series! n/value]
+			v: switch field [
+				2  [either null? s [as red-value! none-value][copy-cell s/offset as cell! stack/push*]]				;-- face
+				3  [either null? s [as red-value! none-value][copy-cell (s/offset + 1) as cell! stack/push*]]		;-- window
+				4  [either null? s [as red-value! pair/push 0 0][copy-cell (s/offset + 2) as cell! stack/push*]]	;-- offset
+				5  [either zero? (evt/flags and FFFFh) [as red-value! none-value][as red-value! char/push (evt/flags and FFFFh)]]	;-- key: none when not given (as real backends do)
+				6  [either null? s [as red-value! integer/push 0][copy-cell (s/offset + 3) as cell! stack/push*]]	;-- picked
+				15 [as red-value! none-value]			;-- orientation
+				default [null]							;-- type/flags/modifiers live in the cell
+			]
 		]
+		if null? v [
+			v: switch field [
+				1  [gui/get-event-type evt]
+				2  [gui/get-event-face evt]
+				3  [gui/get-event-window evt]
+				4  [gui/get-event-offset evt]
+				5  [gui/get-event-key evt]
+				6  [gui/get-event-picked evt]
+				7  [gui/get-event-flags evt]
+				8  [gui/get-event-flag evt/flags gui/EVT_FLAG_AWAY]
+				9  [gui/get-event-flag evt/flags gui/EVT_FLAG_DOWN]
+				10 [gui/get-event-flag evt/flags gui/EVT_FLAG_MID_DOWN]
+				11 [gui/get-event-flag evt/flags gui/EVT_FLAG_ALT_DOWN]
+				12 [gui/get-event-flag evt/flags gui/EVT_FLAG_AUX_DOWN]
+				13 [gui/get-event-flag evt/flags gui/EVT_FLAG_CTRL_DOWN]
+				14 [gui/get-event-flag evt/flags gui/EVT_FLAG_SHIFT_DOWN]
+				15 [gui/get-event-orientation evt]
+				default [assert false null]
+			]
+		]
+		v
 	]
 	
 	push: func [
 		evt [red-event!]
 	][	
 		stack/push as red-value! evt
+	]
+
+	flag-word-bit: func [
+		w		[red-word!]
+		return: [integer!]
+		/local s [integer!]
+	][
+		s: symbol/resolve w/symbol
+		case [
+			s = symbol/resolve gui/_control/symbol	[gui/EVT_FLAG_CTRL_DOWN]
+			s = symbol/resolve gui/_shift/symbol	[gui/EVT_FLAG_SHIFT_DOWN]
+			s = symbol/resolve gui/_alt/symbol		[gui/EVT_FLAG_MENU_DOWN]
+			s = symbol/resolve gui/_away/symbol		[gui/EVT_FLAG_AWAY]
+			s = symbol/resolve gui/_down/symbol		[gui/EVT_FLAG_DOWN]
+			s = symbol/resolve gui/_mid-down/symbol	[gui/EVT_FLAG_MID_DOWN]
+			s = symbol/resolve gui/_alt-down/symbol	[gui/EVT_FLAG_ALT_DOWN]
+			s = symbol/resolve gui/_aux-down/symbol	[gui/EVT_FLAG_AUX_DOWN]
+			true [0]
+		]
 	]
 
 	;-- Actions --
@@ -81,10 +121,136 @@ event: context [
 		spec	[red-value!]
 		type	[integer!]
 		return:	[red-event!]
+		/local
+			evt		[red-event!]
+			blk		[red-block!]
+			value	[red-value!]
+			tail	[red-value!]
+			w		[red-word!]
+			w2		[red-word!]
+			saved	[red-value!]
+			ch		[red-char!]
+			fblk	[red-block!]
+			fval	[red-value!]
+			ftail	[red-value!]
+			face	[red-value!]
+			window	[red-value!]
+			pr		[red-pair!]
+			iv		[red-integer!]
+			node	[node!]
+			s		[series!]			
+			sym		[integer!]
+			off-x	[integer!]
+			off-y	[integer!]
+			pkd		[integer!]
+			extras? [logic!]			
 	][
 		#if debug? = yes [if verbose > 0 [print-line "event/make"]]
 
-		as red-event! 0
+		evt: as red-event! stack/push*
+		evt/header: TYPE_EVENT
+		evt/type:   0
+		evt/msg:    null
+		evt/flags:  gui/EVT_FLAG_SYNTHETIC				;-- every make-event value is synthetic (marked by the GC, see runtime/collector.reds)
+		face:	    null
+		window:     null
+		off-x:      0
+		off-y:      0
+		pkd:        0
+		extras?:	no
+
+		if TYPE_OF(spec) = TYPE_BLOCK [
+			blk:   as red-block! spec
+			value: block/rs-head blk
+			tail:  block/rs-tail blk
+			while [value < tail][
+				if TYPE_OF(value) = TYPE_SET_WORD [
+					if (value + 1) < tail [
+						w:   as red-word! value
+						sym: symbol/resolve w/symbol
+						value: value + 1
+						saved: value					;-- keep the spec cursor: resolution below may repoint `value` into a binding context
+						if any [TYPE_OF(value) = TYPE_WORD  TYPE_OF(value) = TYPE_GET_WORD][	;-- object-init style: evaluate a word/get-word value to its bound value
+							w2: as red-word! value
+							if w2/ctx <> null [value: _context/get w2]
+						]
+						case [
+							sym = words/type [
+								if (TYPE_OF(value) = TYPE_WORD) or (TYPE_OF(value) = TYPE_LIT_WORD) [
+									gui/set-event-type evt as red-word! value
+								]
+							]
+							sym = words/key [
+								if TYPE_OF(value) = TYPE_CHAR [
+									ch: as red-char! value
+									evt/flags: evt/flags or (ch/value and FFFFh)
+								]
+							]
+							sym = words/flags [
+								if TYPE_OF(value) = TYPE_BLOCK [
+									fblk:  as red-block! value
+									fval:  block/rs-head fblk
+									ftail: block/rs-tail fblk
+									while [fval < ftail][
+										if TYPE_OF(fval) = TYPE_WORD [
+											evt/flags: evt/flags or (flag-word-bit as red-word! fval)
+										]
+										fval: fval + 1
+									]
+								]
+							]
+							sym = words/face [
+								if TYPE_OF(value) = TYPE_OBJECT [
+									face: value
+									extras?: yes
+								]
+							]
+							sym = words/window [
+								if TYPE_OF(value) = TYPE_OBJECT [
+									window: value
+									extras?: yes
+								]
+							]
+							sym = words/offset [
+								if TYPE_OF(value) = TYPE_PAIR [
+									pr: as red-pair! value
+									off-x: pr/x
+									off-y: pr/y
+									extras?: yes
+								]
+							]
+							sym = words/picked [
+								if TYPE_OF(value) = TYPE_INTEGER [
+									iv: as red-integer! value
+									pkd: iv/value
+									extras?: yes
+								]
+							]
+							true [0]
+						]
+						value: saved					;-- restore the spec cursor for the loop's advance
+					]
+				]
+				value: value + 1
+			]
+		]
+
+		if extras? [									;-- per-event GC-managed extras node, hung off msg
+			node: alloc-cells 4
+			s: as series! node/value
+			either null? face [copy-cell as cell! none-value s/offset][copy-cell as cell! face s/offset]
+			either null? window [copy-cell as cell! none-value (s/offset + 1)][copy-cell as cell! window (s/offset + 1)] ;-- window
+			pr: as red-pair! (s/offset + 2)				;-- offset
+			pr/header: TYPE_PAIR
+			pr/x: off-x
+			pr/y: off-y
+			iv: as red-integer! (s/offset + 3)			;-- picked
+			iv/header: TYPE_INTEGER
+			iv/value: pkd
+			s/tail: s/offset + 4
+			evt/msg: as byte-ptr! node
+		]
+		evt
 	]
 	
 	form: func [
@@ -195,7 +361,7 @@ event: context [
 			TYPE_VALUE
 			"event!"
 			;-- General actions --
-			null			;make
+			:make			;make
 			null			;random
 			null			;reflect
 			null			;to

@@ -2016,9 +2016,12 @@ OS-draw-arc: func [
 	radius: center + 1
 	GET_PAIR_XY_INT(radius rad-x rad-y)
 	angle: as red-integer! radius + 1
-	angle-begin: as float32! angle/value
+	angle-begin: get-float32 angle
 	angle: angle + 1
-	angle-len: as float32! angle/value
+	angle-len: get-float32 angle
+	if FULL_CIRCLE_F32?(angle-len) [						;-- GDI+ and GDI both close on an exact full turn
+		angle-len: either angle-len > F32_0 [as float32! 360.0][as float32! -360.0]
+	]
 
 	closed?: angle < end
 

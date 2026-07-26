@@ -30,7 +30,7 @@ get-event-window: func [
 	evt		[red-event!]
 	return: [red-value!]
 ][
-	null
+	as red-value! none-value
 ]
 
 get-event-face: func [
@@ -55,6 +55,13 @@ get-event-key: func [
 	return: [red-value!]
 ][
 	as red-value! char/push evt/flags and FFFFh
+]
+
+get-event-orientation: func [
+	evt		[red-event!]
+	return: [red-value!]
+][
+	as red-value! none-value
 ]
 
 get-event-picked: func [
@@ -89,6 +96,14 @@ get-event-flag: func [
 	return: [red-value!]
 ][
 	as red-value! logic/push flags and flag <> 0
+]
+
+OS-send-event: func [									;-- headless regression backend: OS injection is a no-op
+	evt		[red-event!]
+	queued?	[logic!]
+	return:	[logic!]
+][
+	false
 ]
 
 OS-make-event: func [

@@ -103,6 +103,8 @@ do %tests/source/units/run-post-extra-tests.r
 	--run-test-file-quiet %source/view/base-self-test.red
 ===end-group===
 
+do %tests/run-view-headless-tests.r					;-- View/VID headless suite (test GUI backend), joins this run
+
 qt/script-header: "Red/System []"
 qt/tests-dir: clean-path %system/tests/ 
 run-all-script %system/tests/ %run-all.r

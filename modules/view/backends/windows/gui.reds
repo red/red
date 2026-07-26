@@ -2432,6 +2432,7 @@ change-selection: func [
 		flt	 [float!]
 		si	 [tagSCROLLINFO value]
 		sym	 [integer!]
+		idx	 [integer!]
 ][
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
@@ -2455,7 +2456,8 @@ change-selection: func [
 			]
 		]
 		sym = text-list [
-			SendMessage hWnd LB_SETCURSEL int/value - 1 0
+			idx: either int/value < 1 [-1][int/value - 1]	;-- selected < 1 (e.g. -1) deselects via LB_SETCURSEL -1
+			SendMessage hWnd LB_SETCURSEL idx 0
 		]
 		any [sym = drop-list sym = drop-down][
 			SendMessage hWnd CB_SETCURSEL int/value - 1 0

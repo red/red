@@ -1574,8 +1574,8 @@ OS-draw-arc: func [
 		rad-x		[float32!]
 		rad-y		[float32!]
 		angle-begin [float32!]
-		sweep		[integer!]
-		i			[integer!]
+		begin-deg	[float32!]
+		sweep		[float32!]
 		angle-end	[float32!]
 		end-x		[float32!]
 		end-y		[float32!]
@@ -1588,17 +1588,17 @@ OS-draw-arc: func [
 	radius: center + 1
 	GET_PAIR_XY(radius rad-x rad-y)
 	begin: as red-integer! radius + 1
-	angle-begin: rad * as float32! begin/value
+	begin-deg: get-float32 begin
+	angle-begin: rad * begin-deg
 	angle: begin + 1
-	sweep: angle/value
+	sweep: get-float32 angle
 
-	if any [sweep >= 360 sweep <= -360][
+	if FULL_CIRCLE_F32?(sweep) [
 		do-draw-ellipse ctx cx - rad-x cy - rad-y rad-x * as float32! 2.0 rad-y * as float32! 2.0
 		exit
 	]
 
-	i: begin/value + sweep
-	angle-end: rad * as float32! i
+	angle-end: rad * (begin-deg + sweep)
 
 	;-- adjust angles for ellipses
 	if rad-x <> rad-y [
@@ -1652,8 +1652,8 @@ OS-draw-arc: func [
 	arc/size/width: rad-x
 	arc/size/height: rad-y
 	arc/angle: as float32! 0.0
-	arc/direction: as-integer sweep >= 0
-	arc/arcSize: either any [sweep >= 180 sweep <= -180][1][0]
+	arc/direction: as-integer sweep >= F32_0
+	arc/arcSize: either any [sweep >= (as float32! 180.0) sweep <= (as float32! -180.0)][1][0]
 	hr: gsink/AddArc sthis arc
 	gsink/EndFigure sthis either closed? [1][0]
 

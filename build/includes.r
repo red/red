@@ -363,6 +363,7 @@ write %build/bin/sources.r set-cache [
 			%Mach-O-obj.r
 			%PE.r
 			%crt-helpers.r
+			%guid-exports.r
 			%libc-exports.r
 			%mac-cxx-exports.r
 			%mac-libsystem.r

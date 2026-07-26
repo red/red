@@ -733,6 +733,167 @@ get-event-picked: func [
 	]
 ]
 
+#define GTK_STATE_FLAG_ACTIVE 1						;-- GtkStateFlags: the button's "pressed" look
+
+entry-buf: as byte-ptr! 0								;-- lazy scratch for gtk-entry-append-char
+
+gtk-entry-append-char: func [							;-- append one BMP codepoint to a GtkEntry (UTF-8 encoded)
+	widget	[handle!]
+	ch		[integer!]
+	/local
+		cur	 [c-string!]
+		p	 [byte-ptr!]
+		q	 [byte-ptr!]
+		b	 [byte-ptr!]
+		n	 [integer!]
+		need [integer!]
+		lim	 [integer!]
+		k	 [integer!]
+		len	 [integer!]
+][
+	if null? entry-buf [entry-buf: allocate 4096]
+	need: case [ch <= 007Fh [1] ch <= 07FFh [2] true [3]]	;-- UTF-8 encoded length of the codepoint to append
+	lim:  4096 - need - 1								;-- keep room for the encoded char + NUL (4092..4094 by width)
+	cur: gtk_entry_get_text widget						;-- current UTF-8 text (const)
+	p: as byte-ptr! cur
+	q: entry-buf
+	n: 0
+	while [all [p/value <> null-byte n < lim]][			;-- copy as much current text as fits before the new char
+		q/value: p/value
+		p: p + 1  q: q + 1  n: n + 1
+	]
+	if p/value <> null-byte [							;-- text was cut at lim: never split a UTF-8 sequence
+		k: 0											;-- count trailing continuation bytes (10xxxxxx)
+		while [all [k < n  k < 3]][
+			b: q - k - 1
+			if b/value and (as byte! C0h) <> as byte! 80h [break]	;-- reached the lead (or an ASCII) byte
+			k: k + 1
+		]
+		b: q - k - 1									;-- the sequence's first byte
+		len: unicode/utf8-char-size? as-integer b/value	;-- its expected encoded length (0 for an ASCII lead byte)
+		if len > (k + 1) [q: b  n: n - k - 1]			;-- incomplete sequence (0/1 for ASCII never trips this): cut before its lead byte
+	]
+	case [												;-- append the codepoint as UTF-8 (GtkEntry text is UTF-8)
+		ch <= 007Fh [									;-- 1 byte: ASCII
+			q/value: as byte! ch  q: q + 1
+		]
+		ch <= 07FFh [									;-- 2 bytes: U+0080..U+07FF (e.g. U+00E9 -> C3 A9)
+			q/value: as byte! (ch >> 6)   and 1Fh or 0C0h  q: q + 1
+			q/value: as byte! ch          and 3Fh or 80h   q: q + 1
+		]
+		true [											;-- 3 bytes: U+0800..U+FFFF (e.g. U+4E2D -> E4 B8 AD)
+			q/value: as byte! (ch >> 12)  and 0Fh or 0E0h  q: q + 1
+			q/value: as byte! (ch >> 6)   and 3Fh or 80h   q: q + 1
+			q/value: as byte! ch          and 3Fh or 80h   q: q + 1
+		]
+	]
+	q/value: null-byte
+	gtk_entry_set_text widget as c-string! entry-buf	;-- emits "changed" -> syncs the Red `text` facet
+]
+
+OS-send-event: func [
+	evt		[red-event!]
+	queued?	[logic!]									;-- /no-wait (async post) selector; NOT yet honored here: GTK dispatches synchronously in both modes (unlike Windows PostMessage) -- see note below
+	return:	[logic!]
+	/local
+		node	[node!]
+		s		[series!]
+		cell	[red-value!]
+		obj		[red-object!]
+		state	[red-block!]
+		hd		[red-handle!]
+		widget	[handle!]
+		pr		[red-pair!]
+		pk		[red-integer!]
+		flags	[integer!]
+		mods	[integer!]
+		scroll	[GdkEventScroll!]
+		vals	[red-value!]
+		wd		[red-word!]
+		ftype	[integer!]
+][
+	;-- NOTE: `queued?` (/no-wait) is not yet honored on this backend: every branch below dispatches
+	;-- synchronously (make-event + native actuation run before this returns), whereas the Windows
+	;-- backend posts asynchronously for /no-wait. True async here needs deferring the dispatch to a
+	;-- g_idle_add callback with the event params snapshotted as primitives (widget/type/mods/offset/
+	;-- picked) -- tracked as a follow-up. Native actuation itself is correct in both modes (it also
+	;-- happens on Windows via the pumped WndProc).
+	if null? evt/msg [return false]						;-- needs a target face (synthetic extras node)
+	node: as node!   evt/msg
+	s:	  as series! node/value
+	cell: s/offset										;-- cell 0 = face
+	if TYPE_OF(cell) <> TYPE_OBJECT [return false]
+	obj:    as red-object! cell
+	state:  as red-block! get-node-facet obj/ctx FACE_OBJ_STATE
+	if TYPE_OF(state) <> TYPE_BLOCK [return false]		;-- face not realized -> no live handle (get-face-handle would assert)
+	hd:     as red-handle! block/rs-head state
+	if TYPE_OF(hd) <> TYPE_HANDLE [return false]
+	widget: as handle! hd/value
+	if null? widget [return false]
+	vals:  get-face-values widget
+	wd:    as red-word! vals + FACE_OBJ_TYPE
+	ftype: symbol/resolve wd/symbol						;-- face type (button/check/field/...)
+
+	flags: evt/flags									;-- synthetic flags: low word = key codepoint, high bits = View EVT_FLAG_*
+	mods:  flags and (EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MENU_DOWN or EVT_FLAG_CMD_DOWN)
+														;-- keep only keyboard modifiers; raw evt/flags has bits make-event mis-reads
+	pr: as red-pair! (s/offset + 2)						;-- cell 2 = offset (logical; GTK event coords are logical -> exact round-trip)
+	either TYPE_OF(pr) = TYPE_PAIR [
+		evt-motion/x_new: pr/x							;-- get-event-offset reads these globals, not the GdkEvent
+		evt-motion/y_new: pr/y
+	][
+		evt-motion/x_new: 0								;-- no offset given -> 0x0, not the stale coords of a previous event
+		evt-motion/y_new: 0								;-- (matching the Windows and macOS backends)
+	]
+
+	switch evt/type [
+		EVT_LEFT_DOWN	[
+			make-event widget mods EVT_LEFT_DOWN
+			if ftype = button [gtk_widget_set_state_flags widget GTK_STATE_FLAG_ACTIVE no]	;-- show the button pressed
+		]
+		EVT_LEFT_UP		[
+			make-event widget mods EVT_LEFT_UP
+			case [
+				ftype = button [
+					button-clicked widget widget					;-- fire the native click -> on-click
+					gtk_widget_unset_state_flags widget GTK_STATE_FLAG_ACTIVE	;-- release the pressed look
+				]
+				any [ftype = check ftype = toggle ftype = radio][	;-- toggle -> "toggled" -> button-toggled -> on-change
+					either gtk_toggle_button_get_active widget [
+						gtk_toggle_button_set_active widget no
+					][	gtk_toggle_button_set_active widget yes ]
+				]
+				true [0]
+			]
+		]
+		EVT_MIDDLE_DOWN	[make-event widget mods EVT_MIDDLE_DOWN]
+		EVT_MIDDLE_UP	[make-event widget mods EVT_MIDDLE_UP]
+		EVT_RIGHT_DOWN	[make-event widget mods EVT_RIGHT_DOWN]
+		EVT_RIGHT_UP	[make-event widget mods EVT_RIGHT_UP]
+		EVT_OVER		[make-event widget mods EVT_OVER]
+		EVT_DBL_CLICK	[make-event widget (mods or EVT_FLAG_DBL_CLICK) EVT_LEFT_DOWN]	;-- make-event maps the DBL flag -> EVT_DBL_CLICK
+		EVT_KEY_DOWN	[special-key: 0  make-event widget ((flags and FFFFh) or mods) EVT_KEY_DOWN]	;-- low word = key codepoint
+		EVT_KEY_UP		[special-key: 0  make-event widget ((flags and FFFFh) or mods) EVT_KEY_UP]
+		EVT_KEY			[
+			special-key: 0  unicode-cp: 0
+			make-event widget ((flags and FFFFh) or mods) EVT_KEY	;-- BMP char; supplementary planes need unicode-cp
+			if ftype = field [gtk-entry-append-char widget flags and FFFFh]	;-- also fill the native entry
+		]
+		EVT_WHEEL		[
+			pk: as red-integer! (s/offset + 3)			;-- cell 3 = picked (notches)
+			scroll: declare GdkEventScroll!				;-- synth a smooth scroll; get-event-picked returns -delta_y
+			scroll/direction: GDK_SCROLL_SMOOTH
+			scroll/delta_x:   0.0
+			scroll/delta_y:   either TYPE_OF(pk) = TYPE_INTEGER [as float! (0 - pk/value)][-1.0]
+			g_object_set_qdata widget red-event-id as handle! scroll
+			make-event widget mods EVT_WHEEL
+			g_object_set_qdata widget red-event-id null
+		]
+		default			[return false]					;-- aux & others not OS-injectable on GTK yet
+	]
+	true
+]
+
 get-event-flags: func [
 	evt		[red-event!]
 	return: [red-value!]

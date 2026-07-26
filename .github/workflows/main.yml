@@ -87,6 +87,27 @@ jobs:
         name: view-test-log
         path: quick-test/quick-test.log
 
+  View-Headless:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: setup red repo
+      run: |
+        $url = "http://static.red-lang.org/build/rebview.exe"
+        $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
+        (New-Object System.Net.WebClient).DownloadFile($url, $output)
+    - name: run headless view/VID test (test GUI backend)
+      run: rebview.exe -qws tests\run-view-headless-tests.r --batch
+      shell: cmd
+
+    - uses: actions/upload-artifact@v7
+      if: failure()
+      with:
+        name: view-headless-test-log
+        path: quick-test/quick-test.log
+
   Regression:
 
     runs-on: windows-latest

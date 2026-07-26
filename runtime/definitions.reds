@@ -95,6 +95,12 @@ Red/System [
 #define F32_0	[as float32! 0.0]
 #define F32_1	[as float32! 1.0]
 
+;-- DRAW's arc: a sweep within 0.001 degree of a full turn is snapped to one, so that
+;-- angles computed in floating-point (360 / 7 * 7) still close the circle. That epsilon
+;-- is 33x the float32! resolution at 360.0, and stays below half a pixel up to r=29000.
+#define FULL_CIRCLE?(a)		[any [a >= 359.999 a <= -359.999]]
+#define FULL_CIRCLE_F32?(a)	[any [a >= (as float32! 359.999) a <= (as float32! -359.999)]]
+
 #define ANY_COORD?(value) [any [TYPE_OF(value) = TYPE_PAIR TYPE_OF(value) = TYPE_POINT2D]]
 #define PAIR_TYPE?(value) [TYPE_OF(value) = TYPE_PAIR]
 #define GET_PAIR_XY(_pair fx fy) [
