@@ -243,8 +243,8 @@ render-text: func [
 	para: as red-object! values + FACE_OBJ_PARA
 	either TYPE_OF(para) = TYPE_OBJECT [
 		pvalues: object/get-values para
-		hsym: get-para-hsym pvalues
-		vsym: get-para-vsym pvalues
+		hsym: get-para-hsym pvalues _para/left
+		vsym: get-para-vsym pvalues _para/middle
 	][
 		hsym: _para/center
 		vsym: _para/middle

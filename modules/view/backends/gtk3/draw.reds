@@ -2601,8 +2601,8 @@ draw-text-box: func [
 		ANY_COORD?(size)
 	][
 		pvalues: object/get-values para
-		hsym: get-para-hsym pvalues
-		vsym: get-para-vsym pvalues
+		hsym: get-para-hsym pvalues _para/left		;-- rich-text boxes default to top-left,
+		vsym: get-para-vsym pvalues _para/top		;-- like the Windows backend (#5758)
 		if any [
 			hsym = _para/center
 			hsym = _para/middle

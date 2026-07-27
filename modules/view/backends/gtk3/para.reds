@@ -28,8 +28,8 @@ change-para: func [
 	either TYPE_OF(para) = TYPE_OBJECT [
 		pvalues: object/get-values para
 		wrap?: get-para-wrap pvalues
-		hsym: get-para-hsym pvalues
-		vsym: get-para-vsym pvalues
+		hsym: get-para-hsym pvalues _para/left
+		vsym: get-para-vsym pvalues _para/middle
 	][
 		case [
 			any [
@@ -215,22 +215,24 @@ get-para-wrap: func [
 
 get-para-hsym: func [
 	values		[red-value!]
+	default		[integer!]							;-- alignment to use when the facet is unset
 	return:		[integer!]
 	/local
 		align	[red-word!]
 ][
 	align: as red-word! values + PARA_OBJ_ALIGN
-	if TYPE_OF(align) = TYPE_NONE [return _para/left]
+	if TYPE_OF(align) <> TYPE_WORD [return default]
 	symbol/resolve align/symbol
 ]
 
 get-para-vsym: func [
 	values		[red-value!]
+	default		[integer!]							;-- alignment to use when the facet is unset
 	return:		[integer!]
 	/local
 		align	[red-word!]
 ][
 	align: as red-word! values + PARA_OBJ_V-ALIGN
-	if TYPE_OF(align) = TYPE_NONE [return _para/middle]
+	if TYPE_OF(align) <> TYPE_WORD [return default]
 	symbol/resolve align/symbol
 ]

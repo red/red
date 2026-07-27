@@ -523,7 +523,7 @@ OS-text-box-layout: func [
 	either TYPE_OF(pobj) = TYPE_OBJECT [
 		pvalues: object/get-values pobj
 		wrap?: get-para-wrap pvalues
-		hsym: get-para-hsym pvalues
+		hsym: get-para-hsym pvalues _para/left
 	][
 		wrap?: yes
 		hsym: _para/left
