@@ -647,9 +647,17 @@ unicode: context [
 		end:   buf1 + s/size
 		count: size
 
-		if all [src/1 = #"^(EF)" src/2 = #"^(BB)" src/3 = #"^(BF)"][ ;-- skip BOM if present
+		if all [
+			size >= 3
+			src/1 = #"^(EF)" src/2 = #"^(BB)" src/3 = #"^(BF)"
+		][												;-- skip BOM if present
 			src: src + 3
 			count: count - 3
+			if zero? count [							;-- input was a BOM and nothing else
+				s/tail: as cell! buf1					;-- no character loaded
+				if remain <> null [remain/value: 0]
+				return node
+			]
 		]
 
 		;-- the first part of loop is Rudolf's code with very minor modifications
