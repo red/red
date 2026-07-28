@@ -62,7 +62,7 @@ static-link: context [
 	call-slots: make block! 40		;-- [reloc-refs slot-offset target-info ...]
 	got-slots:  make block! 40		;-- [key [slot kind offset] ...], ELF i386 PIC GOT entries
 	got-start:  none				;-- data offset of synthetic ELF i386 GOT base
-	undef-done: make block! 20		;-- undefined externals already resolved
+	undef-done: make hash!  256		;-- undefined externals already resolved
 	libc-set:   none				;-- this build's C-library export hash (libc-exports.r)
 	libm-set:   none				;-- Linux libm export names accepted for static objects
 	libc-data-set: none				;-- this build's C-library DATA exports [name size ...]
@@ -1367,13 +1367,40 @@ static-link: context [
 	;-- user-imported symbol is defined in them, when a live section's
 	;-- relocation reaches them, or -- for ASSOCIATIVE sections -- when
 	;-- their parent is live.
+	;-- The closure grows from a worklist: a section's relocations and its
+	;-- associative children are visited ONCE, when it goes live, instead of
+	;-- re-scanning every section of the object on every round until nothing
+	;-- changes. The result is identical -- both compute the same transitive
+	;-- closure, and marking is order-independent -- but the settling loop
+	;-- dominated big C++ links, where members carry ~1100 sections each and
+	;-- take three rounds or more apiece to settle.
 	mark-live-sections: func [
 		obj [object!]
-		/local section sym sect changed? r target target2 idx
+		/local section sym sect r target target2 idx stack kids entry
 	][
 		foreach section obj/sections [
 			ensure-live-slot section
 		]
+		;-- sec-assoc reversed: parent index => child indexes, built in one
+		;-- pass so a parent going live reaches its children without a scan
+		kids: none
+		idx: 0
+		foreach section obj/sections [
+			idx: idx + 1
+			if all [
+				sect: reader/sec-assoc section
+				sect > 0
+				sect <= length? obj/sections
+			][
+				unless kids [kids: make hash! 32]
+				either entry: select kids sect [
+					append entry idx
+				][
+					repend kids [sect reduce [idx]]
+				]
+			]
+		]
+		stack: make block! 64
 		idx: 0
 		foreach section obj/sections [
 			idx: idx + 1
@@ -1389,7 +1416,7 @@ static-link: context [
 					find [init-array eh-frame arm-exidx crt tls-data tls-bss] reader/sec-kind section
 				]
 			][
-				mark-section-live? obj idx
+				if mark-section-live? obj idx [append stack idx]
 			]
 		]
 		foreach sym obj/symbols [
@@ -1400,52 +1427,39 @@ static-link: context [
 					seed-match? reader/sym-name sym
 				]
 			][
-				mark-section-live? obj reader/sym-sect sym
+				sect: reader/sym-sect sym
+				if mark-section-live? obj sect [append stack sect]
 			]
 		]
-		until [
-			changed?: false
-			idx: 0
-			foreach section obj/sections [
-				idx: idx + 1
-				if all [
-					not section-live? section
-					sect: reader/sec-assoc section
-					sect > 0
-					sect <= length? obj/sections
-					section-live? pick obj/sections sect
-				][
-					if mark-section-live? obj idx [changed?: true]
+		;-- drain: everything reachable from a live section is live too
+		while [not empty? stack][
+			idx: last stack
+			remove back tail stack
+			if all [kids  entry: select kids idx][
+				foreach sect entry [
+					if mark-section-live? obj sect [append stack sect]
 				]
 			]
-			foreach section obj/sections [
-				if section-live? section [
-					foreach r reader/sec-relocs section [
-						target: pick obj/symbols (r/2 + 1)
-						if target [
-							sect: reader/sym-sect target
-							if sect > 0 [
-								if mark-section-live? obj sect [changed?: true]
-							]
-						]
-						;-- Mach-O SECTDIFF carries the subtrahend's synth-sym
-						;-- index in r/4 -- keep that section alive too.
-						if all [
-							(length? r) >= 4
-							'sectdiff = reader/reloc-kind r/3
-						][
-							target2: pick obj/symbols (r/4 + 1)
-							if target2 [
-								sect: reader/sym-sect target2
-								if sect > 0 [
-									if mark-section-live? obj sect [changed?: true]
-								]
-							]
-						]
+			section: pick obj/sections idx
+			foreach r reader/sec-relocs section [
+				target: pick obj/symbols (r/2 + 1)
+				if target [
+					sect: reader/sym-sect target
+					if mark-section-live? obj sect [append stack sect]
+				]
+				;-- Mach-O SECTDIFF carries the subtrahend's synth-sym
+				;-- index in r/4 -- keep that section alive too.
+				if all [
+					(length? r) >= 4
+					'sectdiff = reader/reloc-kind r/3
+				][
+					target2: pick obj/symbols (r/4 + 1)
+					if target2 [
+						sect: reader/sym-sect target2
+						if mark-section-live? obj sect [append stack sect]
 					]
 				]
 			]
-			not changed?
 		]
 	]
 
@@ -1513,7 +1527,7 @@ static-link: context [
 	;-- base and the build's peak alignment, then register defined externals.
 	merge-sections: func [
 		job [object!] obj [object!]
-		/local code data section kind a base sym sect ckey entry merged? idx common-live? r sec-kind pkey
+		/local code data section kind a base sym sect ckey entry merged? idx common-live? r sec-kind pkey ref-syms
 	][
 		code: job/sections/code/2
 		data: job/sections/data/2
@@ -1735,6 +1749,11 @@ static-link: context [
 				]
 			]
 		]
+		;-- Symbol indexes any merged relocation points at, collected in one
+		;-- pass the first time a COMMON symbol needs the answer (built
+		;-- lazily: objects without commons never pay for it). The scan used
+		;-- to run per common symbol, i.e. commons x relocations per object.
+		ref-syms: none
 		idx: 0
 		foreach sym obj/symbols [
 			sect: reader/sym-sect sym
@@ -1744,14 +1763,18 @@ static-link: context [
 				sect = 0
 				0 < reader/sym-value sym
 			][
-				foreach section obj/sections [
-					sec-kind: reader/sec-base-kind section
-					unless sec-kind = 'none [
-						foreach r reader/sec-relocs section [
-							if r/2 = idx [common-live?: true]
+				unless ref-syms [
+					ref-syms: make hash! 64
+					foreach section obj/sections [
+						sec-kind: reader/sec-base-kind section
+						unless sec-kind = 'none [
+							foreach r reader/sec-relocs section [
+								unless find ref-syms r/2 [append ref-syms r/2]
+							]
 						]
 					]
 				]
+				common-live?: found? find ref-syms idx
 			]
 			if all [
 				reader/is-defined-external? sym

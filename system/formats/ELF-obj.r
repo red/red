@@ -117,14 +117,15 @@ elf-obj: context [
 		u32-le bin pos
 	]
 
-	read-cstring: func [bin [binary!] pos [integer!] /local out b i][
-		out: copy ""
-		i: pos
-		while [all [i <= length? bin  (b: byte-at bin i) <> 0]][
-			append out to char! b
-			i: i + 1
+	;-- The terminator is found in one native scan rather than by walking the
+	;-- string byte by byte -- see the note in COFF.r.
+	read-cstring: func [bin [binary!] pos [integer!] /local start end][
+		start: at bin pos
+		either end: find start #{00} [
+			to string! copy/part start ((index? end) - pos)
+		][
+			to string! copy start
 		]
-		out
 	]
 
 	;-- ===== Classification =====

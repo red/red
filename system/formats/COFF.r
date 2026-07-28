@@ -90,14 +90,28 @@ coff: context [
 	;-- ===== String reading =====
 
 	;-- Read a null-terminated ASCII string starting at a 1-based position.
-	read-cstring: func [bin [binary!] pos [integer!] /local out b i][
-		out: copy ""
-		i: pos
-		while [all [i <= length? bin  (b: byte-at bin i) <> 0]][
-			append out to char! b
-			i: i + 1
+	;-- The terminator is found in one native scan rather than by walking the
+	;-- string byte by byte: C++ mangled names run to hundreds of characters
+	;-- and a large archive carries hundreds of thousands of them, which made
+	;-- this the most expensive single step of reading an object file.
+	read-cstring: func [bin [binary!] pos [integer!] /local start end][
+		start: at bin pos
+		either end: find start #{00} [
+			to string! copy/part start ((index? end) - pos)
+		][
+			to string! copy start
 		]
-		out
+	]
+
+	;-- Read the inline part of an 8-byte name field: the bytes up to the
+	;-- first null, or all eight. Both name readers below go through it.
+	read-field-name: func [bin [binary!] pos [integer!] size [integer!] /local field end][
+		field: copy/part at bin pos size
+		either end: find field #{00} [
+			to string! copy/part field ((index? end) - 1)
+		][
+			to string! field
+		]
 	]
 
 	;-- Read a fixed-size (max 8) section-name field. If the first byte is
@@ -106,26 +120,11 @@ coff: context [
 	;-- up to the first null (or all 8 bytes).
 	read-short-name: func [
 		bin [binary!] pos [integer!] string-table [binary!]
-		/local b out i off-str off
 	][
-		b: byte-at bin pos
-		either b = 47 [									;-- '/'
-			off-str: copy ""
-			i: pos + 1
-			while [all [i < (pos + 8)  (b: byte-at bin i) <> 0]][
-				append off-str to char! b
-				i: i + 1
-			]
-			off: to integer! off-str
-			read-cstring string-table (off + 1)
+		either 47 = byte-at bin pos [					;-- '/'
+			read-cstring string-table (1 + to integer! read-field-name bin (pos + 1) 7)
 		][
-			out: copy ""
-			i: pos
-			while [all [i < (pos + 8)  (b: byte-at bin i) <> 0]][
-				append out to char! b
-				i: i + 1
-			]
-			out
+			read-field-name bin pos 8
 		]
 	]
 
@@ -134,19 +133,11 @@ coff: context [
 	;-- is the inline bytes up to the first null (max 8 chars).
 	read-symbol-name: func [
 		bin [binary!] pos [integer!] string-table [binary!]
-		/local out i b off
 	][
 		either 0 = u32-le bin pos [
-			off: u32-le bin (pos + 4)
-			read-cstring string-table (off + 1)
+			read-cstring string-table (1 + u32-le bin (pos + 4))
 		][
-			out: copy ""
-			i: pos
-			while [all [i < (pos + 8)  (b: byte-at bin i) <> 0]][
-				append out to char! b
-				i: i + 1
-			]
-			out
+			read-field-name bin pos 8
 		]
 	]
 

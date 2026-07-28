@@ -68,25 +68,25 @@ macho-obj: context [
 		form-struct le32-struct
 	]
 
-	read-cstring: func [bin [binary!] pos [integer!] /local out b i][
-		out: copy ""
-		i: pos
-		while [all [i <= length? bin  (b: byte-at bin i) <> 0]][
-			append out to char! b
-			i: i + 1
+	;-- The terminator is found in one native scan rather than by walking the
+	;-- string byte by byte -- see the note in COFF.r.
+	read-cstring: func [bin [binary!] pos [integer!] /local start end][
+		start: at bin pos
+		either end: find start #{00} [
+			to string! copy/part start ((index? end) - pos)
+		][
+			to string! copy start
 		]
-		out
 	]
 
 	;-- Read a fixed-width (null-padded) name field — segname / sectname.
-	read-fixed-name: func [bin [binary!] pos [integer!] len [integer!] /local out i b][
-		out: copy ""
-		i: 0
-		while [all [i < len  (b: byte-at bin (pos + i)) <> 0]][
-			append out to char! b
-			i: i + 1
+	read-fixed-name: func [bin [binary!] pos [integer!] len [integer!] /local field end][
+		field: copy/part at bin pos len
+		either end: find field #{00} [
+			to string! copy/part field ((index? end) - 1)
+		][
+			to string! field
 		]
-		out
 	]
 
 	;-- ===== Classification =====
