@@ -199,13 +199,11 @@ static-link: context [
 		if all [gc-window?  (stats - gc-mark) > gc-budget][gc-checkpoint]
 	]
 
-	;-- Hand the heap back to the interpreter. Every exit path of a
-	;-- suspension window runs this -- normal end, abort, or a propagated
-	;-- error -- so a failed link can never leave an interactive session
-	;-- building with the automatic GC switched off.
 	gc-restore: func [][
-		recycle/on
-		gc-window?: no
+		if gc-window? [
+			recycle/on
+			gc-window?: no
+		]
 	]
 
 	;-- An aborted link must never leave the interpreter's automatic GC
@@ -1155,14 +1153,8 @@ static-link: context [
 
 		if any [none? job/static-objs  empty? job/static-objs][exit]
 
-		;-- The interpreter's automatic GC fires on allocation volume and each
-		;-- collection walks the whole live heap -- millions of series on a
-		;-- large C++ link, taxing every phase below many times over. Collect
-		;-- at controlled points instead -- gc-checkpoint, driven by the bytes
-		;-- of member data pulled since the last collection -- while the
-		;-- automatic trigger stays off. Byte-for-byte neutral by construction.
-		recycle/off
-		gc-window?: yes
+		gc-window?: yes					;-- set first: an error in between
+		recycle/off						;-- must still reach gc-restore
 		gc-mark: stats
 
 		obj-format: job/format
@@ -3022,7 +3014,7 @@ static-link: context [
 					][
 						append/only archives arc
 						opened?: yes
-						print ["...default library  :" file]
+						print ["...linking (dep)    :" file]
 						if all [not crt-mode?  file = "libcmt.lib"][
 							crt-mode?: yes
 							unless find needed "_mainCRTStartup" [
@@ -3608,8 +3600,8 @@ static-link: context [
 		;-- base-offset 8; symbols: name 1) -- and memoize resolve-reloc-target
 		;-- per symbol INDEX: many relocations target the same symbol, whose
 		;-- merged address never changes during this pass.
-		recycle/off
-		gc-window?: yes
+		gc-window?: yes					;-- set first: an error in between
+		recycle/off						;-- must still reach gc-restore
 		gc-mark: stats
 		foreach [path obj] objects [
 			gc-poll
