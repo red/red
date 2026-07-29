@@ -199,12 +199,20 @@ static-link: context [
 		if all [gc-window?  (stats - gc-mark) > gc-budget][gc-checkpoint]
 	]
 
+	;-- Hand the heap back to the interpreter. Every exit path of a
+	;-- suspension window runs this -- normal end, abort, or a propagated
+	;-- error -- so a failed link can never leave an interactive session
+	;-- building with the automatic GC switched off.
+	gc-restore: func [][
+		recycle/on
+		gc-window?: no
+	]
+
 	;-- An aborted link must never leave the interpreter's automatic GC
 	;-- suspended: the next link in the same console session would run
 	;-- unbounded and die on an allocation instead of reporting anything.
 	abort: func [msg [block!]][
-		recycle/on
-		gc-window?: no
+		gc-restore
 		print rejoin ["*** Static linking error: " reform msg]
 		system-dialect/compiler/quit-on-error
 	]
@@ -380,7 +388,10 @@ static-link: context [
 			import-lib?: none						;-- dynamic-linking stub archive (kernel32.lib...)
 		]
 		arc/path: path
-		arc/port: port: open/binary/seek path
+		;-- /read: an archive is only ever read, and a read-write open both
+		;-- takes a needless write lock and fails outright on a read-only
+		;-- file ("cannot open") -- which is how every .lib and .a enters.
+		arc/port: port: open/binary/read/seek path
 		size-of: length? port
 		if size-of < 8 [abort reduce ["archive too small:" path]]
 		if (copy/part at port 1 8) <> to binary! "!<arch>^/" [
@@ -1073,7 +1084,20 @@ static-link: context [
 
 	;-- ===== linker.r hook : merge external objects into the build =====
 
-	merge: func [
+	;-- The two phases that suspend the automatic GC (see gc-checkpoint) are
+	;-- entered through guards, so the interpreter gets its GC back even when
+	;-- the phase raises: red.r's fail-try halts on a propagated error, well
+	;-- clear of the windows' own cleanup.
+	merge: func [job [object!] /local res][
+		if error? set/any 'res try [merge* job][
+			gc-restore						;-- errors must not leave it off
+			do get/any 'res					;-- propagate unchanged
+		]
+		gc-restore
+		get/any 'res
+	]
+
+	merge*: func [
 		job [object!]
 		/local static-libs lib list info t0 t entry
 	][
@@ -1279,8 +1303,7 @@ static-link: context [
 		]
 		gc-checkpoint
 
-		recycle/on
-		gc-window?: no
+		gc-restore
 
 		t: now/time/precise - t0
 		print ["...static-link time :" round (t/second * 1000) + (t/minute * 60000) "ms"]
@@ -3531,6 +3554,20 @@ static-link: context [
 
 	apply-relocs: func [
 		job [object!] code-base [integer!] data-base [integer!] image-base [integer!]
+		/local res
+	][
+		if error? set/any 'res try [
+			apply-relocs* job code-base data-base image-base
+		][
+			gc-restore
+			do get/any 'res
+		]
+		gc-restore
+		get/any 'res
+	]
+
+	apply-relocs*: func [
+		job [object!] code-base [integer!] data-base [integer!] image-base [integer!]
 		/local code data crodata cafter reloc slot info section sec-kind sec-base buf buf-base
 			r r-va r-sym r-type sym target-info tkind toff target-va kind
 			patch-pos patch-va addend path obj insn a16 got-slot got-base
@@ -3853,7 +3890,6 @@ static-link: context [
 		clear weak-undefs
 		clear strong-undefs
 		recycle
-		recycle/on
-		gc-window?: no
+		gc-restore
 	]
 ]
