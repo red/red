@@ -54,6 +54,12 @@ static-link: context [
 	;-- handling) stays in place behind this flag pending that decision.
 	crt-link-enabled?: yes
 
+	gc-window?: no					;-- automatic GC suspended (merge / apply-relocs)
+	empty-bin:  #{}					;-- shared release value for consumed data slots
+	empty-blk:  []					;-- shared release value for dropped reloc lists
+	gc-mark:    0					;-- heap size (bytes) at the last collection
+	gc-budget:  67108864			;-- bytes of growth tolerated between collections
+
 	crt-mode?:  none				;-- MSVC static CRT link engaged (auto: /defaultlib libcmt)
 	crt-entry:  none				;-- merged code offset of _mainCRTStartup (PE entry override)
 	opened-libs: make hash! 16		;-- /defaultlib names already opened or attempted
@@ -143,13 +149,62 @@ static-link: context [
 	guid-set:    none				;-- name => 16-byte payload hash (guid-exports.r), built once
 
 	;-- 4-byte little-endian serializer (target endianness is set up by the
-	;-- time `apply-relocs` runs, during linking).
-	ptr-struct: make-struct [value [integer!]] none
-	le32: func [n [integer!]][ptr-struct/value: n  form-struct ptr-struct]
+	;-- time `apply-relocs` runs, during linking). The result is ONE shared
+	;-- scratch buffer, valid until the next call: every use site consumes it
+	;-- immediately through change/append (which copy the bytes out), so no
+	;-- reference survives -- collecting several le32 results before use
+	;-- (e.g. in a reduce) would see only the last value.
+	le32-buf: copy #{00000000}
+	le32: func [n [integer!]][
+		le32-buf/1: to char! n and 255
+		le32-buf/2: to char! (shift/logical n 8) and 255
+		le32-buf/3: to char! (shift/logical n 16) and 255
+		le32-buf/4: to char! (shift/logical n 24) and 255
+		le32-buf
+	]
+
+	;-- Signed 32-bit little-endian read (1-based), allocation-free: the
+	;-- per-relocation addend read in apply-relocs, where a reader call
+	;-- would cost a path dereference plus a nested function call.
+	i32-at: func [buf [binary!] pos [integer!]][
+		buf/:pos
+		or (shift/left buf/(pos + 1) 8)
+		or (shift/left buf/(pos + 2) 16)
+		or (shift/left buf/(pos + 3) 24)
+	]
 
 	bit31: 0 - 2147483647 - 1		;-- 80000000h (the literal cannot be lexed)
 
+	;-- Collect now and keep automatic GC off -- only meaningful inside a
+	;-- suspension window; a no-op otherwise, so both are safe to call from
+	;-- anywhere.
+	gc-checkpoint: func [][
+		if gc-window? [
+			recycle
+			recycle/off
+			gc-mark: stats
+		]
+	]
+
+	;-- Collect if the heap has grown by more than the budget since the last
+	;-- collection. Suspending the automatic GC is what makes a large link
+	;-- fast (every collection walks the whole live heap, and the hot loops
+	;-- allocate a frame per call), but the peak footprint then depends on
+	;-- how much garbage accumulates in between -- and the allocator's pools
+	;-- never shrink, so a peak reached once is charged to the whole session.
+	;-- Polling ACTUAL bytes caps that: peak <= live + gc-budget, whatever
+	;-- the workload or the session's history. `stats` costs ~30ns, so this
+	;-- is called per object / per pulled member, never per relocation.
+	gc-poll: func [][
+		if all [gc-window?  (stats - gc-mark) > gc-budget][gc-checkpoint]
+	]
+
+	;-- An aborted link must never leave the interpreter's automatic GC
+	;-- suspended: the next link in the same console session would run
+	;-- unbounded and die on an allocation instead of reporting anything.
 	abort: func [msg [block!]][
+		recycle/on
+		gc-window?: no
 		print rejoin ["*** Static linking error: " reform msg]
 		system-dialect/compiler/quit-on-error
 	]
@@ -314,10 +369,10 @@ static-link: context [
 	;-- every member, preserving the previous behavior.
 	open-archive: func [
 		path [file!]
-		/local arc bin pos name size mem-end m obj
+		/local arc port size-of pos name size mem-end m obj hdr
 	][
 		arc: context [
-			path: none  bin: none  longnames: none
+			path: none  port: none  longnames: none
 			index: none								;-- symbol name => [member-offset ...]
 			flatname: none							;-- PE: bare stdcall name => [member-offset ...]
 			pulled: none							;-- member offset => parsed object (cache)
@@ -325,27 +380,31 @@ static-link: context [
 			import-lib?: none						;-- dynamic-linking stub archive (kernel32.lib...)
 		]
 		arc/path: path
-		arc/bin: bin: read/binary path
-		if (length? bin) < 8 [abort reduce ["archive too small:" path]]
-		if (copy/part bin 8) <> to binary! "!<arch>^/" [
+		arc/port: port: open/binary/seek path
+		size-of: length? port
+		if size-of < 8 [abort reduce ["archive too small:" path]]
+		if (copy/part at port 1 8) <> to binary! "!<arch>^/" [
 			abort reduce ["missing !<arch> magic:" path]
 		]
 		arc/pulled: make hash! 64
 		pos: 9
-		while [all [pos < length? bin  (pos + 59) <= length? bin]][
-			name: to string! copy/part at bin pos 16
+		while [all [pos < size-of  (pos + 59) <= size-of]][
+			hdr: copy/part at port pos 60			;-- one member header
+			name: to string! copy/part hdr 16
 			trim/tail name
 			while [all [(length? name) > 0  #"^@" = last name]][
 				remove back tail name
 			]
-			size: to integer! trim to string! copy/part at bin (pos + 48) 10
+			size: to integer! trim to string! copy/part at hdr 49 10
 			case [
 				name = "/" [
 					;-- keep the first "/" member only: Microsoft archives
 					;-- carry a second, differently-encoded one
-					unless arc/index [parse-ar-index arc (at bin (pos + 60)) size]
+					unless arc/index [
+						parse-ar-index arc (copy/part at port (pos + 60) size) size
+					]
 				]
-				name = "//" [arc/longnames: copy/part at bin (pos + 60) size]
+				name = "//" [arc/longnames: copy/part at port (pos + 60) size]
 				true [
 					;-- import libraries carry short import descriptors
 					;-- (sig 0/FFFF, version < 2) -- one per function; the
@@ -355,9 +414,10 @@ static-link: context [
 					if all [
 						arc/import-lib? <> yes
 						size >= 8
-						0 = coff/u16-le at bin (pos + 60) 1
-						65535 = coff/u16-le at bin (pos + 60) 3
-						2 > coff/u16-le at bin (pos + 60) 5
+						hdr: copy/part at port (pos + 60) 8
+						0 = coff/u16-le hdr 1
+						65535 = coff/u16-le hdr 3
+						2 > coff/u16-le hdr 5
 					][arc/import-lib?: yes]
 				]
 			]
@@ -366,7 +426,11 @@ static-link: context [
 			pos: mem-end
 		]
 		if none? arc/import-lib? [arc/import-lib?: no]
-		if arc/import-lib? = yes [return arc]		;-- caller skips these
+		if arc/import-lib? = yes [					;-- caller skips these
+			close port
+			arc/port: none
+			return arc
+		]
 		unless arc/index [							;-- BSD ar: no "/" symbol index
 			arc/eager: make block! 32
 			foreach m read-archive path [
@@ -379,7 +443,8 @@ static-link: context [
 				]
 				append arc/eager obj
 			]
-			arc/bin: none							;-- fully parsed; buffer no longer needed
+			close port								;-- fully parsed; file no longer needed
+			arc/port: none
 		]
 		arc
 	]
@@ -436,13 +501,14 @@ static-link: context [
 	;-- when the member is actually pulled into the link.
 	archive-member: func [
 		arc off [integer!]
-		/local bin pos name size i b real
+		/local port pos hdr name size i b real
 	][
-		bin:  arc/bin
+		port: arc/port
 		pos:  off + 1
-		name: to string! copy/part at bin pos 16
+		hdr:  copy/part at port pos 60
+		name: to string! copy/part hdr 16
 		trim/tail name
-		size: to integer! trim to string! copy/part at bin (pos + 48) 10
+		size: to integer! trim to string! copy/part at hdr 49 10
 		either #"/" = first name [					;-- "/<offset>" long name
 			i: 1 + to integer! trim next name
 			real: copy ""
@@ -461,18 +527,21 @@ static-link: context [
 				name: copy/part name ((length? name) - 1)
 			]
 		]
-		reduce [name  copy/part at bin (pos + 60) size]
+		reduce [name  copy/part at port (pos + 60) size]
 	]
 
 	;-- TRUE when a defined symbol's name satisfies one of the user's
 	;-- #import names. seed-hash carries each id verbatim plus, on PE and
 	;-- Mach-O, its '_'-decorated form; a PE stdcall symbol additionally
-	;-- carries a '@N' suffix, cut off before the lookup.
+	;-- carries a '@N' suffix, cut off before the lookup. The prefix goes
+	;-- through a reused buffer: C++ mangled names are '@'-laden, and a
+	;-- fresh prefix copy per name per liveness scan dominated the scans.
+	sm-buf: make string! 64
 	seed-match?: func [name [string!] /local p][
 		if empty? name [return false]
 		if find seed-hash name [return true]
 		either all [obj-format <> 'ELF  p: find name #"@"][
-			found? find seed-hash copy/part name p
+			found? find seed-hash head insert/part clear sm-buf name p
 		][false]
 	]
 
@@ -503,9 +572,10 @@ static-link: context [
 	;-- that lights up sections left dark the first time around.
 	pull-member: func [job [object!] arc off [integer!] /local obj m][
 		either obj: select arc/pulled off [
+			;-- note-undefined is skipped on a revisit: its result depends on
+			;-- the symbol table alone, recorded when the member first merged
 			mark-live-sections obj
 			merge-sections job obj
-			note-undefined obj
 		][
 			m: archive-member arc off
 			obj: reader/load-from-bin m/2 (rejoin [to-local-file arc/path "(" m/1 ")"])
@@ -516,6 +586,8 @@ static-link: context [
 				]
 			]
 			repend arc/pulled [off obj]
+			if in obj 'string-table [obj/string-table: none]	;-- parse-time only
+			gc-poll
 			note-merged-object obj
 			mark-live-sections obj
 			merge-sections job obj
@@ -1059,6 +1131,16 @@ static-link: context [
 
 		if any [none? job/static-objs  empty? job/static-objs][exit]
 
+		;-- The interpreter's automatic GC fires on allocation volume and each
+		;-- collection walks the whole live heap -- millions of series on a
+		;-- large C++ link, taxing every phase below many times over. Collect
+		;-- at controlled points instead -- gc-checkpoint, driven by the bytes
+		;-- of member data pulled since the last collection -- while the
+		;-- automatic trigger stays off. Byte-for-byte neutral by construction.
+		recycle/off
+		gc-window?: yes
+		gc-mark: stats
+
 		obj-format: job/format
 		obj-arch:   job/target
 		if obj-format = 'PE [
@@ -1135,6 +1217,7 @@ static-link: context [
 		;-- dyld-bound imports before name resolution chases them.
 		wire-nlptr-relocs job
 
+		gc-checkpoint							;-- drop the pull phase's garbage
 		;-- Pass 2: satisfy undefined externals (libc trampolines, stubs).
 		resolve-externals job
 		;-- Pass 2+: C++ entry stub -- walks the ctor table, then Red's entry.
@@ -1181,6 +1264,23 @@ static-link: context [
 		if all [obj-format = 'Mach-o  not empty? ehframe-buf][
 			repend job/sections ['ehframe reduce ['- ehframe-buf]]
 		]
+
+		;-- permanently dropped sections (base-kind still none after every
+		;-- layout pass) keep parsed data and relocation lists nothing will
+		;-- ever read -- on a large C++ link that is most of the input.
+		;-- Releasing them here caps the emitter-phase footprint.
+		foreach [path obj] objects [
+			foreach section obj/sections [
+				if 'none = section/7 [
+					poke section 4 empty-bin
+					poke section 6 empty-blk
+				]
+			]
+		]
+		gc-checkpoint
+
+		recycle/on
+		gc-window?: no
 
 		t: now/time/precise - t0
 		print ["...static-link time :" round (t/second * 1000) + (t/minute * 60000) "ms"]
@@ -1246,6 +1346,7 @@ static-link: context [
 				append/only archives arc
 			][
 				obj: reader/load info/1
+				if in obj 'string-table [obj/string-table: none]	;-- parse-time only
 				note-merged-object obj
 				mark-live-sections obj
 				merge-sections job obj
@@ -1290,9 +1391,10 @@ static-link: context [
 			]
 			progress?: false
 			foreach obj directs [
+				;-- undefined externals were noted when the object first
+				;-- merged; only liveness and merging can still progress
 				mark-live-sections obj
 				if merge-sections job obj [progress?: true]
-				note-undefined obj
 			]
 			;-- /defaultlib archives (the MSVC CRT chain) arrive mid-link:
 			;-- re-scan the whole queue against the enlarged archive set
@@ -1310,14 +1412,21 @@ static-link: context [
 		]
 
 		;-- every pulled object is merged; release the raw archive buffers
-		;-- and indexes before the relocation passes peak
+		;-- and indexes before the relocation passes peak. The pulled-object
+		;-- caches go too: `objects` carries the merged set from here on, and
+		;-- a function's locals PERSIST after it returns (frames are static
+		;-- in this interpreter) -- `archives` would pin every parsed member
+		;-- through the emitter's memory peak.
 		foreach arc archives [
-			arc/bin: none
+			if arc/port [close arc/port  arc/port: none]
 			arc/longnames: none
 			arc/index: none
 			arc/flatname: none
 			arc/eager: none
+			arc/pulled: none
 		]
+		clear archives
+		clear directs
 	]
 
 	;-- Bare C name used to match a symbol against the embedded system
@@ -1376,10 +1485,17 @@ static-link: context [
 	;-- take three rounds or more apiece to settle.
 	mark-live-sections: func [
 		obj [object!]
-		/local section sym sect r target target2 idx stack kids entry
+		/local section sym sect r target target2 idx stack kids entry nm
 	][
-		foreach section obj/sections [
-			ensure-live-slot section
+		;-- slot extension is all-or-nothing per object: when the first
+		;-- section already carries the flags, this is a revisit -- skip
+		unless all [
+			section: first obj/sections
+			(length? section) >= 11
+		][
+			foreach section obj/sections [
+				ensure-live-slot section
+			]
 		]
 		;-- sec-assoc reversed: parent index => child indexes, built in one
 		;-- pass so a parent going live reaches its children without a scan
@@ -1421,13 +1537,14 @@ static-link: context [
 		]
 		foreach sym obj/symbols [
 			if all [
+				string? nm: sym/1					;-- sym-name; skips COFF aux slots
 				reader/is-defined-external? sym
 				any [
-					find needed reader/sym-name sym
-					seed-match? reader/sym-name sym
+					find needed nm
+					seed-match? nm
 				]
 			][
-				sect: reader/sym-sect sym
+				sect: sym/3							;-- sym-sect (uniform slot)
 				if mark-section-live? obj sect [append stack sect]
 			]
 		]
@@ -1441,10 +1558,10 @@ static-link: context [
 				]
 			]
 			section: pick obj/sections idx
-			foreach r reader/sec-relocs section [
+			foreach r section/6 [					;-- sec-relocs (uniform slot)
 				target: pick obj/symbols (r/2 + 1)
 				if target [
-					sect: reader/sym-sect target
+					sect: target/3					;-- sym-sect
 					if mark-section-live? obj sect [append stack sect]
 				]
 				;-- Mach-O SECTDIFF carries the subtrahend's synth-sym
@@ -1455,7 +1572,7 @@ static-link: context [
 				][
 					target2: pick obj/symbols (r/4 + 1)
 					if target2 [
-						sect: reader/sym-sect target2
+						sect: target2/3
 						if mark-section-live? obj sect [append stack sect]
 					]
 				]
@@ -1466,10 +1583,17 @@ static-link: context [
 	;-- Add an object's undefined externals to the `needed` reference set.
 	;-- Deferred .CRT$X?? sections count too: they are laid out only after
 	;-- the pull phase, but the initializer functions their entries point
-	;-- at must be pulled DURING it.
+	;-- at must be pulled DURING it. The reloc walk contributes a strict
+	;-- subset of the symbol walk below, but it comes FIRST -- `needed` is
+	;-- the pull queue, so the append order shapes member pull order and,
+	;-- through it, the output layout: both walks stay, in this order.
+	;-- Everything here is a pure function of the object's symbol table and
+	;-- its merged-section state at first merge, and revisits can add
+	;-- nothing new (the symbol walk already recorded every undefined
+	;-- external) -- callers skip re-noting an already-noted member.
 	note-undefined: func [obj [object!] /local section sym nm sec-kind][
 		foreach section obj/sections [
-			sec-kind: reader/sec-base-kind section
+			sec-kind: section/7						;-- sec-base-kind
 			if all [
 				sec-kind = 'none
 				'crt = reader/sec-kind section
@@ -1478,10 +1602,10 @@ static-link: context [
 				sec-kind: 'crt
 			]
 			unless sec-kind = 'none [
-				foreach r reader/sec-relocs section [
+				foreach r section/6 [				;-- sec-relocs
 					sym: pick obj/symbols (r/2 + 1)
 					if all [sym  reader/is-undefined-external? sym][
-						nm: reader/sym-name sym
+						nm: sym/1
 						unless find needed nm [append needed copy nm]
 					]
 				]
@@ -1499,7 +1623,7 @@ static-link: context [
 		;-- __gmon_start__ & co) -- track them so only weak-ONLY names get 0.
 		foreach sym obj/symbols [
 			if all [sym  reader/is-undefined-external? sym][
-				nm: reader/sym-name sym
+				nm: sym/1
 				unless find needed nm [append needed copy nm]
 				if obj-format = 'ELF [
 					either reader/sym-weak? sym [
@@ -1563,6 +1687,7 @@ static-link: context [
 				not same? obj entry/4
 			][
 				kind: none
+				poke section 4 empty-bin		;-- follows its dropped parent
 			]
 			if kind [
 				;; COMDAT / SHT_GROUP: drop a section whose key was already
@@ -1591,6 +1716,7 @@ static-link: context [
 					]
 					kind: none
 					ckey: none
+					poke section 4 empty-bin	;-- dropped twin: data unreachable
 				][
 					a: reader/sec-align section
 					if a > max-align [max-align: a]
@@ -1602,6 +1728,7 @@ static-link: context [
 					base: length? code
 					append code reader/sec-data section
 					reader/set-sec-base section 'code base
+					poke section 4 empty-bin		;-- data copied out: release it
 					poke section 11 true
 					merged?: true
 				]
@@ -1610,6 +1737,7 @@ static-link: context [
 					base: length? data
 					append data reader/sec-data section
 					reader/set-sec-base section 'data base
+					poke section 4 empty-bin
 					poke section 11 true
 					merged?: true
 				]
@@ -1629,6 +1757,7 @@ static-link: context [
 						append data reader/sec-data section
 						reader/set-sec-base section 'data base
 					]
+					poke section 4 empty-bin
 					poke section 11 true
 					merged?: true
 				]
@@ -1756,45 +1885,49 @@ static-link: context [
 		ref-syms: none
 		idx: 0
 		foreach sym obj/symbols [
-			sect: reader/sym-sect sym
-			common-live?: false
-			if all [
-				obj-format = 'PE
-				sect = 0
-				0 < reader/sym-value sym
-			][
-				unless ref-syms [
-					ref-syms: make hash! 64
-					foreach section obj/sections [
-						sec-kind: reader/sec-base-kind section
-						unless sec-kind = 'none [
-							foreach r reader/sec-relocs section [
-								unless find ref-syms r/2 [append ref-syms r/2]
+			;-- real symbols carry a string name; COFF aux slots (word 'aux)
+			;-- can never register and are the bulk of a C++ symbol table
+			if string? sym/1 [
+				sect: sym/3							;-- sym-sect (uniform slot)
+				common-live?: false
+				if all [
+					obj-format = 'PE
+					sect = 0
+					0 < sym/2						;-- sym-value
+				][
+					unless ref-syms [
+						ref-syms: make hash! 64
+						foreach section obj/sections [
+							sec-kind: section/7		;-- sec-base-kind
+							unless sec-kind = 'none [
+								foreach r section/6 [
+									unless find ref-syms r/2 [append ref-syms r/2]
+								]
 							]
 						]
 					]
+					common-live?: found? find ref-syms idx
 				]
-				common-live?: found? find ref-syms idx
-			]
-			if all [
-				reader/is-defined-external? sym
-				any [
-					all [
-						0 < sect
-						section-live? pick obj/sections sect
-					]
-					all [
-						obj-format = 'PE
-						sect = 0
-						0 < reader/sym-value sym
-						any [
-							find needed reader/sym-name sym
-							seed-match? reader/sym-name sym
-							common-live?
+				if all [
+					reader/is-defined-external? sym
+					any [
+						all [
+							0 < sect
+							section-live? pick obj/sections sect
+						]
+						all [
+							obj-format = 'PE
+							sect = 0
+							0 < sym/2
+							any [
+								find needed sym/1
+								seed-match? sym/1
+								common-live?
+							]
 						]
 					]
-				]
-			][register-symbol job obj sym]
+				][register-symbol job obj sym]
+			]
 			idx: idx + 1
 		]
 		merged?
@@ -1853,13 +1986,19 @@ static-link: context [
 		code: job/sections/code/2
 		data: job/sections/data/2
 		foreach [path obj] objects [
+			gc-poll
 			pending: copy []
 			foreach section obj/sections [
 				sec-kind: reader/sec-base-kind section
 				unless sec-kind = 'none [
 					foreach r reader/sec-relocs section [
 						sym: pick obj/symbols (r/2 + 1)
-						if all [sym  reader/is-undefined-external? sym  not find pending sym][
+						;-- no dedup here: a block needle can never equal a
+						;-- block ELEMENT of pending without find/only, so the
+						;-- old `not find pending sym` guard scanned the whole
+						;-- list per relocation and always came back none --
+						;-- duplicates are filtered by undef-done below anyway
+						if all [sym  reader/is-undefined-external? sym][
 							append/only pending sym
 						]
 						;-- a referenced weak external's fallback must
@@ -2546,6 +2685,7 @@ static-link: context [
 		/local path obj section sec-kind sec-base r sym imp
 	][
 		foreach [path obj] objects [
+			gc-poll
 			foreach section obj/sections [
 				sec-kind: reader/sec-base-kind section
 				unless sec-kind = 'none [
@@ -2854,17 +2994,18 @@ static-link: context [
 				if path [
 					arc: open-archive path
 					either arc/import-lib? = yes [
-						arc/bin: none				;-- dynamic stubs: not for static linking
+						;-- dynamic stubs: not for static linking (port
+						;-- already closed by open-archive's early return)
 					][
 						append/only archives arc
 						opened?: yes
-						print ["...default library :" file]
+						print ["...default library  :" file]
 						if all [not crt-mode?  file = "libcmt.lib"][
 							crt-mode?: yes
 							unless find needed "_mainCRTStartup" [
 								append needed "_mainCRTStartup"
 							]
-							print "...MSVC static CRT : entry -> mainCRTStartup, Red start -> _main"
+							print "...MSVC static CRT  : entry -> mainCRTStartup, Red start -> _main"
 						]
 					]
 				]
@@ -2965,14 +3106,14 @@ static-link: context [
 			end-va: data-base + tls-end
 			index-va: data-base + tls-index
 			callbacks-va: 0
-			append data reduce [
-				le32 start-va
-				le32 end-va
-				le32 index-va
-				le32 callbacks-va
-				le32 0
-				le32 0
-			]
+			;-- one append per field: le32 returns a shared scratch buffer,
+			;-- so its results cannot be collected before use
+			append data le32 start-va
+			append data le32 end-va
+			append data le32 index-va
+			append data le32 callbacks-va
+			append data le32 0
+			append data le32 0
 		]
 		ensure-symbol "__tls_used" 'data tls-dir
 		ensure-symbol "___tls_used" 'data tls-dir
@@ -3393,7 +3534,7 @@ static-link: context [
 		/local code data crodata cafter reloc slot info section sec-kind sec-base buf buf-base
 			r r-va r-sym r-type sym target-info tkind toff target-va kind
 			patch-pos patch-va addend path obj insn a16 got-slot got-base
-			sym-name key entry
+			sym-name key entry memo
 			sub-sym sub-tinfo sub-tkind sub-toff sub-va
 			min-offset sub-offset min-section sub-section orig-diff
 	][
@@ -3424,12 +3565,22 @@ static-link: context [
 			]
 		]
 
-		;-- Apply every relocation from every merged section.
+		;-- Apply every relocation from every merged section. The hot loops
+		;-- below read section/symbol slots directly -- the slot layout is
+		;-- shared by all three readers (sections: relocs 6, base-kind 7,
+		;-- base-offset 8; symbols: name 1) -- and memoize resolve-reloc-target
+		;-- per symbol INDEX: many relocations target the same symbol, whose
+		;-- merged address never changes during this pass.
+		recycle/off
+		gc-window?: yes
+		gc-mark: stats
 		foreach [path obj] objects [
+			gc-poll
+			memo: head insert/dup make block! 1 + length? obj/symbols none 1 + length? obj/symbols
 			foreach section obj/sections [
-				sec-kind: reader/sec-base-kind section
+				sec-kind: section/7					;-- sec-base-kind
 				unless sec-kind = 'none [
-					sec-base: reader/sec-base-offset section
+					sec-base: section/8				;-- sec-base-offset
 					;-- TLS section bases are template-relative; the template
 					;-- itself sits at etls-off inside the .data buffer
 					if all [sec-kind = 'tls  etls-off][
@@ -3449,7 +3600,7 @@ static-link: context [
 						sec-kind = 'eh-frame [ehframe-base]
 						true                 [data-base]
 					]
-					foreach r reader/sec-relocs section [
+					foreach r section/6 [			;-- sec-relocs
 						r-va:   r/1
 						r-sym:  r/2
 						r-type: r/3
@@ -3457,15 +3608,18 @@ static-link: context [
 						unless sym [abort reduce ["bad relocation symbol index" r-sym "in" path]]
 
 						;-- Resolve the target's final merged address.
-						target-info: resolve-reloc-target obj sym path
+						target-info: any [
+							pick memo (r-sym + 1)
+							poke memo (r-sym + 1) resolve-reloc-target obj sym path
+						]
 						tkind: target-info/1
 						toff:  target-info/2
 						target-va: target-va? tkind toff code-base data-base image-base
 						patch-pos: sec-base + r-va			;-- 0-based offset into buf
-						addend:    reader/i32-le buf (patch-pos + 1)
+						addend:    i32-at buf (patch-pos + 1)
 						kind:      reader/reloc-kind r-type
 						got-base:  either got-start = none [0][data-base + got-start]
-						sym-name:  reader/sym-name sym
+						sym-name:  sym/1
 
 						;-- Mach-O i386 stores a pcrel field's displacement
 						;-- relative to the field's address in the OBJECT's
@@ -3608,7 +3762,10 @@ static-link: context [
 										"bad SECTDIFF subtrahend in" path
 									]
 								]
-								sub-tinfo: resolve-reloc-target obj sub-sym path
+								sub-tinfo: any [
+									pick memo (r/4 + 1)
+									poke memo (r/4 + 1) resolve-reloc-target obj sub-sym path
+								]
 								sub-tkind: sub-tinfo/1
 								sub-toff:  sub-tinfo/2
 								sub-va:    target-va? sub-tkind (sub-toff + sub-offset)
@@ -3669,5 +3826,34 @@ static-link: context [
 				]
 			]
 		]
+		;-- Everything below this pass reads scalar state only (crt-entry,
+		;-- tls-dir, etls-*, exidx-range, cpp-entry) or job-owned buffers:
+		;-- the parsed-object graph -- the bulk of the link's live memory --
+		;-- is dead now. Release it and hand the emitter a collected heap,
+		;-- so its large image buffers cannot fail on a fragmented 2GB
+		;-- address space that still pins hundreds of MB of dead objects.
+		clear objects
+		clear comdat-keys
+		clear sym-addr
+		clear alias-table
+		clear call-slots
+		clear got-slots
+		clear cafter-fills
+		clear crt-sections
+		clear tls-pe-sections
+		clear eh-frames
+		clear init-arrays
+		clear tls-sections
+		clear exidx-sections
+		clear nlptr-sections
+		clear absorbed
+		clear needed
+		clear seed-hash
+		clear undef-done
+		clear weak-undefs
+		clear strong-undefs
+		recycle
+		recycle/on
+		gc-window?: no
 	]
 ]
