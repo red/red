@@ -664,6 +664,11 @@ OS-send-event: func [
 		hd	   [red-handle!]
 		hWnd   [handle!]
 		pr	   [red-pair!]
+		ofs	   [red-value!]
+		pt2d   [red-point2D!]
+		fx	   [float32!]
+		fy	   [float32!]
+		ofs?   [logic!]
 		wmsg   [integer!]
 		wParam [integer!]
 		lParam [integer!]
@@ -712,13 +717,16 @@ OS-send-event: func [
 	if mouse? [
 		if flags and EVT_FLAG_CTRL_DOWN  <> 0 [wParam: wParam or 0008h]	;-- MK_CONTROL
 		if flags and EVT_FLAG_SHIFT_DOWN <> 0 [wParam: wParam or 0004h]	;-- MK_SHIFT
-		pr: as red-pair! (s/offset + 2)					;-- cell 2 = offset
-		if TYPE_OF(pr) = TYPE_PAIR [
+		ofs: s/offset + 2								;-- cell 2 = offset (pair! or point2D!)
+		ofs?: no
+		if TYPE_OF(ofs) = TYPE_PAIR    [pr: as red-pair! ofs  fx: as float32! pr/x  fy: as float32! pr/y  ofs?: yes]
+		if TYPE_OF(ofs) = TYPE_POINT2D [pt2d: as red-point2D! ofs  fx: pt2d/x  fy: pt2d/y  ofs?: yes]
+		if ofs? [
 			;-- offset (logical) -> physical px. event/offset re-derives it via dpi-unscale, so it
 			;-- round-trips within +/-0.5 physical px -- pixel quantization, identical to a real
 			;-- mouse (exact at integer DPI scaling); not improvable without diverging from real events.
-			x: dpi-scale as float32! pr/x
-			y: dpi-scale as float32! pr/y
+			x: dpi-scale fx
+			y: dpi-scale fy
 			if evt/type = EVT_WHEEL [					;-- real WM_MOUSEWHEEL carries *screen* coords (get-event-offset converts them back)
 				pt/x: x
 				pt/y: y

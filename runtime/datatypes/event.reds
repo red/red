@@ -135,15 +135,14 @@ event: context [
 			ftail	[red-value!]
 			face	[red-value!]
 			window	[red-value!]
+			ofs		[red-value!]
 			pr		[red-pair!]
 			iv		[red-integer!]
 			node	[node!]
-			s		[series!]			
+			s		[series!]
 			sym		[integer!]
-			off-x	[integer!]
-			off-y	[integer!]
 			pkd		[integer!]
-			extras? [logic!]			
+			extras? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "event/make"]]
 
@@ -154,8 +153,7 @@ event: context [
 		evt/flags:  gui/EVT_FLAG_SYNTHETIC				;-- every make-event value is synthetic (marked by the GC, see runtime/collector.reds)
 		face:	    null
 		window:     null
-		off-x:      0
-		off-y:      0
+		ofs:	    null
 		pkd:        0
 		extras?:	no
 
@@ -212,10 +210,11 @@ event: context [
 								]
 							]
 							sym = words/offset [
-								if TYPE_OF(value) = TYPE_PAIR [
-									pr: as red-pair! value
-									off-x: pr/x
-									off-y: pr/y
+								if any [
+									TYPE_OF(value) = TYPE_PAIR
+									TYPE_OF(value) = TYPE_POINT2D
+								][
+									ofs: value				;-- stored as-is: reads back with the given type
 									extras?: yes
 								]
 							]
@@ -240,10 +239,14 @@ event: context [
 			s: as series! node/value
 			either null? face [copy-cell as cell! none-value s/offset][copy-cell as cell! face s/offset]
 			either null? window [copy-cell as cell! none-value (s/offset + 1)][copy-cell as cell! window (s/offset + 1)] ;-- window
-			pr: as red-pair! (s/offset + 2)				;-- offset
-			pr/header: TYPE_PAIR
-			pr/x: off-x
-			pr/y: off-y
+			either null? ofs [							;-- offset: pair! or point2D! cell, kept as given
+				pr: as red-pair! (s/offset + 2)
+				pr/header: TYPE_PAIR
+				pr/x: 0
+				pr/y: 0
+			][
+				copy-cell ofs (s/offset + 2)
+			]
 			iv: as red-integer! (s/offset + 3)			;-- picked
 			iv/header: TYPE_INTEGER
 			iv/value: pkd

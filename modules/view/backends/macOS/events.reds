@@ -526,6 +526,8 @@ OS-send-event: func [
 		hd		[red-handle!]
 		view	[integer!]
 		pr		[red-pair!]
+		ofs		[red-value!]
+		pt2d	[red-point2D!]
 		flags	[integer!]
 		mods	[integer!]
 		pk		[red-integer!]
@@ -562,8 +564,9 @@ OS-send-event: func [
 	synth/fx: as float32! 0.0
 	synth/fy: as float32! 0.0
 	synth/picked: 0
-	pr: as red-pair! (s/offset + 2)						;-- cell 2 = offset (target view coords)
-	if TYPE_OF(pr) = TYPE_PAIR [synth/fx: as float32! pr/x  synth/fy: as float32! pr/y]
+	ofs: s/offset + 2									;-- cell 2 = offset (pair! or point2D!, target view coords)
+	if TYPE_OF(ofs) = TYPE_PAIR [pr: as red-pair! ofs  synth/fx: as float32! pr/x  synth/fy: as float32! pr/y]
+	if TYPE_OF(ofs) = TYPE_POINT2D [pt2d: as red-point2D! ofs  synth/fx: pt2d/x  synth/fy: pt2d/y]	;-- fractions preserved
 	pk: as red-integer! (s/offset + 3)					;-- cell 3 = picked (wheel notches)
 	if TYPE_OF(pk) = TYPE_INTEGER [synth/picked: pk/value]
 	objc_setAssociatedObject view RedNSEventKey (as integer! synth) OBJC_ASSOCIATION_ASSIGN

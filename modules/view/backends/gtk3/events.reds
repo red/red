@@ -804,6 +804,8 @@ OS-send-event: func [
 		hd		[red-handle!]
 		widget	[handle!]
 		pr		[red-pair!]
+		ofs		[red-value!]
+		pt2d	[red-point2D!]
 		pk		[red-integer!]
 		flags	[integer!]
 		mods	[integer!]
@@ -837,13 +839,18 @@ OS-send-event: func [
 	flags: evt/flags									;-- synthetic flags: low word = key codepoint, high bits = View EVT_FLAG_*
 	mods:  flags and (EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MENU_DOWN or EVT_FLAG_CMD_DOWN)
 														;-- keep only keyboard modifiers; raw evt/flags has bits make-event mis-reads
-	pr: as red-pair! (s/offset + 2)						;-- cell 2 = offset (logical; GTK event coords are logical -> exact round-trip)
-	either TYPE_OF(pr) = TYPE_PAIR [
+	evt-motion/x_new: 0									;-- no offset given -> 0x0, not the stale coords of a previous event
+	evt-motion/y_new: 0									;-- (matching the Windows and macOS backends)
+	ofs: s/offset + 2									;-- cell 2 = offset (pair! or point2D!; GTK event coords are logical integers)
+	if TYPE_OF(ofs) = TYPE_PAIR [
+		pr: as red-pair! ofs
 		evt-motion/x_new: pr/x							;-- get-event-offset reads these globals, not the GdkEvent
 		evt-motion/y_new: pr/y
-	][
-		evt-motion/x_new: 0								;-- no offset given -> 0x0, not the stale coords of a previous event
-		evt-motion/y_new: 0								;-- (matching the Windows and macOS backends)
+	]
+	if TYPE_OF(ofs) = TYPE_POINT2D [
+		pt2d: as red-point2D! ofs
+		evt-motion/x_new: as-integer pt2d/x				;-- GTK coords are integer: fractional parts are truncated
+		evt-motion/y_new: as-integer pt2d/y
 	]
 
 	switch evt/type [

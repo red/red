@@ -77,6 +77,13 @@ got-face: got-window: got-offset: got-picked: bx: e: none
 		--assert e/key = #"Q"
 		e: make event! [type: 'down]
 		--assert none? e/key
+	--test-- "offset accepts a pair! or a point2D!, reading back as given"
+		e: make event! [type: 'down offset: 25x30]
+		--assert pair? e/offset
+		--assert e/offset = 25x30
+		e: make event! [type: 'down offset: (25.5, 30.25)]
+		--assert point2D? e/offset
+		--assert e/offset = (25.5, 30.25)
 ===end-group===
 
 ===start-group=== "dispatching a change event fires on-change"
