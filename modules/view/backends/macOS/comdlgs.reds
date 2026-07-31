@@ -388,6 +388,11 @@ OS-request-font: func [
 		trait		[integer!]
 		bold?		[logic!]
 		pool		[integer!]
+		key-win		[integer!]
+		wins		[integer!]
+		wframe		[NSRect! value]
+		pframe		[NSRect! value]
+		x y			[float32!]
 ][
 	font-changed?: no
 	nsfont: as-integer get-font null selected
@@ -397,7 +402,32 @@ OS-request-font: func [
 
 	panel: objc_msgSend [objc_getClass "NSFontPanel" sel_getUid "sharedFontPanel"]
 	objc_msgSend [panel sel_getUid "setPanelFont:isMultiple:" nsfont no]
+	manager: objc_msgSend [objc_getClass "NSFontManager" sel_getUid "sharedFontManager"]
+	objc_msgSend [manager sel_getUid "setSelectedFont:isMultiple:" nsfont no]	;-- the panel's lists reflect the
+															;-- font manager's selection, not setPanelFont:
 	objc_msgSend [panel sel_getUid "setDelegate:" delegate]
+
+	key-win: objc_msgSend [NSApp sel_getUid "keyWindow"]	;-- the shared font panel keeps its own
+	if zero? key-win [									;-- autosaved frame: center it over the app's
+		key-win: objc_msgSend [NSApp sel_getUid "mainWindow"]	;-- window, as the Windows (hwndOwner) and
+	]													;-- GTK (transient-for) backends do
+	if zero? key-win [									;-- app not active yet: use its first window
+		wins: objc_msgSend [NSApp sel_getUid "windows"]
+		if 0 < objc_msgSend [wins sel_getUid "count"][
+			key-win: objc_msgSend [wins sel_getUid "objectAtIndex:" 0]
+		]
+	]
+	either zero? key-win [
+		objc_msgSend [panel sel_getUid "center"]		;-- no app window: fall back to screen-centered
+	][
+		wframe: objc_msgSend_rect [key-win sel_getUid "frame"]
+		pframe: objc_msgSend_rect [panel sel_getUid "frame"]
+		x: wframe/w - pframe/w / as float32! 2.0	;-- centered over the window, in Cocoa coords
+		y: wframe/h - pframe/h / as float32! 2.0	;-- (both frames are bottom-left based)
+		x: wframe/x + x
+		y: wframe/y + y
+		objc_msgSend [panel sel_getUid "setFrameOrigin:" x y]
+	]
 	objc_msgSend [panel sel_getUid "orderFront:" 0]
 	objc_msgSend [NSApp sel_getUid "runModalForWindow:" panel]
 	either font-changed? [
