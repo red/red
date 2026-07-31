@@ -506,9 +506,15 @@ OS-image: context [
 		len		[integer!]
 		return: [node!]
 		/local
-			h	[int-ptr!]
+			h		[int-ptr!]
+			cfdata	[integer!]
 	][
-		h: data-to-image as int-ptr! CFDataCreateWithBytesNoCopy 0 data len kCFAllocatorNull no no
+		;-- the CFData must OWN the encoded bytes: CGImageSource decodes lazily and keeps
+		;-- referencing them, while `data` points into a GC-managed Red binary buffer that
+		;-- can be reclaimed or moved before the image is rendered (image turns all black).
+		cfdata: CFDataCreate 0 data len
+		h: data-to-image as int-ptr! cfdata no no
+		CFRelease cfdata					;-- the CGImage retains what it needs from the source
 		make-node h null 0 CGImageGetWidth h CGImageGetHeight h
 	]
 
