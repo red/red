@@ -139,8 +139,8 @@ build-menu: func [
 						TYPE_BLOCK [
 							sub-menu: objc_msgSend [objc_getClass "NSMenu" sel_getUid "alloc"]
 							sub-menu: objc_msgSend [sub-menu sel_getUid "initWithTitle:" title]
-							build-menu as red-block! next sub-menu
-							objc_msgSend [item sel_getUid "setSubmenu:" sub-menu]
+							build-menu as red-block! next sub-menu target	;-- `target` is required: without it, the
+							objc_msgSend [item sel_getUid "setSubmenu:" sub-menu]	;-- next expression was consumed as it
 							value: value + 1
 						]
 						TYPE_WORD [
