@@ -849,8 +849,15 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 	
-	update-view: routine [face [object!]][
-		gui/OS-update-view face
+	update-view: routine [
+		face [object!]
+		/local
+			word [red-word!]
+	][
+		word: as red-word! (object/get-values face) + gui/FACE_OBJ_TYPE
+		if gui/screen <> symbol/resolve word/symbol [	;-- a screen face mirrors the OS state: it has
+			gui/OS-update-view face					;-- no widget handle to push facets to
+		]
 		SET_RETURN(none-value)
 	]
 
