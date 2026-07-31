@@ -2868,7 +2868,11 @@ make-profilable make target-class [
 					either all [
 						armhf?
 						find [float! float64! float32!] type/1
-						any [none? attribs not find attribs 'variadic]	;-- variadic are not passed by VFP regs
+						any [								;-- variadic are not passed by VFP regs, but a
+							none? attribs					;-- `keep` call targets a concrete prototype,
+							not find attribs 'variadic		;-- so it follows the base (non-variadic) AAPCS
+							find attribs 'keep
+						]
 					][
 						unless calc [emit-pop-float/with freg type]
 						freg: freg + 1
@@ -3086,7 +3090,10 @@ make-profilable make target-class [
 		emit-i32 #{e1a0c00d}						;-- MOV ip, sp
 		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
 		if compiler/variadic? tag: args/1 [args: args/2]
-		if all [tag = #variadic  fspec/3 = 'cdecl][align-variadic-stack-args args fspec] ;-- AAPCS C.7 stack padding
+		if all [
+			tag = #variadic  fspec/3 = 'cdecl
+			not all [block? blk: fspec/4/1  find blk 'keep]	;-- `keep`: fixed prototype, so no
+		][align-variadic-stack-args args fspec]				;-- variadic-specific C.7 padding
 		size: emit-AAPCS-header/calc args fspec all [block? blk: fspec/4/1 blk] ;-- bytes left on the stack at the call
 		unless zero? size // 8 [emit-i32 #{e24dd004}] ;-- SUB sp, sp, #4	; pad so SP is 8-byte aligned at the call (AAPCS)
 		emit-i32 #{e92d5000}						;-- PUSH {ip,lr}		; save previous sp and lr value
