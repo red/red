@@ -37,13 +37,20 @@ jobs:
           REVIEW_SHA: ${{ github.sha }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          .\.github\scripts\codex-review-push.ps1 `
-            -BeforeSha "$env:REVIEW_BEFORE" `
-            -HeadSha "$env:REVIEW_SHA" `
-            -DefaultBranch "$env:DEFAULT_BRANCH"
+          try {
+            .\.github\scripts\codex-review-push.ps1 `
+              -BeforeSha "$env:REVIEW_BEFORE" `
+              -HeadSha "$env:REVIEW_SHA" `
+              -DefaultBranch "$env:DEFAULT_BRANCH"
+          }
+          catch {
+            Write-Host "Codex review failed but will not stop the workflow."
+          }
+          exit 0
 
       - name: Upload review log
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: ai-review
@@ -79,3 +86,4 @@ jobs:
           .\.github\scripts\send-telegram-review.ps1 `
             -ReviewPath "${{ steps.run_review.outputs.review_output_path }}" `
             -MessageText $message
+          exit 0
