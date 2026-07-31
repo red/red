@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 03/07/2026
-	Revision: 62
+	Date: 31/07/2026
+	Revision: 63
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1578,7 +1578,42 @@ will output:
  hello 123 world
  
 \note Compatibity with other attributes
-<b>Variadic</b> attribute can only be used alone or with the <b>cdecl</b> attribute.
+<b>Variadic</b> attribute can only be used alone or with the <b>cdecl</b> and <b>keep</b> attributes.
+
+/note
+
+\note Default argument promotions
+Arguments passed in the variadic part of a <b>cdecl</b> call are subject to the C default argument promotions: a <b>float32!</b> value is promoted to <b>float!</b> (C `double`), as the C standard requires for arguments matching the `...` ellipsis. The <b>keep</b> attribute opts out of that conversion.
+
+/note
+ 
++++Keep
+
+Prevents the C default argument promotions from being applied to the variadic arguments, so that each one is passed using its own declared type. This attribute is only meaningful in conjunction with the <b>variadic</b> attribute on a <b>cdecl</b> imported function.
+
+It is required when the imported function is not a true C variadic function (like in Objective-C).
+
+Example of definition:
+
+ #import [
+ 	"/usr/lib/libobjc.A.dylib" cdecl [
+ 		objc_msgSend: "objc_msgSend" [[variadic keep] return: [integer!]]
+ 	]
+ ]
+
+Example of call:
+
+ objc_msgSend [view sel_getUid "setFrameSize:" width height]
+
+where <b>width</b> and <b>height</b> are <b>float32!</b> values, passed as-is (4 bytes each), as the `-[NSView setFrameSize:(NSSize)]` prototype expects.
+
+\note Compatibity with other attributes
+<b>Keep</b> attribute can only be used with the <b>variadic</b> attribute, optionally combined with <b>cdecl</b>.
+
+/note
+
+\note Named arguments
+Named (fixed) arguments declared before the variadic part are always passed using their declared type, whether or not <b>keep</b> is used, and are type-checked in both cases.
 
 /note
  
@@ -4419,6 +4454,13 @@ will output:
 
 
 ===Document History
+
+*<b>31/07/2026 - revision 63</b>
+
+*>Adds <b>keep</b> function attribute.
+
+*>Documents the C default argument promotions applied to <b>variadic</b> arguments.
+
 
 *<b>03/07/2026 - revision 62</b>
 

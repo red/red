@@ -1495,16 +1495,17 @@ system-dialect: make-profilable context [
 		
 		check-specs: func [
 			name specs /extend
-			/local type type-def fun-rule spec-type attribs value args locs cconv pos
+			/local type type-def fun-rule spec-type attribs value args locs cconv va pos
 		][
 			unless block? specs [
 				throw-error "function definition requires a specification block"
 			]
 			cconv: ['cdecl | 'stdcall]
+			va: ['variadic opt 'keep | 'keep 'variadic]	;-- `keep`: no C default argument promotions
 			attribs: [
-				[cconv ['variadic | 'typed | 'custom]]
-				| [['variadic | 'typed | 'custom] cconv]
-				| 'catch | 'infix | 'variadic | 'typed | 'custom | 'callback | cconv
+				[cconv [va | 'typed | 'custom]]
+				| [[va | 'typed | 'custom] cconv]
+				| 'catch | 'infix | va | 'typed | 'custom | 'callback | cconv
 			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 			fun-rule: [pos: block! (check-specs name pos/1)]
@@ -1683,11 +1684,15 @@ system-dialect: make-profilable context [
 			;--     ("the ellipsis stops argument conversion after the last declared parameter")
 			;--   * apply C default argument promotions to the trailing (variadic) args:
 			;--     float32! -> float! (i.e. float -> double). char/byte are already word-sized.
+			;-- The `keep` attribute opts out of the promotions: such a callee is not a true C
+			;-- variadic function (e.g. objc_msgSend, which stands in for concrete ObjC method
+			;-- prototypes), so every argument must be passed at its own declared width.
 			name [word!] tag [issue!] args [block!]
-			/local entry spec fixed n i arg atype
+			/local entry spec fixed n i arg atype keep?
 		][
 			entry: functions/:name
 			unless all [tag = #variadic  entry/3 = 'cdecl][exit] ;-- only C-ABI vararg imports
+			keep?: to logic! find-attribute entry/4 'keep
 			spec: entry/4
 			if block? spec/1 [spec: next spec]			;-- skip attributes block
 			fixed: entry/1								;-- number of named (fixed) C parameters
@@ -1704,13 +1709,15 @@ system-dialect: make-profilable context [
 				]
 				spec: skip spec 2
 			]
-			repeat i n [								;-- variadic tail: default argument promotions
-				if all [
-					i > fixed
-					not block? arg: args/:i				;-- skip nested calls (no float32! promotion there yet)
-					'float32! = first get-type arg
-				][
-					args/:i: make action-class [action: 'type-cast type: [float!] data: arg]
+			unless keep? [							;-- variadic tail: default argument promotions
+				repeat i n [
+					if all [
+						i > fixed
+						not block? arg: args/:i			;-- skip nested calls (no float32! promotion there yet)
+						'float32! = first get-type arg
+					][
+						args/:i: make action-class [action: 'type-cast type: [float!] data: arg]
+					]
 				]
 			]
 		]
