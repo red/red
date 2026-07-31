@@ -2855,7 +2855,7 @@ OS-update-view: func [
 	word: as red-word! values + FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
 
-	if type = screen [exit]
+	if type = screen-sym [exit]
 
 	if all [
 		type = rich-text
@@ -3099,7 +3099,7 @@ OS-to-image: func [
 	type: symbol/resolve word/symbol
 
 	case [
-		type = screen [
+		type = screen-sym [
 			win: gdk_get_default_root_window
 			width: gdk_window_get_width win
 			height: gdk_window_get_height win

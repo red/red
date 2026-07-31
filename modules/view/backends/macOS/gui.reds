@@ -2450,7 +2450,7 @@ OS-to-image: func [
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
 	case [
-		type = screen [
+		type = screen-sym [
 			rect/left: 0 rect/top: 0 rect/right: 7F800000h rect/bottom: 7F800000h
 			bmp: CGWindowListCreateImage as NSRect! rect 1 0 0		;-- INF
 			ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp

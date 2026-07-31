@@ -3008,7 +3008,7 @@ OS-to-image: func [
 		]
 		return ret
 	]
-	screen?: screen = sym
+	screen?: screen-sym = sym
 	either screen? [
 		size: as red-pair! get-node-facet face/ctx FACE_OBJ_SIZE
 		width: dpi-scale as float32! size/x
