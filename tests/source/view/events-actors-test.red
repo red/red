@@ -86,6 +86,28 @@ got-face: got-window: got-offset: got-picked: bx: e: none
 		--assert e/offset = (25.5, 30.25)
 ===end-group===
 
+===start-group=== "event flags: modifiers and held mouse buttons"
+	--test-- "every flag word is accepted by `make event!`"
+		e: make event! [type: 'over flags: [away down mid-down alt-down aux-down control shift alt command]]
+		--assert e/flags = [away down mid-down alt-down aux-down control shift alt command]
+	--test-- "flag accessors reflect the given flags"
+		e: make event! [type: 'over flags: [down control]]
+		--assert e/down?
+		--assert e/ctrl?
+		--assert not e/mid-down?
+		--assert not e/aux-down?
+		--assert not e/shift?
+		--assert not e/away?
+	--test-- "a held button and a key codepoint coexist in the same event"
+		e: make event! [type: 'key key: #"Z" flags: [down shift]]
+		--assert e/key = #"Z"
+		--assert e/down?
+		--assert e/shift?
+	--test-- "an unknown flag word is ignored"
+		e: make event! [type: 'over flags: [down zorglub]]
+		--assert e/flags = [down]
+===end-group===
+
 ===start-group=== "dispatching a change event fires on-change"
 	--test-- "check on-change fires"
 		changed?: no

@@ -105,6 +105,7 @@ event: context [
 			s = symbol/resolve gui/_control/symbol	[gui/EVT_FLAG_CTRL_DOWN]
 			s = symbol/resolve gui/_shift/symbol	[gui/EVT_FLAG_SHIFT_DOWN]
 			s = symbol/resolve gui/_alt/symbol		[gui/EVT_FLAG_MENU_DOWN]
+			s = symbol/resolve gui/_command/symbol	[gui/EVT_FLAG_CMD_DOWN]	;-- ignored by the backends not reporting it (Windows)
 			s = symbol/resolve gui/_away/symbol		[gui/EVT_FLAG_AWAY]
 			s = symbol/resolve gui/_down/symbol		[gui/EVT_FLAG_DOWN]
 			s = symbol/resolve gui/_mid-down/symbol	[gui/EVT_FLAG_MID_DOWN]

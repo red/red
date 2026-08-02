@@ -87,7 +87,8 @@ get-event-flags: func [
 	if evt/flags and EVT_FLAG_CTRL_DOWN	 <> 0 [block/rs-append blk as red-value! _control]
 	if evt/flags and EVT_FLAG_SHIFT_DOWN <> 0 [block/rs-append blk as red-value! _shift]
 	if evt/flags and EVT_FLAG_MENU_DOWN  <> 0 [block/rs-append blk as red-value! _alt]
-	as red-value! blk
+	if evt/flags and EVT_FLAG_CMD_DOWN	 <> 0 [block/rs-append blk as red-value! _command]	;-- unlike Windows/GTK: the headless
+	as red-value! blk																		;-- backend reports every settable flag
 ]
 
 get-event-flag: func [

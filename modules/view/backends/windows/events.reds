@@ -717,6 +717,10 @@ OS-send-event: func [
 	if mouse? [
 		if flags and EVT_FLAG_CTRL_DOWN  <> 0 [wParam: wParam or 0008h]	;-- MK_CONTROL
 		if flags and EVT_FLAG_SHIFT_DOWN <> 0 [wParam: wParam or 0004h]	;-- MK_SHIFT
+		if flags and EVT_FLAG_DOWN		 <> 0 [wParam: wParam or 0001h]	;-- MK_LBUTTON	buttons held during the event, decoded
+		if flags and EVT_FLAG_ALT_DOWN	 <> 0 [wParam: wParam or 0002h]	;-- MK_RBUTTON	 back by `process` (decode-down-flags);
+		if flags and EVT_FLAG_MID_DOWN	 <> 0 [wParam: wParam or 0010h]	;-- MK_MBUTTON	 dragging requires them on `over` events.
+		if flags and EVT_FLAG_AUX_DOWN	 <> 0 [wParam: wParam or 0020h]	;-- MK_XBUTTON1	ALT has no MK_ bit: not encodable
 		ofs: s/offset + 2								;-- cell 2 = offset (pair! or point2D!)
 		ofs?: no
 		if TYPE_OF(ofs) = TYPE_PAIR    [pr: as red-pair! ofs  fx: as float32! pr/x  fy: as float32! pr/y  ofs?: yes]
@@ -753,7 +757,10 @@ OS-send-event: func [
 		m/y:      0
 		saved-keys: inject-key-flags					;-- save/restore: a nested send-event from an actor must not
 		unless mouse? [									;-- clobber the outer dispatch's injected modifiers
-			inject-key-flags: flags and (EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_MENU_DOWN)
+			inject-key-flags: flags and (				;-- mouse buttons too: real key events report them (check-extra-keys)
+				EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_MENU_DOWN
+				or EVT_FLAG_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MID_DOWN or EVT_FLAG_AUX_DOWN
+			)
 		]
 		process m										;-- stays live across the whole dispatch: a special key's
 		inject-key-flags: saved-keys					;-- EVT_KEY_DOWN + forced EVT_KEY both read it (do-events masks it)

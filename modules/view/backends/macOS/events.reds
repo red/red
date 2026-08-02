@@ -553,7 +553,12 @@ OS-send-event: func [
 	if zero? view [return false]
 
 	flags: evt/flags									;-- synthetic flags: low word = key codepoint, high bits = View EVT_FLAG_*
-	mods:  flags and (EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MENU_DOWN or EVT_FLAG_CMD_DOWN)
+	;-- keep the modifier keys and the buttons held during the event (dragging requires the button
+	;-- on `over` events); the remaining bits are ones make-event would mis-read
+	mods:  flags and (
+		EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_MENU_DOWN or EVT_FLAG_CMD_DOWN
+		or EVT_FLAG_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MID_DOWN or EVT_FLAG_AUX_DOWN
+	)
 
 	;-- Associate a marked buffer carrying the injected offset (view coords) and wheel delta.
 	;-- get-event-offset / get-event-picked return these directly for synthetic events. We must

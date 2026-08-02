@@ -837,8 +837,12 @@ OS-send-event: func [
 	ftype: symbol/resolve wd/symbol						;-- face type (button/check/field/...)
 
 	flags: evt/flags									;-- synthetic flags: low word = key codepoint, high bits = View EVT_FLAG_*
-	mods:  flags and (EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MENU_DOWN or EVT_FLAG_CMD_DOWN)
-														;-- keep only keyboard modifiers; raw evt/flags has bits make-event mis-reads
+	;-- keep the modifier keys and the buttons held during the event (dragging requires the button
+	;-- on `over` events); the remaining bits are ones make-event would mis-read
+	mods:  flags and (
+		EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_MENU_DOWN or EVT_FLAG_CMD_DOWN
+		or EVT_FLAG_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MID_DOWN or EVT_FLAG_AUX_DOWN
+	)
 	evt-motion/x_new: 0									;-- no offset given -> 0x0, not the stale coords of a previous event
 	evt-motion/y_new: 0									;-- (matching the Windows and macOS backends)
 	ofs: s/offset + 2									;-- cell 2 = offset (pair! or point2D!; GTK event coords are logical integers)
