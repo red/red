@@ -619,7 +619,7 @@ OS-send-event: func [
 			make-event view ((flags and FFFFh) or mods) EVT_KEY
 			if ns-kind? view "NSTextField" [field-append-char view flags and FFFFh]	;-- native field: also fill the text
 		]
-		EVT_WHEEL		[make-event view 0 EVT_WHEEL]	;-- flags 0: no NSEvent for check-extra-keys (nil-safe); delta via synth/picked
+		EVT_WHEEL		[make-event view mods EVT_WHEEL]	;-- delta via synth/picked
 		default			[return false]
 	]
 	true
@@ -668,11 +668,7 @@ make-event: func [
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! obj
-	either evt = EVT_WHEEL [
-		gui-evt/flags: check-extra-keys flags	;-- pass event as flags for EVT_WHEEL
-	][
-		gui-evt/flags: flags
-	]
+	gui-evt/flags: flags
 
 	state: EVT_DISPATCH
 	stack/mark-try-all words/_anon

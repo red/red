@@ -1893,10 +1893,8 @@ process: func [
 			EVT_DISPATCH
 		]
 		WM_MOUSEWHEEL [
-			flags: 0
-			if msg/wParam and 08h <> 0 [flags: flags or EVT_FLAG_CTRL_DOWN]		;-- MK_CONTROL
-			if msg/wParam and 04h <> 0 [flags: flags or EVT_FLAG_SHIFT_DOWN]	;-- MK_SHIFT
-			make-event msg flags EVT_WHEEL
+			flags: decode-down-flags msg/wParam			;-- MK_* bits: modifier keys *and* buttons held
+			make-event msg flags EVT_WHEEL				;-- (the injected ones too, see OS-send-event)
 		]
 		WM_LBUTTONDOWN	[
 			menu-origin: null							;-- reset if user clicks on menu bar

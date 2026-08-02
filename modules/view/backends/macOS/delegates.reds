@@ -544,9 +544,12 @@ scroll-wheel: func [
 	self	[integer!]
 	cmd		[integer!]
 	event	[integer!]
+	/local
+		flags [integer!]
 ][
 	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
-	make-event self event EVT_WHEEL
+	flags: check-extra-keys event				;-- make-event takes the flags, like every other event
+	make-event self flags EVT_WHEEL
 ]
 
 slider-change: func [
