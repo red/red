@@ -73,10 +73,13 @@ mouse-entered: func [
 	self	[integer!]
 	cmd		[integer!]
 	event	[integer!]
+	/local
+		flags [integer!]
 ][
 	if zero? objc_getAssociatedObject self RedEnableKey [
 		objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
-		make-event self 0 EVT_OVER
+		flags: mouse-state-flags event				;-- report the modifiers and buttons held, as the other
+		make-event self flags EVT_OVER				;-- backends do (a 0 here would abort a running drag)
 	]
 ]
 
@@ -85,10 +88,13 @@ mouse-exited: func [
 	self	[integer!]
 	cmd		[integer!]
 	event	[integer!]
+	/local
+		flags [integer!]
 ][
 	if zero? objc_getAssociatedObject self RedEnableKey [
 		objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
-		make-event self EVT_FLAG_AWAY EVT_OVER
+		flags: (mouse-state-flags event) or EVT_FLAG_AWAY
+		make-event self flags EVT_OVER
 	]
 ]
 
@@ -99,12 +105,14 @@ mouse-moved: func [
 	event	[integer!]
 	/local
 		flags [integer!]
+		mods  [integer!]
 ][
 	if zero? objc_getAssociatedObject self RedEnableKey [
 		objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
 		flags: get-flags (as red-block! get-face-values self) + FACE_OBJ_FLAGS
 		if flags and FACET_FLAGS_ALL_OVER <> 0 [
-			make-event self 0 EVT_OVER
+			mods: mouse-state-flags event
+			make-event self mods EVT_OVER
 		]
 	]
 ]

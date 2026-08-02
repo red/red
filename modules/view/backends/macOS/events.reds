@@ -233,6 +233,22 @@ check-extra-keys: func [
 	key
 ]
 
+mouse-state-flags: func [					;-- modifier keys + mouse buttons held during `event`
+	event	[integer!]
+	return: [integer!]
+	/local
+		flags	[integer!]
+		buttons	[integer!]
+][
+	flags: check-extra-keys event
+	buttons: objc_msgSend [objc_getClass "NSEvent" sel_getUid "pressedMouseButtons"]
+	if buttons and 1 <> 0 [flags: flags or EVT_FLAG_DOWN]		;-- left
+	if buttons and 2 <> 0 [flags: flags or EVT_FLAG_ALT_DOWN]	;-- right
+	if buttons and 4 <> 0 [flags: flags or EVT_FLAG_MID_DOWN]	;-- middle
+	if buttons and 8 <> 0 [flags: flags or EVT_FLAG_AUX_DOWN]	;-- 4th button
+	flags
+]
+
 translate-key: func [
 	keycode [integer!]
 	return: [integer!]
@@ -686,6 +702,7 @@ process-mouse-tracking: func [
 		n 	[integer!]
 		v	[integer!]
 		w	[integer!]
+		p	[int-ptr!]
 ][
 	w: window
 	if zero? w [
@@ -716,12 +733,17 @@ process-mouse-tracking: func [
 		while [all [v <> 0 not red-face? v]][
 			v: objc_msgSend [v sel_getUid "superview"]
 		]
+		p: as int-ptr! event
 		if all [
 			v <> 0
 			zero? objc_getAssociatedObject v RedEnableKey
-		][
-			objc_msgSend [v sel_getUid "mouseMoved:" event]
-		]
+			p/2 = NSMouseMoved							;-- a drag is already delivered to the view that got
+		][												;-- the mouseDown: (-> EVT_OVER with the held button in
+			objc_msgSend [v sel_getUid "mouseMoved:" event]	;-- flags). Forwarding it here too would dispatch a
+		]												;-- 2nd EVT_OVER for the same motion, with no button
+														;-- flags, which aborts face dragging (see `dragging`
+														;-- in view.red: a motion without the button reads as
+														;-- a lost `up` event, issue #5544)
 		if v <> current-widget [
 			if current-widget <> 0 [
 				objc_msgSend [current-widget sel_getUid "mouseExited:" event]
