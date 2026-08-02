@@ -465,7 +465,10 @@ OS-image: context [
 			image: CGImageSourceCreateImageAtIndex image-data 0 0
 		]
 
-		unless edit? [return as int-ptr! image]
+		unless edit? [
+			unless cgimage? [CFRelease image-data]	;-- the CGImage holds its own reference to the
+			return as int-ptr! image				;-- encoded bytes: the source is not needed anymore
+		]
 
 		alpha?: alpha-channel? image
 		color-space: CGColorSpaceCreateDeviceRGB
