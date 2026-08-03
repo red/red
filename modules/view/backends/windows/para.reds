@@ -41,7 +41,7 @@ update-para: func [
 		mask   [integer!]
 ][
 	values: object/get-values face
-	state:	as red-block! values + FACE_OBJ_TYPE
+	state:	as red-block! values + FACE_OBJ_STATE	;-- none for a para! used in a draw block (#5469)
 	if TYPE_OF(state) <> TYPE_BLOCK [exit]
 	
 	type:	as red-word! values + FACE_OBJ_TYPE
