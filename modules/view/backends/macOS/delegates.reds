@@ -1505,8 +1505,14 @@ hit-test: func [
 			x: as-integer pt/x * ratio
 			ratio: (as float32! h) / (as float32! sz/y)
 			y: as-integer pt/y * ratio
-			pixel: OS-image/get-pixel img/node y * w + x
-			if pixel >>> 24 = 0 [return 0]
+			either any [x < 0 y < 0 x >= w y >= h][	;-- outside the image: no pixel to test, the
+				return v							;-- face takes the click
+			][
+				pixel: OS-image/get-pixel img/node y * w + x
+				either pixel >>> 24 = 0 [return 0][	;-- transparent pixel: the click passes through
+					return v						;-- opaque one: the face takes it, whatever `color`
+				]									;-- is (an image face has no color: the check below
+			]										;-- would sample the cached bitmap and reject it)
 		]
 
 		clr: (as red-tuple! vals) + FACE_OBJ_COLOR
