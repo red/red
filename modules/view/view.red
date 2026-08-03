@@ -546,7 +546,7 @@ face!: object [				;-- keep in sync with facet! enum
 				block? data
 				find [drop-list drop-down text-list field area] type
 				value: pick data selected
-				set-quiet 'text copy value
+				set-quiet 'text either series? value [copy value][form value]
 			]
 			
 			if all [not same? :old :new image? :old][system/view/platform/detach-image old]

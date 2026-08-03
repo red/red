@@ -1604,10 +1604,12 @@ update-combo-box: func [
 						if list? [i: i + 1]
 						str: as red-string! block/rs-abs-at blk index
 						loop part [
-							if TYPE_OF(str) = TYPE_STRING [
-								objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" i]
-							]
-						]
+							if TYPE_OF(str) = TYPE_STRING [		;-- the widget holds only the strings: one
+								objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" i]	;-- removal per string
+							]										;-- removed, at the same index as they
+							str: str + 1							;-- shift down. Without advancing `str`,
+						]											;-- a paired list (["a" 1 "b" 2]) removed
+																	;-- past the last item: NSRangeException
 					]
 				]
 				any [

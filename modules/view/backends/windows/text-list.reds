@@ -180,6 +180,7 @@ remove-list-items: func [
 	loop part [
 		type: TYPE_OF(str)
 		if ANY_STRING?(type) [remove-list-item hWnd pos drop?]
+		str: str + 1
 	]
 ]
 
