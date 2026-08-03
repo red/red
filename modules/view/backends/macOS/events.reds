@@ -575,6 +575,9 @@ OS-send-event: func [
 		EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_MENU_DOWN or EVT_FLAG_CMD_DOWN
 		or EVT_FLAG_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MID_DOWN or EVT_FLAG_AUX_DOWN
 	)
+	if evt/type = EVT_OVER [							;-- pointer outside the face: only a motion event reports
+		mods: mods or (flags and EVT_FLAG_AWAY)			;-- it, as real input does (mouseExited:)
+	]
 
 	;-- Associate a marked buffer carrying the injected offset (view coords) and wheel delta.
 	;-- get-event-offset / get-event-picked return these directly for synthetic events. We must

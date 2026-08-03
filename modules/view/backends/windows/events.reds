@@ -27,7 +27,6 @@ gui-evt/header: TYPE_EVENT
 modal-loop-type: 0										;-- remanence of last EVT_MOVE or EVT_SIZE
 zoom-distance:	 0
 special-key: 	-1										;-- <> -1 if a non-displayable key is pressed
-key-flags:		 0										;-- last key-flags, needed in mouseleave event
 inject-key-flags: -1									;-- >= 0 during a synthetic key dispatch (OS-send-event): the injected modifier bits to use instead of the physical GetKeyState (see key-extra-keys)
 utf16-char:		 0
 
@@ -707,7 +706,10 @@ OS-send-event: func [
 		EVT_AUX_UP		[wmsg: WM_XBUTTONUP		wParam: 00010000h]	;-- XBUTTON1 (hi)
 		EVT_DBL_CLICK	[wmsg: WM_LBUTTONDBLCLK	wParam: 0001h]
 		EVT_WHEEL		[wmsg: WM_MOUSEWHEEL]
-		EVT_OVER		[wmsg: WM_MOUSEMOVE]
+		EVT_OVER		[
+			wmsg: WM_MOUSEMOVE
+			if flags and EVT_FLAG_AWAY <> 0 [wmsg: WM_MOUSELEAVE]	;-- the message the OS itself uses to
+		]															;-- report the pointer leaving the face
 		EVT_KEY_DOWN	[wmsg: WM_KEYDOWN	wParam: (VkKeyScan (flags and FFFFh)) and 00FFh	 mouse?: no]	;-- char -> virtual-key code
 		EVT_KEY_UP		[wmsg: WM_KEYUP		wParam: (VkKeyScan (flags and FFFFh)) and 00FFh	 mouse?: no]
 		EVT_KEY			[wmsg: WM_CHAR		wParam: flags and FFFFh	 mouse?: no]
@@ -745,6 +747,8 @@ OS-send-event: func [
 			if TYPE_OF(pk) = TYPE_INTEGER [wParam: wParam or ((pk/value * 120) << 16)]
 		]
 	]
+	if wmsg = WM_MOUSEMOVE [last-mouse-pt: -1]			;-- the repeat filter breaking the #4342 feedback loop must
+														;-- not swallow an injected motion: the caller asked for it
 	either queued? [
 		PostMessage hWnd wmsg wParam lParam				;-- async: post to the OS queue (fires under a live message pump)
 	][													;-- (async key modifiers fall back to physical state; see key-extra-keys)
@@ -1881,14 +1885,14 @@ process: func [
 					TrackMouseEvent :track
 				]
 				make-event msg flags EVT_OVER
-				key-flags: flags
 			]
 			hover-saved: new
 			EVT_DISPATCH
 		]
 		WM_MOUSELEAVE [
-			last-mouse-pt: -1
-			make-event msg EVT_FLAG_AWAY or key-flags EVT_OVER
+			last-mouse-pt: -1							;-- modifiers and buttons held at the leave: physical for a real
+			flags: flags or (check-extra-keys no) or EVT_FLAG_AWAY	;-- exit, MK_ bits in wParam for an injected one
+			make-event msg flags EVT_OVER
 			if hWnd = hover-saved [hover-saved: null]
 			EVT_DISPATCH
 		]
@@ -1910,7 +1914,6 @@ process: func [
 				word: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
 				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
 			]
-			key-flags: flags
 			res: make-event msg flags EVT_LEFT_UP
 			prev-captured: null
 			res

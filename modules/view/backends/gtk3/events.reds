@@ -843,6 +843,9 @@ OS-send-event: func [
 		EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_MENU_DOWN or EVT_FLAG_CMD_DOWN
 		or EVT_FLAG_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MID_DOWN or EVT_FLAG_AUX_DOWN
 	)
+	if evt/type = EVT_OVER [							;-- pointer outside the face: only a motion event reports
+		mods: mods or (flags and EVT_FLAG_AWAY)			;-- it, as real input does (leave-notify)
+	]
 	evt-motion/x_new: 0									;-- no offset given -> 0x0, not the stale coords of a previous event
 	evt-motion/y_new: 0									;-- (matching the Windows and macOS backends)
 	ofs: s/offset + 2									;-- cell 2 = offset (pair! or point2D!; GTK event coords are logical integers)
