@@ -79,8 +79,10 @@ set-tabs: func [
 				objc_msgSend [obj sel_getUid "addTabViewItem:" item]
 
 				if face < end [
-					panel: get-face-handle face
-					objc_msgSend [item sel_getUid "setView:" panel]
+					panel: as-integer face-handle? face
+					if panel <> 0 [
+						objc_msgSend [item sel_getUid "setView:" panel]
+					]
 					face: face + 1
 				]
 				nb: nb + 1
