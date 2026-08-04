@@ -675,6 +675,8 @@ OS-send-event: func [
 		mouse? [logic!]
 		x	   [integer!]
 		y	   [integer!]
+		mx	   [integer!]
+		my	   [integer!]
 		m	   [tagMSG value]
 		pt	   [tagPOINT value]
 		pk	   [red-integer!]
@@ -694,6 +696,8 @@ OS-send-event: func [
 
 	flags:  evt/flags
 	wParam: 0
+	mx:     0
+	my:     0
 	mouse?: yes
 	switch evt/type [
 		EVT_LEFT_DOWN	[wmsg: WM_LBUTTONDOWN	wParam: 0001h]		;-- MK_LBUTTON
@@ -740,6 +744,13 @@ OS-send-event: func [
 				x: pt/x
 				y: pt/y
 			]
+			if wmsg = WM_MOUSELEAVE [					;-- a leave carries no coordinates in lParam, so get-event-offset
+				pt/x: x									;-- reads the screen point from the MSG: fill it as the OS would
+				pt/y: y
+				ClientToScreen hWnd pt
+				mx: pt/x
+				my: pt/y
+			]
 			lParam: (y << 16) or (x and FFFFh)			;-- MAKELPARAM(x, y)
 		]
 		if evt/type = EVT_WHEEL [						;-- wheel delta: notches * 120 -> wParam hi-word
@@ -757,8 +768,8 @@ OS-send-event: func [
 		m/wParam: wParam
 		m/lParam: lParam
 		m/time:   0
-		m/x:      0
-		m/y:      0
+		m/x:      mx								;-- 0 unless the message carries its point there (WM_MOUSELEAVE);
+		m/y:      my								;-- PostMessage fills them with the physical cursor position instead
 		saved-keys: inject-key-flags					;-- save/restore: a nested send-event from an actor must not
 		unless mouse? [									;-- clobber the outer dispatch's injected modifiers
 			inject-key-flags: flags and (				;-- mouse buttons too: real key events report them (check-extra-keys)
@@ -1890,8 +1901,8 @@ process: func [
 			EVT_DISPATCH
 		]
 		WM_MOUSELEAVE [
-			last-mouse-pt: -1							;-- modifiers and buttons held at the leave: physical for a real
-			flags: flags or (check-extra-keys no) or EVT_FLAG_AWAY	;-- exit, MK_ bits in wParam for an injected one
+			last-mouse-pt: -1							;-- modifiers from the physical keyboard for a real exit, buttons
+			flags: flags or EVT_FLAG_AWAY				;-- from the MK_ bits for an injected one, exactly as for a move
 			make-event msg flags EVT_OVER
 			if hWnd = hover-saved [hover-saved: null]
 			EVT_DISPATCH
