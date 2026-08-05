@@ -417,6 +417,9 @@ _series: context [
 			hash  [red-hash!]
 			cell  [red-value!]
 	][
+		type2: TYPE_OF(target)
+		unless ANY_SERIES?(type2) [ERR_EXPECT_ARGUMENT(type2 1)]	;-- only origin's type is checked by the dispatch
+
 		s:    GET_BUFFER(origin)
 		unit: GET_UNIT(s)
 		src: (as byte-ptr! s/offset) + (origin/head << (log-b unit))
@@ -471,7 +474,6 @@ _series: context [
 
 			index: target/head - items
 		][												;-- different series case
-			type2: TYPE_OF(target)
 			if any [
 				all [ANY_BLOCK?(type1)  ANY_STRING?(type2)]
 				all [ANY_STRING?(type1)	ANY_BLOCK?(type2)]
