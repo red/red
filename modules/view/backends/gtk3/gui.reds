@@ -1004,9 +1004,9 @@ change-pane: func [
 	unless null? layout [
 		win: gtk_widget_get_toplevel parent
 		focus: gtk_window_get_focus win
-		if focus <> null [								;-- #5761: re-parenting makes the focused widget lose and
-			g_signal_handlers_block_by_func(focus :focus-out-event focus)	;-- regain the focus, which must stay
-			g_signal_handlers_block_by_func(focus :focus-in-event focus)		;-- invisible to the event loop
+		if focus <> null [								;-- #5761: silence the focus churn from re-parenting
+			g_signal_handlers_block_by_func(focus :focus-out-event focus)
+			g_signal_handlers_block_by_func(focus :focus-in-event focus)
 		]
 		list: gtk_container_get_children layout
 		child: list
@@ -2392,13 +2392,7 @@ OS-show-window: func [
 
 	new?: not gtk_widget_get_visible win
 	gtk_widget_show win
-	if new? [
-		;-- #5761: gtk_window_show auto-focuses the first focusable child;
-		;-- Windows leaves the focus on the window itself. Clear it before
-		;-- any event processing: the `selected` facet applied below is the
-		;-- only initial-focus channel.
-		gtk_window_set_focus win null
-	]
+	if new? [gtk_window_set_focus win null]			;-- #5761: undo gtk_window_show's auto-focus (Windows parity)
 	n: 0
 	window-ready?: no
 	g_object_ref win								;-- #5696: pin win across the wait-for-ready
