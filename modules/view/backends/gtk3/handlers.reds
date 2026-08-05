@@ -1423,7 +1423,7 @@ focus-in-event: func [
 		SET-FOCUS-EVENT(widget 2)
 	]
 	change-selection widget int sym
-	make-event widget 0 EVT_FOCUS
+	unless sym = base [make-event widget 0 EVT_FOCUS]	;-- #5761: base faces emit no focus events (Windows parity)
 	EVT_DISPATCH
 ]
 
@@ -1463,7 +1463,7 @@ focus-out-event: func [
 		return EVT_DISPATCH
 	]
 
-	make-event widget 0 EVT_UNFOCUS
+	unless sym = base [make-event widget 0 EVT_UNFOCUS]	;-- #5761: base faces emit no focus events (Windows parity)
 	EVT_DISPATCH
 ]
 

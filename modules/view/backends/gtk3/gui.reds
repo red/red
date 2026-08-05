@@ -1004,6 +1004,10 @@ change-pane: func [
 	unless null? layout [
 		win: gtk_widget_get_toplevel parent
 		focus: gtk_window_get_focus win
+		if focus <> null [								;-- #5761: re-parenting makes the focused widget lose and
+			g_signal_handlers_block_by_func(focus :focus-out-event focus)	;-- regain the focus, which must stay
+			g_signal_handlers_block_by_func(focus :focus-in-event focus)		;-- invisible to the event loop
+		]
 		list: gtk_container_get_children layout
 		child: list
 		while [not null? child][
@@ -1036,7 +1040,11 @@ change-pane: func [
 		unless null? list [
 			g_list_free list
 		]
-		if focus <> null [gtk_widget_grab_focus focus]
+		if focus <> null [
+			gtk_widget_grab_focus focus
+			g_signal_handlers_unblock_by_func(focus :focus-in-event focus)
+			g_signal_handlers_unblock_by_func(focus :focus-out-event focus)
+		]
 	]
 ]
 
@@ -1500,6 +1508,7 @@ deferred-grab-focus: func [
 		focus	[handle!]
 		old-focus [handle!]
 		focused? [logic!]
+		already? [logic!]
 		face	[red-object!]
 ][
 	;-- g_object_ref pinned the widget at scheduling time; if it has since
@@ -1525,6 +1534,7 @@ deferred-grab-focus: func [
 				SET-FOCUS-EVENT(old-focus 3)
 			]
 		]
+		already?: gtk_widget_is_focus self				;-- the grab below is then a no-op emitting no signal
 		SET-FOCUS-EVENT(self 1)
 		gtk_widget_grab_focus self
 		pending: as integer! g_object_get_qdata self focus-event-id
@@ -1548,6 +1558,8 @@ deferred-grab-focus: func [
 		]
 		if all [
 			pending = 1
+			not already?								;-- #5761: don't report a focus change that did not happen
+			base <> get-widget-symbol self				;-- #5761: base faces emit no focus events (Windows parity)
 			selected-focus-face? face
 		][
 			make-event self 0 EVT_FOCUS
@@ -1555,7 +1567,10 @@ deferred-grab-focus: func [
 		SET-FOCUS-EVENT(self 0)
 		unless null? old-focus [
 			old-pending: as integer! g_object_get_qdata old-focus focus-event-id
-			if old-pending = 3 [
+			if all [
+				old-pending = 3
+				base <> get-widget-symbol old-focus
+			][
 				make-event old-focus 0 EVT_UNFOCUS
 			]
 			if any [
@@ -2367,6 +2382,7 @@ OS-show-window: func [
 		n		[integer!]
 		win		[handle!]
 		parent	[handle!]
+		new?	[logic!]
 ][
 	win: as handle! widget
 	if gtk_window_get_modal win [
@@ -2374,7 +2390,15 @@ OS-show-window: func [
 		unless null? parent [gtk_window_set_transient_for win parent]
 	]
 
+	new?: not gtk_widget_get_visible win
 	gtk_widget_show win
+	if new? [
+		;-- #5761: gtk_window_show auto-focuses the first focusable child;
+		;-- Windows leaves the focus on the window itself. Clear it before
+		;-- any event processing: the `selected` facet applied below is the
+		;-- only initial-focus channel.
+		gtk_window_set_focus win null
+	]
 	n: 0
 	window-ready?: no
 	g_object_ref win								;-- #5696: pin win across the wait-for-ready
