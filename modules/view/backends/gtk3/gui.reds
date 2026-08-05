@@ -2390,7 +2390,7 @@ OS-show-window: func [
 		unless null? parent [gtk_window_set_transient_for win parent]
 	]
 
-	new?: not gtk_widget_get_visible win
+	new?: not gtk_widget_get_realized win			;-- realization happens on first show only, surviving hide/show cycles
 	gtk_widget_show win
 	if new? [gtk_window_set_focus win null]			;-- #5761: undo gtk_window_show's auto-focus (Windows parity)
 	n: 0

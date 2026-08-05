@@ -1706,6 +1706,10 @@ GPtrArray!: alias struct! [
 		gtk_widget_realize: "gtk_widget_realize" [
 			widget		[handle!]
 		]
+		gtk_widget_get_realized: "gtk_widget_get_realized" [
+			widget		[handle!]
+			return:		[logic!]
+		]
 		gtk_widget_activate: "gtk_widget_activate" [
 			widget		[handle!]
 			return: 	[logic!]
