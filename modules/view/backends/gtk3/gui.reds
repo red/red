@@ -1597,11 +1597,13 @@ deferred-clear-focus: func [
 		values	[red-value!]
 		sel		[red-value!]
 ][
-	values: get-face-values win
-	if values <> null [
-		sel: values + FACE_OBJ_SELECTED
-		if TYPE_OF(sel) = TYPE_NONE [				;-- skip if a face got selected meanwhile
-			gtk_window_set_focus win null
+	unless null? g_object_get_qdata win red-face-id [	;-- skip if the window got destroyed meanwhile
+		values: get-face-values win
+		if values <> null [
+			sel: values + FACE_OBJ_SELECTED
+			if TYPE_OF(sel) = TYPE_NONE [				;-- skip if a face got selected meanwhile
+				gtk_window_set_focus win null
+			]
 		]
 	]
 	g_object_unref win
