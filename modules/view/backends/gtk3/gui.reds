@@ -1443,7 +1443,10 @@ change-selection: func [
 		type = window [
 			switch TYPE_OF(int) [
 				TYPE_OBJECT [set-selected-focus widget]
-				TYPE_NONE	[gtk_window_set_focus widget null]	;-- drop the native focus, as SetFocus hWnd on Windows
+				TYPE_NONE	[							;-- drop the native focus, as SetFocus hWnd on Windows
+					g_object_ref widget
+					g_idle_add as func-ptr! :deferred-clear-focus widget	;-- deferred, as the grabbing case (#5672)
+				]
 				default [0]
 			]
 		]
@@ -1583,6 +1586,25 @@ deferred-grab-focus: func [
 		]
 	]
 	g_object_unref self
+	false											;-- G_SOURCE_REMOVE
+]
+
+deferred-clear-focus: func [
+	[cdecl]
+	win		[handle!]
+	return:	[logic!]
+	/local
+		values	[red-value!]
+		sel		[red-value!]
+][
+	values: get-face-values win
+	if values <> null [
+		sel: values + FACE_OBJ_SELECTED
+		if TYPE_OF(sel) = TYPE_NONE [				;-- skip if a face got selected meanwhile
+			gtk_window_set_focus win null
+		]
+	]
+	g_object_unref win
 	false											;-- G_SOURCE_REMOVE
 ]
 
