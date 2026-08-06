@@ -1443,6 +1443,7 @@ change-selection: func [
 		type = window [
 			switch TYPE_OF(int) [
 				TYPE_OBJECT [set-selected-focus widget]
+				TYPE_NONE	[gtk_window_set_focus widget null]	;-- drop the native focus, as SetFocus hWnd on Windows
 				default [0]
 			]
 		]
@@ -2382,7 +2383,7 @@ OS-show-window: func [
 		n		[integer!]
 		win		[handle!]
 		parent	[handle!]
-		new?	[logic!]
+		focused? [logic!]
 ][
 	win: as handle! widget
 	if gtk_window_get_modal win [
@@ -2390,9 +2391,9 @@ OS-show-window: func [
 		unless null? parent [gtk_window_set_transient_for win parent]
 	]
 
-	new?: not gtk_widget_get_realized win			;-- realization happens on first show only, surviving hide/show cycles
+	focused?: not null? gtk_window_get_focus win	;-- a remembered focus survives hide/show cycles
 	gtk_widget_show win
-	if new? [gtk_window_set_focus win null]			;-- #5761: undo gtk_window_show's auto-focus (Windows parity)
+	unless focused? [gtk_window_set_focus win null]	;-- #5761: undo gtk_window_show's auto-focus (Windows parity)
 	n: 0
 	window-ready?: no
 	g_object_ref win								;-- #5696: pin win across the wait-for-ready
