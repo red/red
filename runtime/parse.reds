@@ -435,6 +435,7 @@ parser: context [
 					char: as red-char! token
 					cp: char/value
 					tbl: case-folding/upper-table
+					if type = TYPE_BINARY [comp-op: COMP_STRICT_EQUAL]	;-- binary searches are byte-exact (see binary/match?)
 					if comp-op = COMP_EQUAL [alt: case-folding/change-char cp yes]	;-- uppercase-normalize the token
 					len: as-integer ptail - p
 

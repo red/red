@@ -1419,6 +1419,10 @@ Red [
 	--test-- "str-sk95" --assert not parse/case "xč"	[thru #"𐐨"]
 	--test-- "str-sk96" --assert not parse/case "xč"	[to #"𐐀"]
 
+	--test-- "str-sk97" --assert not parse 	"k"			[thru #"^(212A)"]	;-- Kelvin sign lowercases to k, but has no uppercase mapping
+	--test-- "str-sk98" --assert not parse 	"^(212A)x"	[thru #"k"]
+	--test-- "str-sk99" --assert parse 		"x^(212A)"	[thru #"^(212A)"]
+
 ===end-group===
 
 ===start-group=== "string-casing"
@@ -2464,6 +2468,12 @@ Red [
 	--test-- "bin-sk39" --assert not parse	#{}			[to #"^(0A)"]
 	--test-- "bin-sk40" --assert not parse	#{}			[to [#{0A}]]
 	--test-- "bin-sk41" --assert not parse	#{}			[to [#"^(0A)"]]
+
+	--test-- "bin-sk42" --assert not parse	#{41}		[thru #"a"]			;-- binary searches are byte-exact, no case folding
+	--test-- "bin-sk43" --assert parse		#{41}		[thru #"A"]
+	--test-- "bin-sk44" --assert parse		#{4161}		[thru #"a"]
+	--test-- "bin-sk45" --assert not parse/case #{41}	[thru #"a"]
+	--test-- "bin-sk46" --assert not parse	#{41}		[thru #"^(0141)"]	;-- codepoint above FFh never matches a byte
 
 	
 ===end-group===
