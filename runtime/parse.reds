@@ -341,21 +341,14 @@ parser: context [
 			char   [red-char!]
 			bits   [red-bitset!]
 			s	   [series!]
+			p4	   [int-ptr!]
 			p	   [byte-ptr!]
 			phead  [byte-ptr!]
 			ptail  [byte-ptr!]
 			pbits  [byte-ptr!]
 			pos    [byte-ptr!]							;-- required by BS_TEST_BIT
-			p4	   [int-ptr!]
-			cp	   [integer!]
-			size   [integer!]
-			unit   [integer!]
-			type   [integer!]
-			res	   [integer!]
-			set?   [logic!]								;-- required by BS_TEST_BIT
-			not?   [logic!]
-			bin?   [logic!]
-			match? [logic!]
+			cp c alt size unit type res len [integer!]
+			set? not? bin? match? [logic!]				;-- `set?` required by BS_TEST_BIT
 	][
 		s: GET_BUFFER(rules)
 		assert s/offset <= (s/tail - 2)
@@ -441,34 +434,45 @@ parser: context [
 				TYPE_CHAR [
 					char: as red-char! token
 					cp: char/value
+					alt: case-folding/toggle-char cp
+					len: as-integer ptail - p
 
 					switch unit [
 						Latin1 [
-							while [p < ptail][
-								if p/value = as-byte cp [
-									return adjust-input-index input pos* 1 (as-integer p - phead)
-								]
-								p: p + 1
+							either comp-op = COMP_EQUAL [
+								loop len [c: as-integer p/1	if any [c = cp c = alt][break] p: p + 1]
+							][
+								loop len [if p/1 = as-byte cp [break] p: p + 1]
 							]
 						]
 						UCS-2 [
-							while [p < ptail][
-								if (as-integer p/2) << 8 + p/1 = cp [
-									return adjust-input-index input pos* 1 ((as-integer p - phead) >> 1)
+							len: len / 2
+							either comp-op = COMP_EQUAL [
+								loop len [
+									c: (as-integer p/2) << 8 + (as-integer p/1)
+									if any [c = cp c = alt][break]
+									p: p + 2
 								]
-								p: p + 2
+							][
+								loop len [
+									c: (as-integer p/2) << 8 + (as-integer p/1)
+									if c = cp [break]
+									p: p + 2
+								]
 							]
 						]
 						UCS-4 [
+							len: len / 4
 							p4: as int-ptr! p
-							while [p4 < as int-ptr! ptail][
-								if p4/value = cp [
-									return adjust-input-index input pos* 1 ((as-integer p4 - phead) >> 2)
-								]
-								p4: p4 + 1
+							either comp-op = COMP_EQUAL [
+								loop len [c: p4/1 if any [c = cp c = alt][break] p4: p4 + 1]
+							][
+								loop len [if p4/1 = cp [break] p4: p4 + 1]
 							]
+							p: as byte-ptr! p4
 						]
 					]
+					if p < ptail [return adjust-input-index input pos* 1 ((as-integer p - phead) >> log-b unit)]
 				]
 				default [
 					PARSE_ERROR [TO_ERROR(script parse-rule) token]

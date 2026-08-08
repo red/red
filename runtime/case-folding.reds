@@ -22,30 +22,52 @@ case-folding: context [
 
 	init: func [
 		/local
-			sz [integer!]
-			i  [integer!]
-			p  [int-ptr!]
+			sz  [integer!]
+			i   [integer!]
+			p   [int-ptr!]
+			buf [byte-ptr!]
 	][
-		;-- setup fast-lookup tables for 16-bit codepoints
-		upper-table: as int-ptr! allocate tbl-size
-		set-memory as byte-ptr! upper-table null-byte tbl-size
+		buf: allocate tbl-size
+		set-memory buf null-byte tbl-size
+		upper-table: (as int-ptr! buf) + 1
 		p: uppercase-table-low
 		sz: (size? uppercase-table-low) / 2
 		loop sz [
 			i: p/1
 			upper-table/i: p/2
-			p: p + 2 
+			p: p + 2
 		]
-		
-		lower-table: as int-ptr! allocate tbl-size
-		set-memory as byte-ptr! lower-table null-byte tbl-size
+
+		buf: allocate tbl-size
+		set-memory buf null-byte tbl-size
+		lower-table: (as int-ptr! buf) + 1
 		p: lowercase-table-low
 		sz: (size? lowercase-table-low) / 2
 		loop sz [
 			i: p/1
 			lower-table/i: p/2
-			p: p + 2 
+			p: p + 2
 		]
+	]
+	
+	toggle-char: func [									;-- swap the case of cp
+		cp		[integer!]
+		return: [integer!]								;-- returns cp unchanged if caseless
+		/local
+			c	[integer!]
+	][
+		c: change-char cp yes							;-- changed => cp was lowercase
+		either c <> cp [c][change-char cp no]
+	]
+	
+	uppercase: func [cp [integer!] return: [integer!] /local u [integer!]][
+		either cp <= FFFFh [
+			u: case-folding/upper-table/cp
+			if u <> 0 [cp: u]
+		][
+			cp: case-folding/change-char cp yes
+		]
+		cp
 	]
 
 	change-char: func [
