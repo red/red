@@ -341,13 +341,13 @@ parser: context [
 			char   [red-char!]
 			bits   [red-bitset!]
 			s	   [series!]
-			p4	   [int-ptr!]
+			p4 tbl [int-ptr!]
 			p	   [byte-ptr!]
 			phead  [byte-ptr!]
 			ptail  [byte-ptr!]
 			pbits  [byte-ptr!]
 			pos    [byte-ptr!]							;-- required by BS_TEST_BIT
-			cp c alt size unit type res len [integer!]
+			cp c u alt size unit type res len [integer!]
 			set? not? bin? match? [logic!]				;-- `set?` required by BS_TEST_BIT
 	][
 		s: GET_BUFFER(rules)
@@ -434,30 +434,43 @@ parser: context [
 				TYPE_CHAR [
 					char: as red-char! token
 					cp: char/value
-					alt: case-folding/toggle-char cp
+					tbl: case-folding/upper-table
+					if comp-op = COMP_EQUAL [alt: case-folding/change-char cp yes]	;-- uppercase-normalize the token
 					len: as-integer ptail - p
 
 					switch unit [
 						Latin1 [
 							either comp-op = COMP_EQUAL [
-								loop len [c: as-integer p/1	if any [c = cp c = alt][break] p: p + 1]
+								loop len [
+									c: as-integer p/1
+									u: tbl/c
+									if u <> 0 [c: u]		;-- uppercase-normalize the candidate
+									if c = alt [break]
+									p: p + 1
+								]
 							][
-								loop len [if p/1 = as-byte cp [break] p: p + 1]
+								either cp > FFh [p: p + len][	;-- token cannot occur in a Latin1 string
+									loop len [if p/1 = as-byte cp [break] p: p + 1]
+								]
 							]
 						]
 						UCS-2 [
-							len: len / 2
-							either comp-op = COMP_EQUAL [
-								loop len [
-									c: (as-integer p/2) << 8 + (as-integer p/1)
-									if any [c = cp c = alt][break]
-									p: p + 2
-								]
-							][
-								loop len [
-									c: (as-integer p/2) << 8 + (as-integer p/1)
-									if c = cp [break]
-									p: p + 2
+							either cp > FFFFh [p: p + len][	;-- astral token cannot occur in a UCS-2 string
+								len: len / 2
+								either comp-op = COMP_EQUAL [
+									loop len [
+										c: (as-integer p/2) << 8 + (as-integer p/1)
+										u: tbl/c
+										if u <> 0 [c: u]	;-- uppercase-normalize the candidate
+										if c = alt [break]
+										p: p + 2
+									]
+								][
+									loop len [
+										c: (as-integer p/2) << 8 + (as-integer p/1)
+										if c = cp [break]
+										p: p + 2
+									]
 								]
 							]
 						]
@@ -465,7 +478,17 @@ parser: context [
 							len: len / 4
 							p4: as int-ptr! p
 							either comp-op = COMP_EQUAL [
-								loop len [c: p4/1 if any [c = cp c = alt][break] p4: p4 + 1]
+								loop len [
+									c: p4/1
+									either c <= FFFFh [
+										u: tbl/c
+										if u <> 0 [c: u]	;-- uppercase-normalize the candidate
+									][
+										c: case-folding/change-char c yes
+									]
+									if c = alt [break]
+									p4: p4 + 1
+								]
 							][
 								loop len [if p4/1 = cp [break] p4: p4 + 1]
 							]

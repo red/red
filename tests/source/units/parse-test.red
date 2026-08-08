@@ -1384,19 +1384,40 @@ Red [
 	--test-- "str-sk64" --assert not parse/case "cccc"	[to #"č"]
 	--test-- "str-sk65" --assert not parse/case "cccc"	[to #"Č"]
 	
-	--test-- "str-sk42" --assert parse 		"𐐀" 		[thru #"𐐨"]
-	--test-- "str-sk43" --assert parse 		"𐐀" 		[thru #"𐐀"]
-	--test-- "str-sk44" --assert parse 		"𐐩" 		[thru #"𐐩"]
-	--test-- "str-sk45" --assert parse 		"𐐩" 		[thru #"𐐁"]
-	--test-- "str-sk46" --assert not parse/case "𐐀" 	[thru #"𐐨"]
-	--test-- "str-sk47" --assert parse/case "𐐀" 		[thru #"𐐀"]
-	--test-- "str-sk48" --assert parse/case "𐐩" 		[thru #"𐐩"]
-	--test-- "str-sk49" --assert not parse/case "𐐩" 	[thru #"𐐁"]
-	
-	--test-- "str-sk50" --assert not parse 	"cccc" 		[to #"𐐨"]
-	--test-- "str-sk51" --assert not parse 	"cccc" 		[to #"𐐀"]
-	--test-- "str-sk52" --assert not parse/case "cccc"	[to #"𐐨"]
-	--test-- "str-sk53" --assert not parse/case "cccc"	[to #"𐐀"]	
+	--test-- "str-sk66" --assert parse 		"𐐀" 		[thru #"𐐨"]
+	--test-- "str-sk67" --assert parse 		"𐐀" 		[thru #"𐐀"]
+	--test-- "str-sk68" --assert parse 		"𐐩" 		[thru #"𐐩"]
+	--test-- "str-sk69" --assert parse 		"𐐩" 		[thru #"𐐁"]
+	--test-- "str-sk70" --assert not parse/case "𐐀" 	[thru #"𐐨"]
+	--test-- "str-sk71" --assert parse/case "𐐀" 		[thru #"𐐀"]
+	--test-- "str-sk72" --assert parse/case "𐐩" 		[thru #"𐐩"]
+	--test-- "str-sk73" --assert not parse/case "𐐩" 	[thru #"𐐁"]
+
+	--test-- "str-sk74" --assert not parse 	"cccc" 		[to #"𐐨"]
+	--test-- "str-sk75" --assert not parse 	"cccc" 		[to #"𐐀"]
+	--test-- "str-sk76" --assert not parse/case "cccc"	[to #"𐐨"]
+	--test-- "str-sk77" --assert not parse/case "cccc"	[to #"𐐀"]
+
+	--test-- "str-sk78" --assert parse 		"xς" 		[thru #"σ"]		;-- ς, σ and Σ share the same uppercase form
+	--test-- "str-sk79" --assert parse 		"xσ" 		[thru #"ς"]
+	--test-- "str-sk80" --assert parse 		"xς" 		[thru #"Σ"]
+	--test-- "str-sk81" --assert parse 		"xΣ" 		[thru #"ς"]
+	--test-- "str-sk82" --assert parse 		"xſ" 		[thru #"s"]		;-- s and ſ both uppercase to S
+	--test-- "str-sk83" --assert parse 		"xs" 		[thru #"ſ"]
+	--test-- "str-sk84" --assert parse 		"xµ" 		[thru #"μ"]		;-- micro sign and Greek mu both uppercase to Μ
+	--test-- "str-sk85" --assert parse 		"xμ" 		[thru #"µ"]
+	--test-- "str-sk86" --assert parse 		"xǅ" 		[thru #"ǆ"]		;-- titlecase ǅ uppercases to Ǆ, like ǆ
+	--test-- "str-sk87" --assert parse		"xς" 		[to #"σ" skip]
+	--test-- "str-sk88" --assert not parse/case "xς"	[thru #"σ"]
+	--test-- "str-sk89" --assert not parse/case "xſ"	[thru #"s"]
+	--test-- "str-sk90" --assert not parse/case "zA"	[thru #"Ł"]		;-- Latin1 input cannot contain Ł (byte truncation)
+	--test-- "str-sk91" --assert not parse 	"zA"		[thru #"Ł"]
+	--test-- "str-sk92" --assert parse 		"zł" 		[thru #"Ł"]
+
+	--test-- "str-sk93" --assert not parse 	"xč"		[thru #"𐐨"]		;-- astral token over a UCS-2 string
+	--test-- "str-sk94" --assert not parse 	"xč"		[to #"𐐀"]
+	--test-- "str-sk95" --assert not parse/case "xč"	[thru #"𐐨"]
+	--test-- "str-sk96" --assert not parse/case "xč"	[to #"𐐀"]
 
 ===end-group===
 
