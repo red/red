@@ -117,6 +117,8 @@ Cancel-OK: function [
 		either all [
 			face/type = 'button
 			find ok-captions face/text
+			face/parent
+			2 = count-faces face/parent 'button
 		][
 			last-but: none
 			pos-x: face/offset/x

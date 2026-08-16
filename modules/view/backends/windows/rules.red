@@ -61,6 +61,7 @@ OK-Cancel: function [
 			face/type = 'button
 			face/parent
 			find cancel-captions face/text
+			2 = count-faces face/parent 'button
 		][
 			last-but: none
 			pos-x: face/offset/x

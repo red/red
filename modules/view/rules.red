@@ -9,3 +9,14 @@ Red [
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
 	}
 ]
+
+;--- helpers functions ---
+
+count-faces: function [parent [object!] type [word! block!]][
+	cnt: 0
+	unless block? type [type: reduce [type]]
+	foreach f parent/pane [if find type f/type [cnt: cnt + 1]]
+	cnt
+]
+
+;--- rules ---
