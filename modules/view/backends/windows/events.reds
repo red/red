@@ -1385,6 +1385,7 @@ WndProc: func [
 		values [red-value!]
 		font   [red-object!]
 		parent [red-object!]
+		state  [red-block!]
 		draw   [red-block!]
 		face   [red-object!]
 		brush  [handle!]
@@ -1796,13 +1797,24 @@ WndProc: func [
 		]
 		WM_DESTROY [free-dc hWnd]
 		WM_DPICHANGED [
+			state: as red-block! values + FACE_OBJ_STATE
+			if TYPE_OF(state) <> TYPE_BLOCK [return 0]
+
+			parent: as red-object! values + FACE_OBJ_PARENT
+			if all [type = window TYPE_OF(parent) = TYPE_OBJECT][
+				reattach-window-face
+					MonitorFromWindow hWnd MONITOR_DEFAULTTONEAREST
+					get-face-obj hWnd
+					parent 								;-- move window face to new parent screen
+			]
+
 			log-pixels-x: WIN32_LOWORD(wParam)			;-- new DPI
 			log-pixels-y: log-pixels-x
 			current-dpi: as float32! log-pixels-x
 			dpi-factor: current-dpi / as float32! 96.0
 			
 			rc: as RECT_STRUCT lParam
-			SetWindowPos 
+			SetWindowPos
 				hWnd
 				as handle! 0
 				rc/left rc/top
@@ -1810,11 +1822,6 @@ WndProc: func [
 				SWP_NOZORDER or SWP_NOACTIVATE
 			
 			if type = window [
-				reattach-window-face
-					MonitorFromWindow hWnd MONITOR_DEFAULTTONEAREST
-					get-face-obj hWnd
-					as red-object! values + FACE_OBJ_PARENT ;-- move window face to new parent screen
-				
 				set-defaults hWnd
 				update-window as red-block! values + FACE_OBJ_PANE null
 			]

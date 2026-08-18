@@ -882,6 +882,27 @@ get-dpi: func [
 	dpi-factor: current-dpi / as float32! 96.0
 ]
 
+get-window-dpi: func [									;-- DPI of the monitor a window will open on (#5764)
+	offset	[red-point2D!]								;-- window's intended offset, logical units
+	/local
+		monitor [handle!]
+		pt		[tagPOINT value]
+][
+	#case [
+		any [not legacy not find legacy 'no-multi-monitor][
+			loop 2 [									;-- an updated factor may remap the point to another monitor
+				pt/x: dpi-scale offset/x
+				pt/y: dpi-scale offset/y
+				monitor: MonitorFromPoint pt 2			;-- MONITOR_DEFAULTTONEAREST
+				GetDpiForMonitor monitor 0 :log-pixels-x :log-pixels-y
+				current-dpi: as float32! log-pixels-x
+				dpi-factor: current-dpi / as float32! 96.0
+			]
+		]
+		true [get-dpi]
+	]
+]
+
 get-metrics: func [
 	/local
 		svm	[red-hash!]
@@ -1805,7 +1826,7 @@ OS-make-view: func [
 				n: either alpha? [WS_EX_LAYERED][set-layered-option options win8+?]
 				ws-flags: ws-flags or n
 			]
-			get-dpi
+			get-window-dpi offset						;-- use the target monitor's DPI, not the cursor's (#5764)
 
 			if sx < as float32! 0.0 [sx: as float32! 200.0]
 			if sy < as float32! 0.0 [sy: as float32! 200.0]
