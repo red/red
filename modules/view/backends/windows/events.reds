@@ -1360,19 +1360,13 @@ draw-window: func [
 	hWnd		[handle!]
 	cmds		[red-block!]
 	/local
-		this	[this!]
-		surf	[IDXGISurface1]
-		hdc		[ptr-value!]
-		rc		[RECT_STRUCT value]
+		mdc		[handle!]
 ][
 	do-draw hWnd null cmds yes no no yes
-	this: get-surface hWnd
-	surf: as IDXGISurface1 this/vtbl
-	surf/GetDC this 0 :hdc
-	bitblt-memory-dc hWnd no null 0 0 hdc/value
-	rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
-	surf/ReleaseDC this :rc
-	surf/Release this
+	mdc: get-layered-dc hWnd						;-- staging-texture readback, see #5764
+	if mdc <> null [
+		bitblt-memory-dc hWnd no null 0 0 mdc
+	]
 ]
 
 WndProc: func [

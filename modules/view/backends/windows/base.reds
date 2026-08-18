@@ -948,13 +948,10 @@ update-base: func [
 		]
 	]
 
-	this: get-surface hWnd
-	surf: as IDXGISurface1 this/vtbl
-	surf/GetDC this 0 :hdc
-	UpdateLayeredWindow hWnd null ptDst size hdc/value :ptSrc 0 :bf flags
-	rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
-	surf/ReleaseDC this :rc
-	surf/Release this
+	hBackDC: get-layered-dc hWnd					;-- staging-texture readback, see #5764
+	if hBackDC <> null [
+		UpdateLayeredWindow hWnd null ptDst size hBackDC :ptSrc 0 :bf flags
+	]
 ]]
 
 ;-- blends the image of every encountered visible layered window into the DC
@@ -976,10 +973,7 @@ imprint-layers-deep: func [
 	cofs 		[red-point2D!]	;-- "child" offset - it's position inside the parent
 	chwnd 		[handle!]
 	cvalues		[red-value!]
-	this		[this!]
-	surf		[IDXGISurface1]
-	hdc			[ptr-value!]
-	rc			[RECT_STRUCT value]
+	mdc			[handle!]
 ][
 	if null = values [values: get-face-values hwnd]
 
@@ -998,13 +992,10 @@ imprint-layers-deep: func [
 		]
 ][	;-- Direct2D backend
 		do-draw hwnd null draw yes no no yes
-		this: get-surface hwnd
-		surf: as IDXGISurface1 this/vtbl
-		surf/GetDC this 0 :hdc
-		bitblt-memory-dc hwnd yes dc bx by hdc/value	;-- blend back
-		rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
-		surf/ReleaseDC this :rc
-		surf/Release this
+		mdc: get-layered-dc hwnd						;-- staging-texture readback, see #5764
+		if mdc <> null [
+			bitblt-memory-dc hwnd yes dc bx by mdc		;-- blend back
+		]
 ]
 	]
 

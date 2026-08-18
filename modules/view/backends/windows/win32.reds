@@ -1049,6 +1049,19 @@ XFORM!: alias struct! [
     eDy         [float32!]
 ]
 
+BITMAPINFO32: alias struct! [					;-- BITMAPINFOHEADER, no color table (BI_RGB 32bpp)
+	biSize				[integer!]
+	biWidth				[integer!]
+	biHeight			[integer!]
+	biPlanesBitCnt		[integer!]				;-- biPlanes: low word, biBitCount: high word
+	biCompression		[integer!]
+	biSizeImage			[integer!]
+	biXPelsPerMeter		[integer!]
+	biYPelsPerMeter		[integer!]
+	biClrUsed			[integer!]
+	biClrImportant		[integer!]
+]
+
 #import [
 	"kernel32.dll" stdcall [
 		GlobalAlloc: "GlobalAlloc" [
@@ -1792,6 +1805,15 @@ XFORM!: alias struct! [
 		DeleteDC: "DeleteDC" [
 			hdc			[handle!]
 			return:		[integer!]
+		]
+		CreateDIBSection: "CreateDIBSection" [
+			hdc			[handle!]
+			pbmi		[BITMAPINFO32]
+			usage		[integer!]			;-- DIB_RGB_COLORS: 0
+			ppvBits		[ptr-ptr!]
+			hSection	[handle!]
+			offset		[integer!]
+			return:		[handle!]
 		]
 		BitBlt: "BitBlt" [
 			hdcDest		[handle!]

@@ -54,6 +54,7 @@ IID_IDXGIDebug:			 [119E7452h 40FEDE9Eh F9880688h 41B4120Ch]
 ;IID_IDXGISurface:		 [CAFCB56Ch 48896AC3h 239E47BFh EC60D2BBh]
 IID_IDXGISurface1:		 [4AE63092h 4C1B6327h E1BFAE80h 862BA32Eh]
 IID_IDXGIDevice1:		 [77DB970Fh 48BA6276h 010728BAh 2C39B443h]
+IID_ID3D11Resource:		 [DC8E63F3h 4952D12Bh 455E7BB4h 2D866A02h]
 ;IID_ID2D1Factory:		 [06152247h 465A6F50h 8B114592h 07603BFDh]
 IID_ID2D1Factory1:		 [BB12D362h 4B9ADAEEh BA141DAAh 1FFA1C40h]
 ;IID_IDWriteFactory:	 [B859EE5Ah 4B5BD838h DC1AE8A2h 48DB937Dh]
@@ -729,13 +730,63 @@ ID2D1Device: alias struct! [
 	CreatePrintControl2				[integer!]
 ]
 
+D3D11_TEXTURE2D_DESC: alias struct! [
+	Width				[integer!]
+	Height				[integer!]
+	MipLevels			[integer!]
+	ArraySize			[integer!]
+	Format				[integer!]
+	SampleCount			[integer!]
+	SampleQuality		[integer!]
+	Usage				[integer!]
+	BindFlags			[integer!]
+	CPUAccessFlags		[integer!]
+	MiscFlags			[integer!]
+]
+
+D3D11_MAPPED_SUBRESOURCE: alias struct! [
+	pData				[byte-ptr!]
+	RowPitch			[integer!]
+	DepthPitch			[integer!]
+]
+
+CreateTexture2D*: alias function! [
+	this				[this!]
+	desc				[D3D11_TEXTURE2D_DESC]
+	initData			[int-ptr!]
+	ppTexture2D			[ptr-ptr!]
+	return:				[integer!]
+]
+
+MapResource*: alias function! [
+	this				[this!]
+	resource			[this!]
+	subresource			[integer!]
+	mapType				[integer!]
+	mapFlags			[integer!]
+	mapped				[D3D11_MAPPED_SUBRESOURCE]
+	return:				[integer!]
+]
+
+UnmapResource*: alias function! [
+	this				[this!]
+	resource			[this!]
+	subresource			[integer!]
+]
+
+CopyResource*: alias function! [
+	this				[this!]
+	dst					[this!]
+	src					[this!]
+]
+
 ID3D11Device: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
 	CreateBuffer					[integer!]
 	CreateTexture1D					[integer!]
-	CreateTexture2D					[integer!]
+	CreateTexture2D					[CreateTexture2D*]
 	CreateTexture3D					[integer!]
 	CreateShaderResourceView		[integer!]
 	CreateUnorderedAccessView		[integer!]
@@ -887,8 +938,8 @@ ID3D11DeviceContext: alias struct! [
 	VSSetShader									[int-ptr!]
 	DrawIndexed									[int-ptr!]
 	Draw										[int-ptr!]
-	Map											[int-ptr!]
-	Unmap										[int-ptr!]
+	Map											[MapResource*]
+	Unmap										[UnmapResource*]
 	PSSetConstantBuffers						[int-ptr!]
 	IASetInputLayout							[int-ptr!]
 	IASetVertexBuffers							[int-ptr!]
@@ -920,7 +971,7 @@ ID3D11DeviceContext: alias struct! [
 	RSSetViewports								[int-ptr!]
 	RSSetScissorRects							[int-ptr!]
 	CopySubresourceRegion						[int-ptr!]
-	CopyResource								[int-ptr!]
+	CopyResource								[CopyResource*]
 	UpdateSubresource							[int-ptr!]
 	CopyStructureCount							[int-ptr!]
 	ClearRenderTargetView						[int-ptr!]
@@ -1492,6 +1543,12 @@ render-target!: alias struct! [
 	bitmap			[this!]
 	swapchain		[this!]
 	flags			[integer!]
+	staging			[this!]			;-- CPU-readable copy of the back buffer (layered faces, #5764)
+	mem-dc			[handle!]		;-- memory DC owning mem-bmp, fed to UpdateLayeredWindow
+	mem-bmp			[handle!]		;-- 32bpp top-down DIB section
+	mem-bits		[byte-ptr!]		;-- DIB pixel storage (owned by mem-bmp)
+	stg-width		[integer!]
+	stg-height		[integer!]
 	;dcomp-device	[this!]
 	;dcomp-target	[this!]
 	;dcomp-visual	[this!]
@@ -1684,6 +1741,7 @@ DX-resize-buffer: func [
 		hr			[integer!]
 ][
 	COM_SAFE_RELEASE(unk rt/bitmap)
+	COM_SAFE_RELEASE(unk rt/staging)		;-- recreated at the new size by get-layered-dc
 
 	this: rt/swapchain
 	either null? this [
@@ -1916,7 +1974,6 @@ create-render-target: func [
 	desc/Scaling: as-integer win8+?	;-- win7: DXGI_SCALING_STRETCH: 0 win8+: DXGI_SCALING_NONE: 1
 	desc/AlphaMode: 0
 	desc/SwapEffect: 3		;-- DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL
-	if gdi? [desc/Flags: 4]	;-- DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE: 4
 	rt/flags: desc/Flags
 
 	int: 0
@@ -1983,6 +2040,9 @@ d2d-release-target: func [
 	]
 	COM_SAFE_RELEASE(obj target/bitmap)
 	COM_SAFE_RELEASE(obj target/swapchain)
+	COM_SAFE_RELEASE(obj target/staging)
+	if target/mem-dc <> null [DeleteDC target/mem-dc]
+	if target/mem-bmp <> null [DeleteObject target/mem-bmp]
 	;COM_SAFE_RELEASE(obj target/dcomp-visual)
 	;COM_SAFE_RELEASE(obj target/dcomp-target)
 	;COM_SAFE_RELEASE(obj target/dcomp-device)
@@ -2046,24 +2106,116 @@ get-hwnd-render-target: func [
 	target
 ]
 
-get-surface: func [
-	hwnd		[handle!]
-	return:		[this!]
+;-- copies the swapchain's back buffer into a CPU-side DIB and returns a memory DC over it.
+;-- Replaces IDXGISurface1/GetDC for feeding UpdateLayeredWindow/AlphaBlend: the GDI-interop
+;-- readback is driver-implemented and returns empty content on some GPUs once the buffer
+;-- exceeds an internal size threshold (#5764, #5684). The DC stays valid until the next call
+;-- for the same window or the target's release; do NOT delete it.
+get-layered-dc: func [
+	hWnd		[handle!]
+	return:		[handle!]							;-- null on failure
 	/local
 		target	[render-target!]
 		sc		[IDXGISwapChain1]
+		ctx		[ID3D11DeviceContext]
+		dev		[ID3D11Device]
+		unk		[IUnknown]
+		src		[byte-ptr!]
+		dst		[byte-ptr!]
 		this	[this!]
 		buf		[ptr-value!]
+		bits	[ptr-value!]
+		desc	[D3D11_TEXTURE2D_DESC value]
+		mapped	[D3D11_MAPPED_SUBRESOURCE value]
+		bi		[BITMAPINFO32 value]
+		rc		[RECT_STRUCT value]
+		width	[integer!]
+		height	[integer!]
+		stride	[integer!]
 		hr		[integer!]
 ][
+	if null? d3d-device [return null]
 	target: as render-target! GetWindowLong hWnd wc-offset - 36
-	if target <> null [
-		this: target/swapchain
-		sc: as IDXGISwapChain1 this/vtbl
-		hr: sc/GetBuffer this 0 IID_IDXGISurface1 :buf
-		if zero? hr [return as this! buf/value]
+	if null? target [return null]
+	if null? target/swapchain [return null]
+
+	GetClientRect hWnd :rc
+	width: rc/right - rc/left
+	height: rc/bottom - rc/top
+	if any [width <= 0 height <= 0][return null]
+
+	if any [										;-- (re)create the CPU-side copy on first use or resize
+		null? target/staging
+		width <> target/stg-width
+		height <> target/stg-height
+	][
+		COM_SAFE_RELEASE(unk target/staging)
+		if target/mem-dc <> null [
+			DeleteDC target/mem-dc
+			target/mem-dc: null
+		]
+		if target/mem-bmp <> null [
+			DeleteObject target/mem-bmp
+			target/mem-bmp: null
+		]
+
+		zero-memory as byte-ptr! :desc size? D3D11_TEXTURE2D_DESC
+		desc/Width: width
+		desc/Height: height
+		desc/MipLevels: 1
+		desc/ArraySize: 1
+		desc/Format: 87								;-- DXGI_FORMAT_B8G8R8A8_UNORM
+		desc/SampleCount: 1
+		desc/Usage: 3								;-- D3D11_USAGE_STAGING
+		desc/CPUAccessFlags: 00020000h				;-- D3D11_CPU_ACCESS_READ
+		dev: as ID3D11Device d3d-device/vtbl
+		hr: dev/CreateTexture2D d3d-device desc null :buf
+		if hr <> 0 [return null]
+		target/staging: as this! buf/value
+
+		zero-memory as byte-ptr! :bi size? BITMAPINFO32
+		bi/biSize: 40
+		bi/biWidth: width
+		bi/biHeight: 0 - height						;-- top-down, same row order as the texture
+		bi/biPlanesBitCnt: 00200001h				;-- biPlanes: 1, biBitCount: 32
+		target/mem-dc: CreateCompatibleDC null
+		target/mem-bmp: CreateDIBSection target/mem-dc bi 0 :bits null 0
+		if null? target/mem-bmp [
+			COM_SAFE_RELEASE(unk target/staging)
+			DeleteDC target/mem-dc
+			target/mem-dc: null
+			target/mem-bits: null
+			return null
+		]
+		SelectObject target/mem-dc target/mem-bmp
+		target/mem-bits: as byte-ptr! bits/value
+		target/stg-width: width
+		target/stg-height: height
 	]
-	null
+
+	this: target/swapchain
+	sc: as IDXGISwapChain1 this/vtbl
+	hr: sc/GetBuffer this 0 IID_ID3D11Resource :buf
+	if hr <> 0 [return null]
+	this: as this! buf/value
+
+	ctx: as ID3D11DeviceContext d3d-ctx/vtbl
+	ctx/CopyResource d3d-ctx target/staging this
+	unk: as IUnknown this/vtbl
+	unk/Release this
+
+	hr: ctx/Map d3d-ctx target/staging 0 1 0 mapped	;-- D3D11_MAP_READ, waits for the copy to complete
+	if hr <> 0 [return null]
+	stride: width * 4
+	src: mapped/pData
+	dst: target/mem-bits
+	loop height [
+		copy-memory dst src stride
+		dst: dst + stride
+		src: src + mapped/RowPitch
+	]
+	ctx/Unmap d3d-ctx target/staging 0
+	target/mem-dc
 ]
 
 create-dc-render-target: func [
