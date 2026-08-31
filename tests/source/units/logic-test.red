@@ -455,4 +455,118 @@ Red [
 	--test-- "xor4" --assert false xor false =  false
 ===end-group===
 
+===start-group=== "logic! values remember their source word"
+
+	;-- FORM and MOLD give back the word the value was written as
+	--test-- "lw-1"  --assert "true"  = mold true
+	--test-- "lw-2"  --assert "false" = mold false
+	--test-- "lw-3"  --assert "on"    = mold on
+	--test-- "lw-4"  --assert "off"   = mold off
+	--test-- "lw-5"  --assert "yes"   = mold yes
+	--test-- "lw-6"  --assert "no"    = mold no
+
+	--test-- "lw-7"  --assert "true"  = form true
+	--test-- "lw-8"  --assert "false" = form false
+	--test-- "lw-9"  --assert "on"    = form on
+	--test-- "lw-10" --assert "off"   = form off
+	--test-- "lw-11" --assert "yes"   = form yes
+	--test-- "lw-12" --assert "no"    = form no
+
+	--test-- "lw-13" --assert "#(true)"  = mold/all true
+	--test-- "lw-14" --assert "#(false)" = mold/all false
+	--test-- "lw-15" --assert "#(on)"    = mold/all on
+	--test-- "lw-16" --assert "#(off)"   = mold/all off
+	--test-- "lw-17" --assert "#(yes)"   = mold/all yes
+	--test-- "lw-18" --assert "#(no)"    = mold/all no
+
+	;-- construction syntax round-trips through the runtime lexer.
+	;-- LOAD is used rather than literal #(on) because the toolchain's own
+	;-- lexer does not know the new words yet.
+	--test-- "lw-19" --assert "true"  = mold load "#(true)"
+	--test-- "lw-20" --assert "false" = mold load "#(false)"
+	--test-- "lw-21" --assert "on"    = mold load "#(on)"
+	--test-- "lw-22" --assert "off"   = mold load "#(off)"
+	--test-- "lw-23" --assert "yes"   = mold load "#(yes)"
+	--test-- "lw-24" --assert "no"    = mold load "#(no)"
+
+	--test-- "lw-25" --assert logic? load "#(on)"
+	--test-- "lw-26" --assert load "#(on)"
+	--test-- "lw-27" --assert not load "#(off)"
+
+	;-- construction syntax is case-insensitive, as it already was for TRUE/FALSE
+	--test-- "lw-28" --assert "on"  = mold load "#(ON)"
+	--test-- "lw-29" --assert "no"  = mold load "#(No)"
+	--test-- "lw-30" --assert "yes" = mold load "#(YeS)"
+
+	;-- the other construction words are unaffected. NO must not shadow NONE,
+	;-- and NONE must not swallow NO, since the words share a prefix.
+	--test-- "lw-31" --assert none?  load "#(none)"
+	--test-- "lw-32" --assert unset? load "#(unset)"
+	--test-- "lw-33" --assert integer! = load "#(integer!)"
+	--test-- "lw-34" --assert string!  = load "#(string!)"
+
+	;-- partial and unknown words are still rejected
+	--test-- "lw-35" --assert error? try [load "#(n)"]
+	--test-- "lw-36" --assert error? try [load "#(o)"]
+	--test-- "lw-37" --assert error? try [load "#(non)"]
+	--test-- "lw-38" --assert error? try [load "#(nones)"]
+	--test-- "lw-39" --assert error? try [load "#(ye)"]
+	--test-- "lw-40" --assert error? try [load "#(offs)"]
+	--test-- "lw-41" --assert error? try [load "#(nope)"]
+
+	;-- the remembered word carries no meaning: equality ignores it
+	--test-- "lw-42" --assert on  =  true
+	--test-- "lw-43" --assert off =  false
+	--test-- "lw-44" --assert yes =  on
+	--test-- "lw-45" --assert no  =  off
+	--test-- "lw-46" --assert on  == true
+	--test-- "lw-47" --assert same? on true
+	--test-- "lw-48" --assert on  <> off
+	--test-- "lw-49" --assert (find reduce [on] true) <> none
+
+	;-- and no effect on truthiness
+	--test-- "lw-50" --assert "on-branch" = either on ["on-branch"]["off-branch"]
+	--test-- "lw-51" --assert "no-branch" = either no ["yes-branch"]["no-branch"]
+
+	;-- values derived from a remembered one fall back to TRUE/FALSE
+	--test-- "lw-52" --assert "false" = mold not on
+	--test-- "lw-53" --assert "true"  = mold not off
+	--test-- "lw-54" --assert "false" = mold not yes
+	--test-- "lw-55" --assert "false" = mold complement on
+	--test-- "lw-56" --assert "true"  = mold complement off
+	--test-- "lw-57" --assert "true"  = mold (on and yes)
+	--test-- "lw-58" --assert "true"  = mold (off or yes)
+	--test-- "lw-59" --assert "true"  = mold (on xor off)
+	--test-- "lw-60" --assert "true"  = mold (1 = 1)
+	--test-- "lw-61" --assert "false" = mold (1 = 2)
+	--test-- "lw-62" --assert "true"  = mold logic? on
+
+	;-- TO conversions follow the remembered word
+	--test-- "lw-63" --assert 'true = to word! true
+	--test-- "lw-64" --assert 'on   = to word! on
+	--test-- "lw-65" --assert 'off  = to word! off
+	--test-- "lw-66" --assert 'yes  = to word! yes
+	--test-- "lw-67" --assert 'no   = to word! no
+	--test-- "lw-68" --assert "on"  = to string! on
+	--test-- "lw-69" --assert "no"  = to string! no
+	--test-- "lw-70" --assert "false" = to string! false
+
+	;-- MAKE and TO LOGIC! produce plain TRUE/FALSE
+	--test-- "lw-71" --assert "true"  = mold make logic! 1
+	--test-- "lw-72" --assert "false" = mold make logic! 0
+	--test-- "lw-73" --assert "true"  = mold to logic! 1
+
+	;-- the word survives being carried around in a series
+	--test-- "lw-74" --assert "[on off yes no]" = mold reduce [on off yes no]
+	--test-- "lw-75" --assert "[#(on) #(no)]"   = mold/all reduce [on no]
+	--test-- "lw-76" --assert "on" = mold first reduce [on]
+	--test-- "lw-77"
+		blk: copy []
+		append blk on
+	--assert "[on]" = mold blk
+	--test-- "lw-78" --assert "on" = mold load mold on
+	--test-- "lw-79" --assert "on" = mold load mold/all on
+
+===end-group===
+
 ~~~end-file~~~

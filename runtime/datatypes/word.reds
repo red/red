@@ -384,6 +384,7 @@ word: context [
 			name	[names!]
 			cstr	[c-string!]
 			index t	[integer!]
+			wflag	[integer!]
 			val		[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/to"]]
@@ -417,7 +418,12 @@ word: context [
 			]
 			TYPE_LOGIC [
 				bool: as red-logic! spec
-				cstr: either bool/value ["true"]["false"]
+				wflag: bool/header and flag-logic-word	;-- word the value was created from
+				cstr: case [
+					wflag = flag-logic-on-off [either bool/value ["on"  ]["off"  ]]
+					wflag = flag-logic-yes-no [either bool/value ["yes" ]["no"   ]]
+					true					  [either bool/value ["true"]["false"]]
+				]
 				make-at symbol/make cstr proto
 			]
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]

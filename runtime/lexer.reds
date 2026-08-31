@@ -181,11 +181,15 @@ lexer: context [
 	]
 	
 	cons-syntax: protect [
-	;--- word - type ----- value -- length --
-		"true"	TYPE_LOGIC true		4
-		"false"	TYPE_LOGIC false	5
-		"none"	TYPE_NONE  0		4
-		"unset" TYPE_UNSET 0		5
+	;--- word - type ----- value -- length -- source word flag --
+		"true"	TYPE_LOGIC true		4		0
+		"false"	TYPE_LOGIC false	5		0
+		"on"	TYPE_LOGIC true		2		flag-logic-on-off
+		"off"	TYPE_LOGIC false	3		flag-logic-on-off
+		"yes"	TYPE_LOGIC true		3		flag-logic-yes-no
+		"no"	TYPE_LOGIC false	2		flag-logic-yes-no
+		"none"	TYPE_NONE  0		4		0
+		"unset" TYPE_UNSET 0		5		0
 	]
 	
 	whitespaces: protect [
@@ -1324,9 +1328,9 @@ lexer: context [
 		p: cons-syntax
 		end: p + size? cons-syntax						;-- point to end of array
 		len: as-integer e - s
-		loop 4 [
+		loop 8 [
 			if zero? platform/strnicmp s as byte-ptr! p/1 len [break]
-			p: p + 4
+			p: p + 5
 		]
 		either p < end [
 			len: p/4 + 1
@@ -1335,7 +1339,10 @@ lexer: context [
 			if load? [
 				dt: as red-datatype! alloc-slot lex
 				set-type as cell! dt p/2
-				if p/2 = TYPE_LOGIC [dt/value: p/3]
+				if p/2 = TYPE_LOGIC [
+					dt/value: p/3
+					dt/header: dt/header or p/5			;-- remember the word the value came from
+				]
 			]
 		][
 			type: 1

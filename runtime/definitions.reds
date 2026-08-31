@@ -37,6 +37,10 @@ Red/System [
 #define flag-force-trace	00000400h		;-- tracing mode is forced (function attribut)
 #define flag-no-trace		00000200h		;-- tracing mode is disabled (function attribut)
 
+#define flag-logic-word		00001800h		;-- mask for the source word field (logic! header only)
+#define flag-logic-on-off	00000800h		;-- logic! value was created from ON or OFF
+#define flag-logic-yes-no	00001000h		;-- logic! value was created from YES or NO
+
 #define flag-fetch-mode		00300000h		;-- flags for arguments fetching mode (typeset! header only)
 #define flag-fetch-mask		FFDFFFFFh		;-- mask for arguments fetching mode (typeset! header only)
 #define flag-subtype-mask	FF00FFFFh		;-- mask for encoding the underlying function type (op! header only)

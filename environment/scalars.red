@@ -10,8 +10,13 @@ Red [
 	}
 ]
 
-yes: on: true
-no: off: false
+;-- ON/OFF and YES/NO are logic! that remember the word they were written as,
+;-- so FORM and MOLD round-trip them. Defined here because the toolchain's
+;	lexer and Redbin don't support them yet. TBD if they should.
+on:    #system [logic/push-word true  flag-logic-on-off]
+off:   #system [logic/push-word false flag-logic-on-off]
+yes:   #system [logic/push-word true  flag-logic-yes-no]
+no:    #system [logic/push-word false flag-logic-yes-no]
 
 tab:		 #"^-"
 cr: 		 #"^M"

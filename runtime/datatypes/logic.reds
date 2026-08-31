@@ -142,6 +142,22 @@ logic: context [
 		cell
 	]
 	
+	;-- Used by %environment/scalars.red to define ON/OFF and YES/NO
+	push-word: func [
+		value 	 [logic!]
+		flag	 [integer!]								;-- flag-logic-on-off, flag-logic-yes-no or 0
+		return:	 [red-logic!]
+		/local
+			cell [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/push-word"]]
+
+		cell: as red-logic! stack/push*
+		cell/header: TYPE_LOGIC or flag					;-- implicit reset of all other header flags
+		cell/value: value
+		cell
+	]
+	
 	;-- Actions -- 
 
 	make: func [
@@ -192,6 +208,7 @@ logic: context [
 			logic/header: TYPE_UNSET
 		][
 			value: either secure? [_random/rand-secure] [_random/rand]
+			logic/header: TYPE_LOGIC					;-- derived value, drop the source word
 			logic/value: value > 3FFFFFFFh
 		]
 		logic
@@ -219,12 +236,18 @@ logic: context [
 		part	[integer!]
 		return: [integer!]
 		/local
-			res [c-string!]
-			len	[integer!]
+			res  [c-string!]
+			len	 [integer!]
+			word [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/form"]]
 
-		res: either boolean/value [len: 4 "true"][len: 5 "false"]
+		word: boolean/header and flag-logic-word		;-- word the value was created from
+		res: case [
+			word = flag-logic-on-off [either boolean/value [len: 2 "on"  ][len: 3 "off"  ]]
+			word = flag-logic-yes-no [either boolean/value [len: 3 "yes" ][len: 2 "no"   ]]
+			true					 [either boolean/value [len: 4 "true"][len: 5 "false"]]
+		]
 		string/concatenate-literal buffer res
 		part - len
 	]
@@ -240,13 +263,19 @@ logic: context [
 		indent	[integer!]
 		return: [integer!]
 		/local
-			res [c-string!]
-			len	[integer!]
+			res  [c-string!]
+			len	 [integer!]
+			word [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/mold"]]
 
 		either all? [
-			res: either boolean/value [len: 7 "#(true)"][len: 8 "#(false)"]
+			word: boolean/header and flag-logic-word	;-- word the value was created from
+			res: case [
+				word = flag-logic-on-off [either boolean/value [len: 5 "#(on)"  ][len: 6 "#(off)"  ]]
+				word = flag-logic-yes-no [either boolean/value [len: 6 "#(yes)" ][len: 5 "#(no)"   ]]
+				true					 [either boolean/value [len: 7 "#(true)"][len: 8 "#(false)"]]
+			]
 			string/concatenate-literal buffer res
 			part - len
 		] [
@@ -286,6 +315,7 @@ logic: context [
 		bool	[red-logic!]
 		return:	[red-value!]
 	][
+		bool/header: TYPE_LOGIC							;-- derived value, drop the source word
 		bool/value: not bool/value
 		as red-value! bool
 	]
@@ -307,6 +337,7 @@ logic: context [
 			OP_OR  [left/value or  right/value]
 			OP_XOR [left/value xor right/value]
 		]
+		left/header: TYPE_LOGIC							;-- derived value, drop the source word
 		left
 	]
 
