@@ -3605,6 +3605,21 @@ comment {
 			following5403 [exit] [--assert true]
 		;]
 		
+	--test-- "#5770"
+		;do [
+			f5770: does [
+				do/trace [1] func [e c o v r f][]
+				return 42
+			]
+			--assert 42 = f5770
+			--assert 42 = f5770
+			f5770.1: func [x][
+				do/trace [x] func [e c o v r f][]
+				exit
+			]
+			--assert unset? f5770.1 1
+		;]
+		
 	--test-- "#5405"
 			loop 1 [do/trace [break] func [e c o v r f][]]
 			--assert true

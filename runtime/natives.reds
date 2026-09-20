@@ -561,6 +561,7 @@ natives: context [
 			fun?   [logic!]
 			defer? [logic!]
 			interp? [logic!]
+			pframe [int-ptr!]
 			do-block [subroutine!]
 	][
 		#typecheck [do expand? args next trace]
@@ -572,8 +573,9 @@ natives: context [
 		
 		unless OPTION?(do-arg) [do-arg: as red-value! none-value]
 		fun?: OPTION?(fun)
+		pframe: null
 		if fun? [
-			stack/set-parent-func-flag					;-- (#5403, #5401) allows do/trace to fully catch exit/return exceptions
+			pframe: stack/set-parent-func-flag			;-- (#5403, #5401) allows do/trace to fully catch exit/return exceptions
 			with [interpreter][
 				either trace? [fun?: no][				;-- pass-thru, ignore handler if one is in use already
 					fun-locs: _function/count-locals fun/spec 0 no
@@ -624,6 +626,7 @@ natives: context [
 				default	   [interpreter/eval-expression arg arg + 1 null no no yes]
 			]
 		]
+		if pframe <> null [stack/clear-func-flag pframe]	;-- (#5770) restore parent frame's flag, before any rethrow
 		if defer? [stack/throw-error as red-object! arg]
 		
 		if fun? [

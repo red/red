@@ -205,9 +205,19 @@ stack: context [										;-- call stack
 		frame/header: frame/header or FLAG_INTERPRET
 	]
 	
-	set-parent-func-flag: func [/local p [call-frame!]][
+	set-parent-func-flag: func [
+		return: [int-ptr!]								;-- flagged frame, or null if it was already flagged
+		/local p [call-frame!]
+	][
 		p: ctop - 2
+		if p/header and FLAG_IN_FUNC <> 0 [return null]
 		p/header: p/header or FLAG_IN_FUNC
+		as int-ptr! p
+	]
+	
+	clear-func-flag: func [ptr [int-ptr!] /local p [call-frame!]][
+		p: as call-frame! ptr
+		p/header: p/header and not FLAG_IN_FUNC
 	]
 	
 	collect-calls: func [
