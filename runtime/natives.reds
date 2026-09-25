@@ -774,7 +774,14 @@ natives: context [
 
 			stack/push as red-value! buffer-blk
 			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
-			reduce* no 1
+			
+			catch RED_THROWN_ERROR [reduce* no 1]
+			if system/thrown <> 0 [							;-- restore the buffer on non-local exits
+				block/rs-clear buffer-blk
+				buffer-blk/head: oldhd
+				re-throw
+			]
+			
 			blk: as red-block! arg
 			blk/head: 0										;-- head changed by reduce/into
 			stack/set-last as red-value! buffer-blk 		;-- provide the modified-head buffer to form*
