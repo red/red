@@ -984,6 +984,7 @@ object: context [
 			w-ctx [node!]
 	][
 		ctx:	GET_CTX(obj)
+		node:	obj/ctx									;-- save it, `new` can be the same slot as `obj`
 		src:	_hashtable/get-ctx-words ctx
 		size:   as-integer src/tail - src/offset
 		slots:	size >> 4
@@ -1017,7 +1018,7 @@ object: context [
 		value: dst/offset
 		tail:  dst/tail
 
-		either deep? [
+		either all [deep? not OPTION?(types)][
 			while [value < tail][
 				switch TYPE_OF(value) [
 					TYPE_BLOCK
@@ -1044,6 +1045,14 @@ object: context [
 					rebind as red-function! value nctx
 				]
 				value: value + 1
+			]
+			if OPTION?(types) [
+				if deep? [
+					if cycles/find? node [cycles/reset fire [TO_ERROR(internal no-cycle)]]
+					cycles/push node
+				]
+				block/copy-nested dst/offset tail 1 deep? types
+				if deep? [cycles/pop]
 			]
 		]
 		if evt-rst? [register-events new nctx]
@@ -1431,7 +1440,6 @@ object: context [
 		if OPTION?(part-arg) [
 			ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 		]
-		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
 		do-copy obj new deep? types yes
 	]

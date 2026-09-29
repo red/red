@@ -108,12 +108,15 @@ hash: context [
 		deep?		[logic!]
 		types		[red-value!]
 		return:		[red-hash!]
+		/local
+			table	[node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/copy"]]
 
+		table: hash/table								;-- save it, `new` can be the same slot as `hash`
 		block/copy as red-block! hash as red-block! new part-arg deep? types
-		new/table:  hash/table	;-- set it to old table, _hashtable/copy below may trigger GC
-		new/table:  _hashtable/copy hash/table new/node
+		new/table:  table		;-- set it to old table, _hashtable/copy below may trigger GC
+		new/table:  _hashtable/copy table new/node
 		new/header: TYPE_HASH
 		new
 	]

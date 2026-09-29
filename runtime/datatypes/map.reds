@@ -750,13 +750,31 @@ map: context [
 		deep?		[logic!]
 		types		[red-value!]
 		return:		[red-hash!]
+		/local
+			blk		[red-hash!]
+			s		[series!]
+			types?	[logic!]
+			clone?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/copy"]]
 
-		new: as red-hash! block/clone as red-block! map deep? yes
-		new/table:  map/table	;-- set it to old table, _hashtable/copy below may trigger GC
-		new/table:  _hashtable/copy map/table new/node
-		new/header: TYPE_MAP
+		types?: OPTION?(types)
+		if all [deep? types?][
+			if cycles/find? map/node [cycles/reset fire [TO_ERROR(internal no-cycle)]]
+			cycles/push map/node
+		]
+		clone?: all [deep? not types?]					;-- deep clone of nested blocks, /types copies values below
+		blk: as red-hash! block/clone as red-block! map clone? yes
+		blk/table:  map/table	;-- set it to old table, _hashtable/copy below may trigger GC
+		blk/table:  _hashtable/copy map/table blk/node
+		blk/header: TYPE_MAP
+		if types? [
+			s: GET_BUFFER(blk)
+			block/copy-nested s/offset + 1 s/tail 2 deep? types
+			if deep? [cycles/pop]
+		]
+		copy-cell as red-value! blk as red-value! new	;-- `new` can be the same slot as `map`
+		stack/pop 1										;-- drop block/clone's slot
 		new
 	]
 

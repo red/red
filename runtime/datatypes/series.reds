@@ -966,8 +966,6 @@ _series: context [
 		part: len - offset
 		if part < 0 [part: 0]
 
-		if OPTION?(types) [--NOT_IMPLEMENTED--]
-
 		if OPTION?(part-arg) [
 			part: switch TYPE_OF(part-arg) [
 				TYPE_INTEGER [

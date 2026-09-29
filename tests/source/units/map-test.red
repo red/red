@@ -102,6 +102,34 @@ Red [
 
 ===end-group===
 
+===start-group=== "copy/types"
+
+	--test-- "map-copy-types-1"
+		ctm1-m: #[a: "x" b: "y" c: #[d: "z"]]
+		remove/key ctm1-m 'b
+		ctm1-c: copy/types ctm1-m string!
+		--assert 2 = length? ctm1-c
+		--assert "x" = select ctm1-c 'a
+		--assert not same? ctm1-m/a ctm1-c/a
+		--assert same? ctm1-m/c ctm1-c/c
+
+	--test-- "map-copy-types-2"
+		ctm2-m: #[c: #[d: "z"]]
+		ctm2-c: copy/types ctm2-m map!
+		--assert not same? ctm2-m/c ctm2-c/c
+		--assert same? ctm2-m/c/d ctm2-c/c/d
+		ctm2-c: copy/deep/types ctm2-m union series! make typeset! [map!]
+		--assert not same? ctm2-m/c/d ctm2-c/c/d
+
+	--test-- "map-copy-types-3"
+		ctm3-m: #[]
+		ctm3-m/self: ctm3-m
+		ctm3-e: try [copy/deep/types ctm3-m map!]
+		--assert error? ctm3-e
+		--assert ctm3-e/id = 'no-cycle
+
+===end-group===
+
 ===start-group=== "string keys"
 
 	--test-- "map-string-keys-1"

@@ -286,7 +286,7 @@ copy: make action! [[
 			length [number! series! pair!]
 		/deep	 "Copy nested values"
 		/types	 "Copy only specific types of non-scalar values"
-			kind [datatype!]
+			kind [datatype! typeset!]
 		return:  [series! any-object! bitset! map!]
 	]
 	#get-definition ACT_COPY

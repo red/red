@@ -1045,8 +1045,15 @@ actions: context [
 		types	[integer!]
 		return:	[red-value!]
 		/local
-			new [red-value!]
+			new  [red-value!]
+			kind [red-value!]
+			type [integer!]
 	][
+		if types > -1 [									;-- not type-checked in compiled code
+			kind: stack/arguments + types
+			type: TYPE_OF(kind)
+			unless any [type = TYPE_DATATYPE type = TYPE_TYPESET][ERR_EXPECT_ARGUMENT(type 5)]
+		]
 		new: stack/push*
 		assert new <> stack/arguments
 		new/header: TYPE_UNSET
