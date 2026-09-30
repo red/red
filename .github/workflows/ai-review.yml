@@ -13,7 +13,7 @@ permissions:
 jobs:
   review:
     name: Review pushed diff
-    runs-on: [self-hosted, windows, x64, codex-review]
+    runs-on: [self-hosted, Windows, X64, codex-review]
     continue-on-error: true
     timeout-minutes: 60
     outputs:
