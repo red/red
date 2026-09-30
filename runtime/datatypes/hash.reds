@@ -110,13 +110,24 @@ hash: context [
 		return:		[red-hash!]
 		/local
 			table	[node!]
+			same?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/copy"]]
 
 		table: hash/table								;-- save it, `new` can be the same slot as `hash`
+		same?: all [									;-- whole and shallow copy: the index stays valid
+			zero? hash/head
+			not OPTION?(part-arg)
+			not deep?									;-- nested copies change identities, and
+			not OPTION?(types)							;-- blocks, objects, maps are hashed by identity
+		]
 		block/copy as red-block! hash as red-block! new part-arg deep? types
-		new/table:  table		;-- set it to old table, _hashtable/copy below may trigger GC
-		new/table:  _hashtable/copy table new/node
+		new/table:  table		;-- set it to old table, _hashtable/copy|init below may trigger GC
+		either same? [
+			new/table: _hashtable/copy table new/node
+		][
+			new/table: _hashtable/init block/rs-length? as red-block! new as red-block! new HASH_TABLE_HASH 1
+		]
 		new/header: TYPE_HASH
 		new
 	]

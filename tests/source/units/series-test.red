@@ -2067,6 +2067,28 @@ Red [
 		--assert error? cp36-e
 		--assert cp36-e/id = 'no-cycle
 
+	--test-- "copy-37"									;-- hash! index after a partial copy
+		cp37-h: make hash! [a 1 b 2 c 3 d 4]
+		cp37-c: copy skip cp37-h 2
+		--assert 2 = select cp37-c 'b
+		--assert 3 = select cp37-c 'c
+		--assert none? find cp37-c 'a
+		cp37-c: copy/part cp37-h 4
+		--assert 2 = select cp37-c 'b
+		--assert none? select cp37-c 'c
+		cp37-c: make hash! skip cp37-h 4
+		--assert 3 = select cp37-c 'c
+		--assert none? find cp37-c 'b
+
+	--test-- "copy-38"									;-- hash! index after copy/deep (blocks are hashed by identity)
+		cp38-h: make hash! []
+		repeat cp38-i 32 [append cp38-h reduce [reduce [cp38-i] cp38-i]]
+		cp38-c: copy/deep cp38-h
+		--assert not same? first cp38-h first cp38-c
+		cp38-n: 0
+		foreach [cp38-k cp38-v] cp38-c [if cp38-v = select/only/same cp38-c cp38-k [cp38-n: cp38-n + 1]]
+		--assert 32 = cp38-n
+
 ===end-group===
 
 ===start-group=== "copy/types"
@@ -2205,6 +2227,24 @@ Red [
 		cpt15-c: copy/types cpt15-p paren!
 		--assert cpt15-p = cpt15-c
 		--assert not same? second cpt15-p second cpt15-c
+
+	--test-- "copy-types-16"							;-- hash! index after copying map! values
+		cpt16-h: make hash! []
+		repeat cpt16-i 32 [append cpt16-h reduce [make map! reduce ['a cpt16-i] cpt16-i]]
+		cpt16-c: copy/types cpt16-h map!
+		--assert not same? first cpt16-h first cpt16-c
+		cpt16-n: 0
+		foreach [cpt16-k cpt16-v] cpt16-c [if cpt16-v = select cpt16-c cpt16-k [cpt16-n: cpt16-n + 1]]
+		--assert 32 = cpt16-n
+
+	--test-- "copy-types-17"							;-- hash! index after copying object! values
+		cpt17-h: make hash! []
+		repeat cpt17-i 32 [append cpt17-h reduce [make object! [a: 0] cpt17-i]]
+		cpt17-c: copy/types cpt17-h object!
+		--assert not same? first cpt17-h first cpt17-c
+		cpt17-n: 0
+		foreach [cpt17-k cpt17-v] cpt17-c [if cpt17-v = select/same cpt17-c cpt17-k [cpt17-n: cpt17-n + 1]]
+		--assert 32 = cpt17-n
 
 ===end-group===
 
