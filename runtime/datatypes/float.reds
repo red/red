@@ -735,9 +735,10 @@ float: context [
 		if all [al = 0 ar = 0][return yes]				;-- handle negative and positive zero as equal
 		
 		;-- make the integer representation ordered as a two's complement integer
-		if al < 0 [al: 80000000 - al]
-		if ar < 0 [ar: 80000000 - ar]
-		(integer/abs al - ar) <= 10						;-- 10 ULP threshold
+		if l < 0 [l: 80000000h - l]
+		if r < 0 [r: 80000000h - r]
+		l: l - r										;-- can wrap to -2147483648, out of integer/abs range
+		all [l >= -10 l <= 10]							;-- 10 ULP threshold
 	]
 
 	;@@ using 64bit integer will simplify it significantly.

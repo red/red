@@ -209,6 +209,13 @@ Red [
 	--test-- "pcomp-5"		--assert (1, 1) = max (1, 1) (0, 0)
 	--test-- "pcomp-6"		--assert (40, 20) = max (10, 20) (40, 10)
 	--test-- "pcomp-7"		--assert (10, 10) = min (10, 20) (40, 10)
+	
+	--test-- "pcomp-8"		--assert not-equal? (18, 11) (-18, -11)
+	--test-- "pcomp-9"		--assert not-equal? (18, 11) (18, -11)
+	--test-- "pcomp-10"		--assert not-equal? (2, 0) (-2, 0)
+	--test-- "pcomp-11"
+		--assert equal? (0.1, -0.1) (0.100000009, -0.100000009)	;-- 1 ULP apart
+		--assert not strict-equal? (0.1, -0.1) (0.100000009, -0.100000009)
 
 ===end-group===
 
@@ -218,6 +225,14 @@ Red [
 	--test-- "pround-3"		--assert (15, 10) = round/to (15, 10) 1
 	--test-- "pround-3"		--assert (15, 10) = round/to (15, 10) 0
 	--test-- "pround-4"		--assert (20, 40) = round/to (22, 33) (10, 20)
+
+===end-group===
+
+===start-group=== "point2D - absolute"
+
+	--test-- "pabs-1"		--assert (1, 3) == absolute (-1, -3)
+	--test-- "pabs-2"		--assert (1, 3) == absolute (1, -3)
+	--test-- "pabs-3"		--assert (1, 3) == absolute (1, 3)
 
 ===end-group===
 
@@ -424,6 +439,13 @@ Red [
 	--test-- "p3comp-5"		--assert (1, 1, 1) = max (1, 1, 1) (0, 0, 0)
 	--test-- "p3comp-6"		--assert (40, 20, 15) = max (10, 20, 5) (40, 10, 15)
 	--test-- "p3comp-7"		--assert (10, 10, 10) = min (10, 20, 10) (40, 10, 30)
+	
+	--test-- "p3comp-8"		--assert not-equal? (18, 11, 3) (-18, -11, -3)
+	--test-- "p3comp-9"		--assert not-equal? (18, 11, 3) (18, 11, -3)
+	--test-- "p3comp-10"	--assert not-equal? (0, 0, 2) (0, 0, -2)
+	--test-- "p3comp-11"
+		--assert equal? (1, 0.1, -0.1) (1, 0.100000009, -0.100000009)	;-- 1 ULP apart
+		--assert not strict-equal? (1, 0.1, -0.1) (1, 0.100000009, -0.100000009)
 
 ===end-group===
 
@@ -435,6 +457,14 @@ Red [
 ;	--test-- "p3round-4"		--assert (20, 40) = round/to (22, 33) (10, 20)
 ;
 ;===end-group===
+
+===start-group=== "point3D - absolute"
+
+	--test-- "p3abs-1"		--assert (1, 3, 4) == absolute (-1, -3, -4)
+	--test-- "p3abs-2"		--assert (1, 3, 4) == absolute (1, 3, -4)
+	--test-- "p3abs-3"		--assert (1, 3, 4) == absolute (1, 3, 4)
+
+===end-group===
 
 
 ~~~end-file~~~
