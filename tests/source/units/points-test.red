@@ -216,6 +216,9 @@ Red [
 	--test-- "pcomp-11"
 		--assert equal? (0.1, -0.1) (0.100000009, -0.100000009)	;-- 1 ULP apart
 		--assert not strict-equal? (0.1, -0.1) (0.100000009, -0.100000009)
+	--test-- "pcomp-12"		--assert not-equal? (1.#INF, 0) (-1.#INF, 0)
+	--test-- "pcomp-13"		--assert not-equal? (1.#INF, 0) (-3.4028234e38, 0)
+	--test-- "pcomp-14"		--assert equal? (1.#INF, 0) (3.4028234e38, 0)		;-- FLT_MAX ~ infinity
 
 ===end-group===
 
@@ -446,6 +449,9 @@ Red [
 	--test-- "p3comp-11"
 		--assert equal? (1, 0.1, -0.1) (1, 0.100000009, -0.100000009)	;-- 1 ULP apart
 		--assert not strict-equal? (1, 0.1, -0.1) (1, 0.100000009, -0.100000009)
+	--test-- "p3comp-12"	--assert not-equal? (0, 0, 1.#INF) (0, 0, -1.#INF)
+	--test-- "p3comp-13"	--assert not-equal? (0, 0, 1.#INF) (0, 0, -3.4028234e38)
+	--test-- "p3comp-14"	--assert equal? (0, 0, 1.#INF) (0, 0, 3.4028234e38)	;-- FLT_MAX ~ infinity
 
 ===end-group===
 

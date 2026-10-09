@@ -724,11 +724,8 @@ float: context [
 		max-inf: 7F7FFFFFh								;-- largest finite float
 		
 		if any [al >= max-inf ar >= max-inf][
-			return any [
-				all [
-					any [l = 7F800000h l = FF800000h]
-					any [r = 7F800000h r = FF800000h]
-				]
+			return all [
+				(l xor r) >= 0						;-- same sign (same-sign infinities already caught by `=`)
 				(integer/abs (al - ar)) < 100000h
 			]
 		]
