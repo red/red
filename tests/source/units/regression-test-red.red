@@ -3993,6 +3993,12 @@ comment {
 		--assert (mold to float! 15.99%) = "0.1599"			;-- percent! literal is bit-exact, no /100 double-rounding (#5753)
 		--assert (mold to float! 99.999%) = "0.99999"
 		--assert ($124.23 * 99.999%) == ($124.23 * 0.99999)
+		
+	--test-- "#5772"
+		--assert error? try [append/part [1] 5 2]
+		--assert error? try [insert/part [1] 5 2]
+		--assert error? try [append/part "1" 5 2]
+		--assert error? try [insert/part "1" 5 2]
 	
 ===end-group===
 

@@ -18,8 +18,10 @@ actions: context [
 	#define PROCESS_PART_DUP_OPTIONS [
 		cnt:   1
 		if part > -1 [
-			part-arg: stack/arguments + part
 			ser1: as red-series! stack/arguments + 1
+			part-arg: stack/arguments + part
+			type: TYPE_OF(ser1)
+			if not ANY_SERIES_CLASS?(type) [fire [TO_ERROR(script invalid-part) part-arg]]
 			NORMALIZE_SERIES_HEAD_ALT(ser1)
 			
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -875,7 +877,7 @@ actions: context [
 			ser1 ser2 [red-series!]
 			part-arg  [red-value!]
 			int		  [red-integer!]
-			cnt p0		  [integer!]
+			cnt p0 type	[integer!]
 	][
 		PROCESS_PART_DUP_OPTIONS
 		append
@@ -1199,7 +1201,7 @@ actions: context [
 			ser ser1 ser2 [red-series!]
 			part-arg  [red-value!]
 			int		  [red-integer!]
-			cnt	p0	  [integer!]
+			cnt	p0 type [integer!]
 	][
 		ser: as red-series! stack/arguments
 		if TYPE_OF(ser) <> TYPE_PORT [NORMALIZE_SERIES_HEAD_ALT(ser)]
