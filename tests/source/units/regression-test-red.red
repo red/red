@@ -3999,6 +3999,8 @@ comment {
 		--assert error? try [insert/part [1] 5 2]
 		--assert error? try [append/part "1" 5 2]
 		--assert error? try [insert/part "1" 5 2]
+		--assert error? try [append/part [] copy make image! 0x0 1]
+		--assert error? try [insert/part [] copy make image! 0x0 1]
 	
 ===end-group===
 

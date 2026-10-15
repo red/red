@@ -21,7 +21,8 @@ actions: context [
 			ser1: as red-series! stack/arguments + 1
 			part-arg: stack/arguments + part
 			type: TYPE_OF(ser1)
-			if not ANY_SERIES_CLASS?(type) [fire [TO_ERROR(script invalid-part) part-arg]]
+			if any [not ANY_SERIES_CLASS?(type) null? ser1/node][fire [TO_ERROR(script invalid-part) part-arg]]
+			
 			NORMALIZE_SERIES_HEAD_ALT(ser1)
 			
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
