@@ -1605,6 +1605,32 @@ Red [
         --assert (make binary! [1 2 3 3 3 1]) = sort/skip/compare s 2 1
         --assert (make binary! [3 1 1 2 3 3]) = sort/skip/compare s 2 2
         --assert (make binary! [1 2 3 1 3 3]) = sort/skip/all s 2
+
+	--test-- "sort-past-tail-1"						;-- past-tail hash! crashed
+		spt-h: make hash! [3 1 2]
+		spt-p: at spt-h 3
+		clear spt-h
+		--assert empty? sort spt-p
+		--assert empty? sort/skip spt-p 2
+		--assert empty? sort/part spt-p -2
+		--assert empty? spt-h
+
+	--test-- "sort-past-tail-2"						;-- negative /part sorted cells past the tail
+		spt-h: make hash! [3 1 2 5]
+		spt-p: at spt-h 4
+		remove/part spt-h 3
+		--assert empty? sort/part spt-p -3
+		--assert [5] = to block! spt-h
+		--assert not none? find spt-h 5
+
+	--test-- "sort-past-tail-3"
+		spt-b: copy [3 1 2 5]
+		spt-p: at spt-b 4
+		remove/part spt-b 3
+		--assert empty? sort spt-p
+		--assert empty? sort/skip spt-p 2
+		--assert empty? sort/part spt-p -3
+		--assert [5] = spt-b
 		
 ===end-group===
 

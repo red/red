@@ -1324,8 +1324,8 @@ block: context [
 		flags: 0
 		s: GET_BUFFER(blk)
 		head: s/offset + blk/head
-		if head = s/tail [return blk]					;-- early exit if nothing to sort
 		len: rs-length? blk
+		if len <= 0 [return blk]						;-- early exit if nothing to sort (at or past the tail)
 
 		if OPTION?(part) [
 			len2: either TYPE_OF(part) = TYPE_INTEGER [

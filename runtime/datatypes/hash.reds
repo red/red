@@ -130,12 +130,15 @@ hash: context [
 		return:		[red-hash!]
 		/local
 			blk		[red-block!]
+			len		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/sort"]]
 
 		blk: as red-block! hash
 		block/sort blk case? skip comparator part all? reverse? stable?
-		_hashtable/clear hash/table blk/head block/rs-length? blk
+		len: block/rs-length? blk
+		if negative? len [return hash]					;-- past the tail: nothing was sorted
+		_hashtable/clear hash/table blk/head len
 		_hashtable/put-all hash/table blk/head 1
 		hash
 	]
