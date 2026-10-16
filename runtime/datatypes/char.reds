@@ -21,6 +21,8 @@ char: context [
 			char  [red-char!]
 			f	  [red-float!]
 			rv	  [integer!]
+			slot  [red-integer! value]
+			s	  [red-integer!]
 	][
 		char:  as red-char! stack/arguments
 		right: char + 1
@@ -32,8 +34,12 @@ char: context [
 			default		[fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]]
 		]
 
-		rv: integer/do-math-op char/value rv op null
+		slot/header: TYPE_UNSET
+		s: slot
+		if op = OP_DIV [s: null]							;-- (no float promotion for /)
+		rv: integer/do-math-op char/value rv op s
 		if any [
+			TYPE_OF(slot) <> TYPE_UNSET					;-- integer overflow (promoted to float)
 			rv > max-char-codepoint
 			negative? rv
 		][

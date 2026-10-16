@@ -185,6 +185,8 @@ tuple: context [
 			f2	  [float!]
 			swap? [logic!]
 			float? [logic!]
+			slot  [red-integer! value]
+			s	  [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/do-math"]]
 
@@ -250,7 +252,14 @@ tuple: context [
 					v: either n <= size2 [as-integer tp2/n][0]
 				]
 				v1: either n <= size1 [as-integer tp1/n][0]
-				v1: integer/do-math-op v1 v type null
+				slot/header: TYPE_UNSET
+				s: slot
+				if type = OP_DIV [s: null]					;-- (no float promotion for /)
+				v1: integer/do-math-op v1 v type s
+				if TYPE_OF(slot) = TYPE_FLOAT [				;-- integer overflow: saturated
+					fl: as red-float! slot
+					v1: either fl/value > 0.0 [255][0]
+				]
 				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
 				tp1/n: as byte! v1
 				n = size

@@ -411,6 +411,32 @@ vector: context [
 		part	
 	]
 
+	;-- integer/do-math-op on elements: an overflow of + - * wraps to 32 bits, as
+	;-- the elements wrap to their width; / truncates
+	int-math: func [
+		left	[integer!]
+		right	[integer!]
+		op		[math-op!]
+		return: [integer!]
+		/local
+			slot [red-integer! value]
+			s	 [red-integer!]
+			res	 [integer!]
+	][
+		slot/header: TYPE_UNSET
+		s: slot
+		if op = OP_DIV [s: null]							;-- (no float promotion for /)
+		res: integer/do-math-op left right op s
+		if TYPE_OF(slot) = TYPE_FLOAT [						;-- integer overflow: wrapped
+			switch op [
+				OP_ADD [res: left + right]
+				OP_SUB [res: left - right]
+				OP_MUL [res: left * right]
+			]
+		]
+		res
+	]
+
 	do-math-scalar: func [
 		op		[math-op!]
 		left	[red-vector!]
@@ -491,10 +517,10 @@ vector: context [
 			][
 				while [i < len][
 					v1: get-value-int as int-ptr! p unit
-					v1: integer/do-math-op v1 v2 op null
+					v1: int-math v1 v2 op
 					switch unit [
 						1 [p/value: as-byte v1]
-						2 [p/1: as-byte v1 >> 8 p/2: as-byte v1]
+						2 [p/1: as-byte v1 and FFh p/2: as-byte v1 >> 8]
 						4 [p4: as int-ptr! p p4/value: v1]
 					]
 					i: i + 1
@@ -582,7 +608,7 @@ vector: context [
 			while [i < len1][
 				v1: get-value-int as int-ptr! p1 unit1
 				v2: get-value-int as int-ptr! p2 unit2
-				v1: integer/do-math-op v1 v2 type null
+				v1: int-math v1 v2 type
 				switch unit [
 					1 [p/value: as-byte v1]
 					2 [p/1: as-byte v1 and FFh p/2: as-byte v1 >> 8]
