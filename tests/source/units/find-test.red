@@ -521,4 +521,49 @@ Red [
 
 ===end-group===
 
+===start-group=== "FIND in a hash! whose index was rebuilt"
+
+	fhb-dup?: function [							;-- pops values off the tail: is a removed one still found?
+		h [hash!]
+	][
+		while [not empty? h][
+			v: last h
+			remove back tail h
+			if find/last h v [return true]
+		]
+		false
+	]
+	fhb-ints: function [n [integer!]][collect [repeat i n [keep i]]]
+
+	--test-- "find-hash-rebuilt-1"						;-- append of a block
+		--assert not fhb-dup? append make hash! [] fhb-ints 16
+	--test-- "find-hash-rebuilt-2"						;-- insert of a block
+		--assert not fhb-dup? head insert make hash! [] fhb-ints 16
+	--test-- "find-hash-rebuilt-3"						;-- put of new keys
+		fhb-h: make hash! []
+		repeat i 8 [put fhb-h to word! rejoin ["k" i] i]
+		--assert not fhb-dup? fhb-h
+	--test-- "find-hash-rebuilt-4"						;-- move/part into a hash!
+		fhb-h: make hash! []
+		move/part fhb-ints 16 fhb-h 16
+		--assert not fhb-dup? head fhb-h
+	--test-- "find-hash-rebuilt-5"
+		--assert not fhb-dup? reverse make hash! fhb-ints 6
+	--test-- "find-hash-rebuilt-6"
+		--assert not fhb-dup? reverse/skip make hash! fhb-ints 12 2
+	--test-- "find-hash-rebuilt-7"						;-- sort past the head
+		fhb-h: make hash! []
+		foreach v [6 5 4 3 2 1][append fhb-h v]
+		sort next fhb-h
+		--assert not fhb-dup? fhb-h
+	--test-- "find-hash-rebuilt-8"						;-- trim past the head
+		fhb-h: make hash! fhb-ints 18
+		remove/part fhb-h 9
+		foreach v fhb-ints 9 [append fhb-h v + 5000]
+		append fhb-h none
+		trim next fhb-h
+		--assert not fhb-dup? fhb-h
+
+===end-group===
+
 ~~~end-file~~~

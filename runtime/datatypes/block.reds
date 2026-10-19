@@ -1138,6 +1138,7 @@ block: context [
 			s	  [series!]
 			hash? [logic!]
 			hash  [red-hash!]
+			err	  [integer!]
 			put? chk? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/put"]]
@@ -1152,8 +1153,9 @@ block: context [
 			copy-cell field ALLOC_TAIL(blk)
 			value: copy-cell value ALLOC_TAIL(blk)
 			if hash? [
-				_hashtable/put hash/table value - 1
-				_hashtable/put hash/table value
+				err: 0
+				_hashtable/put-err hash/table value - 1 :err
+				if err <> HASH_TABLE_ERR_REBUILT [_hashtable/put hash/table value] ;-- a rehash indexed both
 			]
 		][
 			s: GET_BUFFER(blk)

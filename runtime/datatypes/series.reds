@@ -416,6 +416,7 @@ _series: context [
 			int	  [red-integer!]
 			hash  [red-hash!]
 			cell  [red-value!]
+			err	  [integer!]
 	][
 		type2: TYPE_OF(target)
 		unless ANY_SERIES?(type2) [ERR_EXPECT_ARGUMENT(type2 1)]	;-- only origin's type is checked by the dispatch
@@ -522,8 +523,10 @@ _series: context [
 				part: (as-integer s2/tail - dst) >> 4 - items - hash/head
 				_hashtable/refresh hash/table items hash/head part yes
 				cell: as red-value! dst
+				err: 0
 				loop items [
-					_hashtable/put hash/table cell
+					_hashtable/put-err hash/table cell :err
+					if err = HASH_TABLE_ERR_REBUILT [break]	;-- the rehash indexed the remaining values
 					cell: cell + 1
 				]
 			]
@@ -727,6 +730,7 @@ _series: context [
 			hash?	[logic!]
 			hash	[red-hash!]
 			table	[node!]
+			err		[integer!]
 			skip?	[logic!]
 			big?    [logic!]
 			chk?	[logic!]
@@ -779,6 +783,7 @@ _series: context [
 		if hash? [
 			hash: as red-hash! ser
 			table: hash/table
+			err: 0
 		]
 		chk?: ownership/check as red-value! ser words/_reverse null ser/head items
 		big?: all [skip? skip <> 1]
@@ -797,8 +802,10 @@ _series: context [
 				loop skip [								;-- rehash elements in record one-by-one
 					_hashtable/delete table as red-value! head2
 					_hashtable/delete table as red-value! tail2
-					_hashtable/put table as red-value! head2
-					_hashtable/put table as red-value! tail2
+					_hashtable/put-err table as red-value! head2 :err
+					if err <> HASH_TABLE_ERR_REBUILT [				;-- a rehash indexed both
+						_hashtable/put table as red-value! tail2
+					]
 					
 					head2: head2 + one					;-- both from start to end
 					tail2: tail2 + one

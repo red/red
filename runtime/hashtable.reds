@@ -767,12 +767,14 @@ _hashtable: context [
 			h	[hashtable!]
 			end	value key [red-value!]
 			i	[integer!]
+			err	[integer!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
 
 		s: as series! h/blk/value
 		end: s/tail
+		err: 0
 		i: head
 		while [
 			value: s/offset + i
@@ -794,7 +796,8 @@ _hashtable: context [
 					i: i - skip
 				]
 			][
-				put node value
+				put-err node value :err
+				if err = HASH_TABLE_ERR_REBUILT [exit]	;-- a nested rehash indexed all the values
 			]
 			i: i + skip
 		]
