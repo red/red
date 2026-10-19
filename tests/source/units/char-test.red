@@ -84,4 +84,15 @@ Red [
 	--test-- "negative-char2"	--assert error? try [do [to-char 80000000h]]
 ===end-group===
 
+===start-group=== "overflows"
+	--test-- "char-overflow"								;-- integer overflow in char math (was: access violation)
+		--assert error? try [#"a" + 2147483647.5]
+		--assert error? try [#"a" + 2147483647]
+		--assert error? try [#"a" - -2147483647]
+		--assert error? try [#"a" * 2147483647]
+		--assert error? try [#"a" - 1.#INF]
+		--assert #"0" = (#"a" / 2.5)						;-- division still truncates
+		--assert #" " = (#"a" / 3)
+===end-group===
+
 ~~~end-file~~~

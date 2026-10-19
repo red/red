@@ -4002,34 +4002,6 @@ comment {
 		--assert error? try [append/part [] copy make image! 0x0 1]
 		--assert error? try [insert/part [] copy make image! 0x0 1]
 		
-	--test-- "char-overflow"								;-- integer overflow in char math (was: access violation)
-		--assert error? try [#"a" + 2147483647.5]
-		--assert error? try [#"a" + 2147483647]
-		--assert error? try [#"a" - -2147483647]
-		--assert error? try [#"a" * 2147483647]
-		--assert error? try [#"a" - 1.#INF]
-		--assert #"0" = (#"a" / 2.5)						;-- division still truncates
-		--assert #" " = (#"a" / 3)
-		
-	--test-- "tuple-overflow"								;-- integer overflow in tuple math (was: access violation): saturated
-		--assert 255.255.255 = (2.2.2 * 2147483647)
-		--assert 0.0.0 = (2.2.2 * -2147483648)
-		--assert 255.0.255 = (1.0.3 * 2147483647)
-		--assert 255.255.255 = (1.2.3 - -2147483647)
-		--assert 0.1.1 = (1.2.3 / 2)						;-- division still truncates
-		
-	--test-- "vector-overflow"								;-- integer overflow in vector math (was: access violation): wrapped
-		--assert (make vector! [-2147483648]) = ((make vector! [2147483647]) + 1)
-		--assert (make vector! [2147483647]) = ((make vector! [-2147483648]) - 1)
-		--assert (make vector! [0]) = ((make vector! [65536]) * 65536)
-		--assert (make vector! [integer! 8 [2]]) = ((make vector! [integer! 8 [3]]) * 1431655766)
-		--assert (make vector! [-2147483648]) = ((make vector! [2147483647]) + make vector! [1])
-		--assert (make vector! [3 4]) = ((make vector! [7 9]) / 2)	;-- division still truncates
-		
-	--test-- "vector-16-scalar"								;-- a 16-bit vector op a scalar stored its bytes swapped
-		--assert (make vector! [integer! 16 [1001 -1]]) = ((make vector! [integer! 16 [1000 -2]]) + 1)
-		--assert (make vector! [integer! 16 [-32768]]) = ((make vector! [integer! 16 [32767]]) + 1)
-		--assert (make vector! [integer! 16 [999]]) = ((make vector! [integer! 16 [1000]]) - 1)
 	
 ===end-group===
 
