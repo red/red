@@ -807,5 +807,22 @@ Red [
 		
 ===end-group===
 
+===start-group=== "overflows"
+
+	--test-- "vector-overflow"								;-- integer overflow in vector math (was: access violation): wrapped
+		--assert (make vector! [-2147483648]) = ((make vector! [2147483647]) + 1)
+		--assert (make vector! [2147483647]) = ((make vector! [-2147483648]) - 1)
+		--assert (make vector! [0]) = ((make vector! [65536]) * 65536)
+		--assert (make vector! [integer! 8 [2]]) = ((make vector! [integer! 8 [3]]) * 1431655766)
+		--assert (make vector! [-2147483648]) = ((make vector! [2147483647]) + make vector! [1])
+		--assert (make vector! [3 4]) = ((make vector! [7 9]) / 2)	;-- division still truncates
+		
+	--test-- "vector-16-scalar"								;-- a 16-bit vector op a scalar stored its bytes swapped
+		--assert (make vector! [integer! 16 [1001 -1]]) = ((make vector! [integer! 16 [1000 -2]]) + 1)
+		--assert (make vector! [integer! 16 [-32768]]) = ((make vector! [integer! 16 [32767]]) + 1)
+		--assert (make vector! [integer! 16 [999]]) = ((make vector! [integer! 16 [1000]]) - 1)
+
+===end-group===
+
 ~~~end-file~~~
 

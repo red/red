@@ -1269,6 +1269,52 @@ Red [
 	--assert [2] = compose/into [no 7 8 9 (2 * 10) ([5 6])] b
 	--assert [1 no 7 8 9 20 5 6 2] = head b
 
+	--test-- "compose-23"								;-- values added to a hash! tail are indexed
+	hc23: make hash! [x 0]
+	compose/into [a (1) b (2) c ([k 3])] tail hc23
+	--assert hc23 = make hash! [x 0 a 1 b 2 c k 3]
+	--assert 0 = select hc23 'x
+	--assert 1 = select hc23 'a
+	--assert 3 = select hc23 'k
+	--assert (make hash! [b 2 c k 3]) = find hc23 'b
+
+	--test-- "compose-24"
+	hc24: make hash! [x 0]
+	compose/deep/into [a [(1)] b (2)] tail hc24
+	--assert [1] = select hc24 'a
+	--assert 2 = select hc24 'b
+	hc24: make hash! [x 0]
+	compose/only/into [a ([1]) b (2)] tail hc24
+	--assert [1] = select hc24 'a
+	--assert 2 = select hc24 'b
+
+	--test-- "compose-25"
+	hc25: make hash! [x 0 y 9]
+	compose/into [a (1) b (2)] next hc25
+	--assert hc25 = make hash! [x a 1 b 2 0 y 9]
+	--assert 1 = select hc25 'a
+	--assert 2 = select hc25 'b
+	--assert 9 = select hc25 'y
+
+	--test-- "compose-26"								;-- the index grows in the middle of a splice
+	hc26: make hash! []
+	compose/into [(collect [repeat i 300 [keep i]]) end] tail hc26
+	--assert 300 = select hc26 299
+	--assert 2 = select hc26 1
+	--assert (make hash! [end]) = find hc26 'end
+
+	--test-- "compose-27"								;-- a removed value leaves no index entry after growth
+	hc27: make hash! []
+	compose/into [(collect [repeat i 14 [keep i]])] tail hc27
+	remove back tail hc27
+	--assert none? find/last hc27 14
+	--assert (make hash! [13]) = find hc27 13
+	hc27: make hash! []
+	compose/into [(collect [repeat i 300 [keep i]])] tail hc27
+	remove back tail hc27
+	--assert none? find/last hc27 300
+	--assert (make hash! [299]) = find/last hc27 299
+
 ===end-group===
 
 ===start-group=== "error reports"

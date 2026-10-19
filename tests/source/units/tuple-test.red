@@ -64,4 +64,13 @@ Red [
 	
 ===end-group===
 
+===start-group=== "overflows"
+	--test-- "tuple-overflow"								;-- integer overflow in tuple math (was: access violation): saturated
+		--assert 255.255.255 = (2.2.2 * 2147483647)
+		--assert 0.0.0 = (2.2.2 * -2147483648)
+		--assert 255.0.255 = (1.0.3 * 2147483647)
+		--assert 255.255.255 = (1.2.3 - -2147483647)
+		--assert 0.1.1 = (1.2.3 / 2)						;-- division still truncates
+===end-group===
+
 ~~~end-file~~~
