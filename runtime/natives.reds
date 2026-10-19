@@ -1069,8 +1069,12 @@ natives: context [
 			tail	[red-value!]
 			new		[red-block!]
 			result	[red-value!]
+			cell	[red-value!]
+			end		[red-value!]
+			hs		[red-hash!]
 			into?	[logic!]
 			append? [logic!]
+			hash?	[logic!]
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
@@ -1083,6 +1087,8 @@ natives: context [
 			append?: yes
 			block/push-only* (as-integer tail - value) >> 4
 		]
+		hs: as red-hash! new
+		hash?: TYPE_OF(new) = TYPE_HASH					;-- appended values need indexing (insert-value does it)
 		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_BLOCK [
@@ -1092,7 +1098,8 @@ natives: context [
 						as red-block! value
 					]
 					either append? [
-						copy-cell as red-value! blk ALLOC_TAIL(new)
+						cell: copy-cell as red-value! blk ALLOC_TAIL(new)
+						if hash? [_hashtable/put hs/table cell]
 					][
 						block/insert-value new as red-value! blk yes no
 					]
@@ -1117,13 +1124,23 @@ natives: context [
 								TYPE_OF(result) <> TYPE_BLOCK
 							][
 								either append? [
-									copy-cell result ALLOC_TAIL(new)
+									cell: copy-cell result ALLOC_TAIL(new)
+									if hash? [_hashtable/put hs/table cell]
 								][
 									block/insert-value new result yes no
 								]
 							][
 								either append? [
-									block/rs-append-block new as red-block! result
+									either hash? [			;-- one value at a time: indexing them in bulk can rehash twice
+										cell: block/rs-head blk
+										end: block/rs-tail blk
+										while [cell < end][
+											_hashtable/put hs/table copy-cell cell ALLOC_TAIL(new)
+											cell: cell + 1
+										]
+									][
+										block/rs-append-block new as red-block! result
+									]
 								][
 									block/insert-block new as red-block! result
 								]
@@ -1133,7 +1150,8 @@ natives: context [
 				]
 				default [
 					either append? [
-						copy-cell value ALLOC_TAIL(new)
+						cell: copy-cell value ALLOC_TAIL(new)
+						if hash? [_hashtable/put hs/table cell]
 					][
 						block/insert-value new value yes no
 					]

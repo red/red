@@ -4002,6 +4002,10 @@ comment {
 		--assert error? try [append/part [] copy make image! 0x0 1]
 		--assert error? try [insert/part [] copy make image! 0x0 1]
 		
+	--test-- "#5773"
+		h5773: make hash! [x 0]
+		compose/into [a (1) b (2)] tail h5773
+		--assert 1 = select h5773 'a
 	
 ===end-group===
 
