@@ -4006,6 +4006,12 @@ comment {
 		h5773: make hash! [x 0]
 		compose/into [a (1) b (2)] tail h5773
 		--assert 1 = select h5773 'a
+
+	--test-- "#5774"
+		h5774: make hash! []
+		append h5774 [1 2 3 4 5 6 7 8 9 10 11 12 13 14]
+		remove back tail h5774
+		--assert none? find/last h5774 14
 	
 ===end-group===
 
