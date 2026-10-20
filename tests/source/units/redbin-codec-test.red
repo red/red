@@ -342,6 +342,23 @@ Red [
 			--assert -1 = reflect o2 'class			;-- checked before any field access forces a fresh id
 			--assert 1 = o2/a
 		
+		--test-- "object-owner"			;-- on-change* / on-deep-change* objects carry an on-set pair before their context
+			changes: copy []
+			owners: reduce [
+				make object! [v: 0 on-change*: func [word old new][append changes word]]
+				make object! [v: 0 on-deep-change*: func [owner word target action new index part][]]
+				make object! [v: 0 on-change*: func [word old new][append changes word] on-deep-change*: func [owner word target action new index part][]]
+			]
+			
+			forall owners [
+				o: test owners/1
+				--assert object? o
+				--assert (words-of owners/1) = words-of o
+				--assert 0 = o/v
+				o/v: 1
+			]
+			--assert [v v] = changes			;-- on-change* still fires on the decoded objects
+		
 		--test-- "error"
 			errors: reduce [
 				try [1 / 0]

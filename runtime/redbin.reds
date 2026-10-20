@@ -906,7 +906,7 @@ redbin: context [
 			series          [series!]
 			node values     [node!]
 			here pos        [int-ptr!]
-			type kind skip  [integer!]
+			type kind       [integer!]
 			size			[integer!]
 			values? stack?  [logic!]
 			self? owner?    [logic!]
@@ -920,9 +920,8 @@ redbin: context [
 		;-- locate context record
 		data: either type = TYPE_OBJECT [
 			data: data + 2
-			skip: (size? integer!) << 1
-			owner?: data/1 and REDBIN_OWNER_MASK <> 0 
-			either owner? [data + skip][data]
+			owner?: here/1 and REDBIN_OWNER_MASK <> 0
+			either owner? [data + 2][data]
 		][
 			data + 3
 		]
