@@ -268,6 +268,42 @@ block: context [
 		new
 	]
 	
+	copy-nested: func [								;-- copy in place the values matching a COPY/TYPES argument
+		value	[red-value!]
+		tail	[red-value!]
+		step	[integer!]								;-- 2: skip map keys
+		deep?	[logic!]
+		types	[red-value!]
+		/local
+			dt		[red-datatype!]
+			pos		[byte-ptr!]							;-- required by BS_TEST_BIT_ALT
+			type	[integer!]
+			ts?		[logic!]
+			match?	[logic!]
+	][
+		dt: as red-datatype! types
+		ts?: TYPE_OF(dt) = TYPE_TYPESET
+		unless deep? [types: null]						;-- one level only, nested values are copied plainly
+		
+		while [value < tail][
+			type: TYPE_OF(value)
+			match?: either ts? [BS_TEST_BIT_ALT(dt type)][type = dt/value]
+			if all [
+				match?
+				any [									;-- port! excluded, copying a port reads from it
+					ANY_SERIES?(type)
+					type = TYPE_MAP
+					type = TYPE_BITSET
+					type = TYPE_OBJECT
+					type = TYPE_ERROR
+				]
+			][
+				actions/copy as red-series! value value null deep? types
+			]
+			value: value + step
+		]
+	]
+	
 	insert-value: func [
 		blk		[red-block!]
 		value	[red-value!]
@@ -1833,26 +1869,30 @@ block: context [
 
 		node: blk/node									;-- save node before slot is copied
 		new: as red-block! _series/copy as red-series! blk as red-series! new arg deep? types
-		if deep? [
-			if cycles/find? node [cycles/reset fire [TO_ERROR(internal no-cycle)]]
-			if TYPE_HASH = TYPE_OF(blk) [new/header: TYPE_BLOCK]
-			cycles/push blk/node
+		if any [deep? OPTION?(types)][
+			if TYPE_HASH = TYPE_OF(blk) [new/header: TYPE_BLOCK]	;-- no table yet: hide it from the GC (errors below allocate)
+			if deep? [
+				if cycles/find? node [cycles/reset fire [TO_ERROR(internal no-cycle)]]
+				cycles/push node
+			]
 			s: GET_BUFFER(new)
 			arg: s/offset
 			end: s/tail
-			while [arg < end][
-				type: TYPE_OF(arg)
-				if ANY_SERIES?(type) [
-					actions/copy 
-						as red-series! arg
-						arg						;-- overwrite the arg value
-						null
-						yes
-						null
+			either OPTION?(types) [copy-nested arg end 1 deep? types][
+				while [arg < end][
+					type: TYPE_OF(arg)
+					if ANY_SERIES?(type) [
+						actions/copy
+							as red-series! arg
+							arg						;-- overwrite the arg value
+							null
+							yes
+							null
+					]
+					arg: arg + 1
 				]
-				arg: arg + 1
 			]
-			cycles/pop
+			if deep? [cycles/pop]
 		]
 		
 		as red-series! new

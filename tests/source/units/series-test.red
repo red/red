@@ -2080,6 +2080,205 @@ Red [
   --test-- "copy-33" --assert [d e f g h i]  == copy/part skip [a b c d e f g h i j] 4 -1x5
   --test-- "copy-34" --assert [d e f g] == copy/part skip [a b c d e f g h i j] 8 -5x-1
 
+	--test-- "copy-35"									;-- hash! nested in a block
+		cp35-h: make hash! [a 1 b 2]
+		cp35-b: copy/deep reduce [cp35-h]
+		--assert not same? cp35-h cp35-b/1
+		--assert 2 = select cp35-b/1 'b
+
+	--test-- "copy-36"									;-- cycle below the top level
+		cp36-b: [x]
+		append/only cp36-b cp36-b
+		cp36-e: try [copy/deep reduce [cp36-b]]
+		--assert error? cp36-e
+		--assert cp36-e/id = 'no-cycle
+
+	--test-- "copy-37"									;-- hash! index after a partial copy
+		cp37-h: make hash! [a 1 b 2 c 3 d 4]
+		cp37-c: copy skip cp37-h 2
+		--assert 2 = select cp37-c 'b
+		--assert 3 = select cp37-c 'c
+		--assert none? find cp37-c 'a
+		cp37-c: copy/part cp37-h 4
+		--assert 2 = select cp37-c 'b
+		--assert none? select cp37-c 'c
+		cp37-c: make hash! skip cp37-h 4
+		--assert 3 = select cp37-c 'c
+		--assert none? find cp37-c 'b
+
+	--test-- "copy-38"									;-- hash! index after copy/deep (blocks are hashed by identity)
+		cp38-h: make hash! []
+		repeat cp38-i 32 [append cp38-h reduce [reduce [cp38-i] cp38-i]]
+		cp38-c: copy/deep cp38-h
+		--assert not same? first cp38-h first cp38-c
+		cp38-n: 0
+		foreach [cp38-k cp38-v] cp38-c [if cp38-v = select/only/same cp38-c cp38-k [cp38-n: cp38-n + 1]]
+		--assert 32 = cp38-n
+
+	--test-- "copy-39"									;-- hash! holding itself
+		cp39-h: make hash! [a 1]
+		append/only cp39-h cp39-h
+		cp39-e: try [copy/deep reduce [cp39-h]]
+		--assert error? cp39-e
+		--assert cp39-e/id = 'no-cycle
+
+===end-group===
+
+===start-group=== "copy/types"
+
+	--test-- "copy-types-1"								;-- one level
+		cpt1-b: reduce ['a "s" reduce ['b "t"]]
+		cpt1-c: copy/types cpt1-b string!
+		--assert cpt1-b = cpt1-c
+		--assert not same? cpt1-b/2 cpt1-c/2
+		--assert same? cpt1-b/3 cpt1-c/3
+
+	--test-- "copy-types-2"
+		cpt2-b: reduce ['a "s" reduce ['b "t"]]
+		cpt2-c: copy/types cpt2-b block!
+		--assert not same? cpt2-b/3 cpt2-c/3
+		--assert same? cpt2-b/3/2 cpt2-c/3/2
+		--assert same? cpt2-b/2 cpt2-c/2
+
+	--test-- "copy-types-3"								;-- /deep only visits copied values
+		cpt3-b: reduce [reduce [reduce ["x"]]]
+		cpt3-c: copy/deep/types cpt3-b block!
+		--assert not same? cpt3-b/1 cpt3-c/1
+		--assert not same? cpt3-b/1/1 cpt3-c/1/1
+		--assert same? cpt3-b/1/1/1 cpt3-c/1/1/1
+		cpt3-c: copy/deep/types cpt3-b string!
+		--assert same? cpt3-b/1 cpt3-c/1
+
+	--test-- "copy-types-4"								;-- typeset!
+		cpt4-b: reduce [%f.txt http://x.y <t> "s" reduce ['q "r"]]
+		cpt4-c: copy/deep/types cpt4-b any-string!
+		--assert cpt4-b = cpt4-c
+		--assert not same? cpt4-b/1 cpt4-c/1
+		--assert not same? cpt4-b/2 cpt4-c/2
+		--assert not same? cpt4-b/3 cpt4-c/3
+		--assert not same? cpt4-b/4 cpt4-c/4
+		--assert same? cpt4-b/5 cpt4-c/5
+
+	--test-- "copy-types-5"								;-- series! as /deep
+		cpt5-b: reduce ["s" reduce ["t" reduce [#{01}]] make vector! [1 2]]
+		cpt5-c: copy/deep/types cpt5-b series!
+		--assert cpt5-b = cpt5-c
+		--assert not same? cpt5-b/1 cpt5-c/1
+		--assert not same? cpt5-b/2/1 cpt5-c/2/1
+		--assert not same? cpt5-b/2/2/1 cpt5-c/2/2/1
+		--assert not same? cpt5-b/3 cpt5-c/3
+
+	--test-- "copy-types-6"								;-- non-copyable types are ignored
+		cpt6-b: reduce [1 'a "s" reduce ["t"]]
+		cpt6-c: copy/types cpt6-b integer!
+		--assert cpt6-b = cpt6-c
+		--assert same? cpt6-b/3 cpt6-c/3
+		cpt6-c: copy/deep/types cpt6-b any-type!
+		--assert cpt6-b = cpt6-c
+		--assert not same? cpt6-b/4/1 cpt6-c/4/1
+
+	--test-- "copy-types-7"								;-- object!
+		cpt7-o: make object! [s: "s" sub: make object! [t: "t"]]
+		cpt7-b: reduce [cpt7-o]
+		cpt7-c: copy/types cpt7-b object!
+		--assert not same? cpt7-o cpt7-c/1
+		--assert same? cpt7-o/s cpt7-c/1/s
+		--assert same? cpt7-o/sub cpt7-c/1/sub
+		cpt7-c/1/s: "new"
+		--assert "s" = cpt7-o/s
+		cpt7-c: copy/deep/types cpt7-b union series! make typeset! [object!]
+		--assert not same? cpt7-o/sub cpt7-c/1/sub
+		--assert not same? cpt7-o/sub/t cpt7-c/1/sub/t
+
+	--test-- "copy-types-8"								;-- map!
+		cpt8-m: #[k: "v" n: #[z: "w"]]
+		cpt8-c: copy/types reduce [cpt8-m] map!
+		--assert not same? cpt8-m cpt8-c/1
+		--assert "v" = select cpt8-c/1 'k
+		--assert same? cpt8-m/k cpt8-c/1/k
+		put cpt8-c/1 'extra 1
+		--assert none? select cpt8-m 'extra
+		cpt8-c: copy/deep/types reduce [cpt8-m] union series! make typeset! [map!]
+		--assert not same? cpt8-m/n cpt8-c/1/n
+		--assert not same? cpt8-m/n/z cpt8-c/1/n/z
+
+	--test-- "copy-types-9"								;-- hash!
+		cpt9-h: make hash! [a "x" b 2]
+		cpt9-c: copy/types reduce [cpt9-h] hash!
+		--assert not same? cpt9-h cpt9-c/1
+		--assert 2 = select cpt9-c/1 'b
+		--assert same? cpt9-h/2 cpt9-c/1/2
+		cpt9-c: copy/types cpt9-h string!
+		--assert hash? cpt9-c
+		--assert not same? cpt9-h/2 cpt9-c/2
+		--assert 2 = select cpt9-c 'b
+
+	--test-- "copy-types-10"							;-- bitset!
+		cpt10-s: charset "ab"
+		cpt10-c: copy/types reduce [cpt10-s] bitset!
+		--assert not same? cpt10-s cpt10-c/1
+		--assert cpt10-s = cpt10-c/1
+
+	--test-- "copy-types-11"							;-- /part
+		cpt11-b: reduce ["a" "b" "c"]
+		cpt11-c: copy/part/types cpt11-b 2 string!
+		--assert ["a" "b"] = cpt11-c
+		--assert not same? cpt11-b/1 cpt11-c/1
+
+	--test-- "copy-types-12"							;-- no nested values
+		cpt12-s: "abc"
+		cpt12-c: copy/types cpt12-s string!
+		--assert "abc" = cpt12-c
+		--assert not same? cpt12-s cpt12-c
+		--assert #{01} = copy/deep/types #{01} binary!
+
+	--test-- "copy-types-13"							;-- cycles
+		cpt13-b: [x]
+		append/only cpt13-b cpt13-b
+		cpt13-e: try [copy/deep/types reduce [cpt13-b] block!]
+		--assert error? cpt13-e
+		--assert cpt13-e/id = 'no-cycle
+		cpt13-o: make object! [p: none]
+		cpt13-o/p: cpt13-o
+		cpt13-e: try [copy/deep/types reduce [cpt13-o] object!]
+		--assert error? cpt13-e
+		--assert cpt13-e/id = 'no-cycle
+		cpt13-m: #[]
+		cpt13-m/self: cpt13-m
+		cpt13-e: try [copy/deep/types reduce [cpt13-m] map!]
+		--assert error? cpt13-e
+		--assert cpt13-e/id = 'no-cycle
+		--assert not error? try [copy/types reduce [cpt13-o] object!]
+
+	--test-- "copy-types-14"							;-- invalid /types argument
+		cpt14-e: try [copy/types [] 123]
+		--assert error? cpt14-e
+		--assert cpt14-e/id = 'expect-arg
+
+	--test-- "copy-types-15"							;-- paths
+		cpt15-p: to path! reduce ['a to paren! [1 2]]
+		cpt15-c: copy/types cpt15-p paren!
+		--assert cpt15-p = cpt15-c
+		--assert not same? second cpt15-p second cpt15-c
+
+	--test-- "copy-types-16"							;-- hash! index after copying map! values
+		cpt16-h: make hash! []
+		repeat cpt16-i 32 [append cpt16-h reduce [make map! reduce ['a cpt16-i] cpt16-i]]
+		cpt16-c: copy/types cpt16-h map!
+		--assert not same? first cpt16-h first cpt16-c
+		cpt16-n: 0
+		foreach [cpt16-k cpt16-v] cpt16-c [if cpt16-v = select cpt16-c cpt16-k [cpt16-n: cpt16-n + 1]]
+		--assert 32 = cpt16-n
+
+	--test-- "copy-types-17"							;-- hash! index after copying object! values
+		cpt17-h: make hash! []
+		repeat cpt17-i 32 [append cpt17-h reduce [make object! [a: 0] cpt17-i]]
+		cpt17-c: copy/types cpt17-h object!
+		--assert not same? first cpt17-h first cpt17-c
+		cpt17-n: 0
+		foreach [cpt17-k cpt17-v] cpt17-c [if cpt17-v = select/same cpt17-c cpt17-k [cpt17-n: cpt17-n + 1]]
+		--assert 32 = cpt17-n
+
 ===end-group===
 
 ===start-group=== "random"
