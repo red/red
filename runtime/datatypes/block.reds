@@ -1868,11 +1868,11 @@ block: context [
 		node: blk/node									;-- save node before slot is copied
 		new: as red-block! _series/copy as red-series! blk as red-series! new arg deep? types
 		if any [deep? OPTION?(types)][
+			if TYPE_HASH = TYPE_OF(blk) [new/header: TYPE_BLOCK]	;-- no table yet: hide it from the GC (errors below allocate)
 			if deep? [
 				if cycles/find? node [cycles/reset fire [TO_ERROR(internal no-cycle)]]
 				cycles/push node
 			]
-			if TYPE_HASH = TYPE_OF(blk) [new/header: TYPE_BLOCK]
 			s: GET_BUFFER(new)
 			arg: s/offset
 			end: s/tail

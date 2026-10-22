@@ -2089,6 +2089,13 @@ Red [
 		foreach [cp38-k cp38-v] cp38-c [if cp38-v = select/only/same cp38-c cp38-k [cp38-n: cp38-n + 1]]
 		--assert 32 = cp38-n
 
+	--test-- "copy-39"									;-- hash! holding itself
+		cp39-h: make hash! [a 1]
+		append/only cp39-h cp39-h
+		cp39-e: try [copy/deep reduce [cp39-h]]
+		--assert error? cp39-e
+		--assert cp39-e/id = 'no-cycle
+
 ===end-group===
 
 ===start-group=== "copy/types"
