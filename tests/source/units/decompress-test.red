@@ -38,6 +38,39 @@ Red [
 		data: #{789C7BD631F1E9B439CFD62C0A4A4D79B17EED8B150D00713E0BBA}
 		origin: "我喜欢Red语言"			;-- utf8 encoding
 		--assert origin = to-string decompress data 'zlib
+	--test-- "zlib 4"						;-- long data with high byte values: valid Adler-32 sum
+		data: #{78DAEDC13101000000C2A0FEA9670D0FA00000000000000000000000000000000000000078309F51D664}
+		--assert (append/dup copy #{} #{FF} 20000) = decompress data 'zlib
+===end-group===
+
+===start-group=== "stored blocks"
+	--test-- "stored zlib"
+		data: #{7801010600F9FF61626331323306EC01BD}
+		--assert "abc123" = to string! decompress data 'zlib
+		--assert "abc123" = to string! decompress/size data 'zlib 6
+	--test-- "stored one byte"
+		--assert #{41} = decompress #{7801010100FEFF4100420042} 'zlib
+		--assert #{41} = decompress #{010100FEFF41} 'deflate
+	--test-- "stored final block, then other bytes"
+		--assert "abc" = to string! decompress #{010300FCFF616263DEADBEEF} 'deflate
+		--assert "abc123" = to string! decompress skip #{7801010600F9FF61626331323306EC01BD} 2 'deflate
+	--test-- "stored blocks, then an empty final one"
+		--assert "abc" = to string! decompress #{7801000300FCFF616263000000FFFF010000FFFF024D0127} 'zlib
+	--test-- "stored blocks, 70000 bytes"
+		dc-raw: make binary! 70000
+		repeat dc-i 70000 [append dc-raw dc-i * 7 + 3 and 255]
+		dc-z: copy #{7801}
+		dc-pos: dc-raw
+		until [
+			dc-len: min 65535 length? dc-pos
+			append dc-z either dc-len = length? dc-pos [#{01}][#{00}]
+			append dc-z reverse to binary! (dc-len xor 65535 << 16) or dc-len
+			append/part dc-z dc-pos dc-len
+			tail? dc-pos: skip dc-pos dc-len
+		]
+		append dc-z to binary! checksum dc-raw 'adler32
+		--assert dc-raw = decompress dc-z 'zlib
+		--assert dc-raw = decompress/size dc-z 'zlib 70000
 ===end-group===
 
 ===start-group=== "compress & decompress"
@@ -60,6 +93,12 @@ Red [
 		--assert data = to string! decompress decompress decompress compress compress compress data 'deflate 'deflate 'deflate 'deflate 'deflate 'deflate
 		--assert data = to string! decompress decompress compress compress data 'zlib 'zlib 'zlib 'zlib
 		--assert data = to string! decompress decompress decompress compress compress compress data 'zlib 'zlib 'zlib 'zlib 'zlib 'zlib
+
+	--test-- "no padding byte after a byte-aligned end"
+		dc-data: #{FFFEFDFCFBFA}
+		--assert #{FBFFEFEF9FDFBF00} = compress dc-data 'deflate
+		--assert #{7801FBFFEFEF9FDFBF0014CE05EC} = compress dc-data 'zlib
+		--assert #{1F8B0800000000000404FBFFEFEF9FDFBF00E983F0C006000000} = compress dc-data 'gzip
 
 ===end-group===
 

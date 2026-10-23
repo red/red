@@ -371,8 +371,8 @@ deflate: context [
 		dst: write dst dend st 0 7
 		;dst: write dst dend st 2 10
 		;dst: write dst dend st 2 3
-		if st/bits < 8 [
-			dst: write dst dend st 0 8 - st/bits
+		if st/cnt > 0 [								;-- pad the last byte
+			dst: write dst dend st 0 8 - st/cnt
 		]
 		out-size/value: as integer! dst - out
 		if dst > dend [
@@ -589,8 +589,7 @@ deflate: context [
 					nlen: read :in iend s 16
 
 					if len > 0 [
-						in: in - 2
-						probe ["store " len " " nlen]
+						in: in - (s/bitcnt >> 3)		;-- give back the data bytes already in the bit buffer
 						if in + len > as integer! iend [
 							out-size/value: as integer! out - o
 							return INFLATE_LEN
@@ -608,6 +607,11 @@ deflate: context [
 						s/bitcnt: 0
 						s/bits: 0
 						read :in iend :s 0
+					]
+					if last > 0 [
+						out-size/value: as integer! out - o
+						if oend < out [return INFLATE-NO-MEM]
+						return INFLATE-OK
 					]
 					state: STATE-HDR
 				]
@@ -741,6 +745,7 @@ deflate: context [
 		]
 		out-size/value: as integer! out - o
 		if (as byte-ptr! in) = iend [
+			if oend < out [return INFLATE-NO-MEM]
 			return INFLATE-OK
 		]
 		INFLATE_END

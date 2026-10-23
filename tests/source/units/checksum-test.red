@@ -153,6 +153,21 @@ Red [
 
 ===end-group===
 
+===start-group=== "adler32 long inputs"				;-- the sums overflowed between two reductions
+
+	--test-- "adler32-long-1"
+		--assert -242246772 = checksum append/dup copy #{} #{FF} 5552 'adler32
+
+	--test-- "adler32-long-2"
+		--assert -1622026652 = checksum append/dup copy #{} #{FF} 20000 'adler32
+
+	--test-- "adler32-long-3"
+		ck-data: make binary! 65536
+		repeat ck-i 65536 [append ck-data ck-i * 7 + 3 and 255]
+		--assert -643135630 = checksum ck-data 'adler32
+
+===end-group===
+
 ===start-group=== "MD5 tests"
 
 	--test-- "MD5_empty"

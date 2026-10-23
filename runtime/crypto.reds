@@ -277,7 +277,7 @@ crypto: context [
 	]
 
 	#define A32-BASE 65521
-	#define A32-NMAX 5552
+	#define A32-NMAX 3854							;-- zlib's 5552 overflows signed integers
 
 	adler32: func [
 		data    [byte-ptr!]
