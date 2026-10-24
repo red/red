@@ -272,4 +272,62 @@ img: make image! 2x2
 	
 ===end-group===
 
+===start-group=== "image load from binary"
+	#do [ if not value? 'interpreted? [
+			interpreted?: attempt [ system/state/interpreted? ]
+		]
+	]
+	#if all [config/OS = 'Windows not interpreted?] [
+		#system [
+			#import [
+				"kernel32.dll" stdcall [
+					img-current-process: "GetCurrentProcess" [return: [integer!]]
+				]
+				"psapi.dll" stdcall [
+					img-memory-info: "GetProcessMemoryInfo" [
+						process		[integer!]
+						counters	[int-ptr!]
+						size		[integer!]
+						return:		[integer!]
+					]
+				]
+			]
+		]
+
+		img-private-bytes: routine [
+			"Private bytes of the process (PrivateUsage of PROCESS_MEMORY_COUNTERS_EX)"
+			return: [integer!]
+			/local
+				counters	[int-ptr!]
+		][
+			counters: system/stack/allocate 11
+			counters/1: 44
+			img-memory-info img-current-process counters 44
+			counters/11
+		]
+
+		random/seed 1555
+		img-rgb: make binary! 3 * 512 * 512
+		loop 3 * 512 * 512 [append img-rgb (random 256) - 1]
+		img-png: save/as #{} make image! reduce [512x512 img-rgb] 'png	;-- random pixels: does not compress
+
+	--test-- "load from binary decodes its own copy of the data"
+		img: load/as img-png 'png
+		recycle
+		--assert img/size = 512x512
+		--assert img/rgb = img-rgb
+
+	--test-- "load from binary frees its copy of the data with the image"
+		loop 3 [img: load/as img-png 'png]
+		img: none
+		recycle
+		img-mem: img-private-bytes
+		loop 40 [img: load/as img-png 'png]
+		img: none
+		recycle
+		;-- a leak keeps 40 copies of the PNG data
+		--assert (img-private-bytes - img-mem) < (10 * length? img-png)
+	]
+===end-group===
+
 ~~~end-file~~~

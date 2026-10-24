@@ -941,6 +941,9 @@ OS-image: context [
 			s		[integer!]
 			idec	[com-ptr! value]
 			IFAC	[IWICImagingFactory]
+			sthis	[this!]
+			stream	[IStream]
+			hr		[integer!]
 	][
 		hMem: GlobalAlloc GMEM_MOVEABLE len
 		p: GlobalLock hMem
@@ -951,9 +954,11 @@ OS-image: context [
 		CreateStreamOnHGlobal hMem true :s
 
 		IFAC: as IWICImagingFactory wic-factory/vtbl
-		if 0 <> IFAC/CreateDecoderFromStream wic-factory as int-ptr! s null 0 :idec [
-			return null
-		]
+		hr: IFAC/CreateDecoderFromStream wic-factory as int-ptr! s null 0 :idec
+		sthis: as this! s
+		stream: as IStream sthis/vtbl
+		stream/Release sthis				;-- the decoder keeps its own reference; the hMem goes with the stream
+		if hr <> 0 [return null]
 		get-frame IFAC as com-ptr! :idec 0 no
 	]
 
