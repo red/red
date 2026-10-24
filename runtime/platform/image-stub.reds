@@ -97,7 +97,7 @@ OS-image: context [
 	
 	mark: func [node [node!] /local inode [img-node!]][
 		inode: as img-node! (as series! node/value) + 1
-		externals/mark inode/extID
+		externals/mark inode/extID null					;-- no registry record holds the node here
 	]
 
 	delete: func [

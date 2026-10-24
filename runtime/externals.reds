@@ -125,7 +125,7 @@ externals: context [
 		release-handle rec/header as int-ptr! rec/handle
 	]
 	
-	replace: func [									;-- replace and release the resource handle of a live record
+	replace: func [										;-- replace and release the resource handle of a live record
 		idx		[integer!]								;-- record index
 		handle	[int-ptr!]								;-- new resource handle
 		/local
@@ -169,12 +169,18 @@ externals: context [
 		-1
 	]
 
-	mark: func [idx [integer!] /local rec [record!]][	;-- mark an alive record
+	mark: func [										;-- mark an alive record
+		idx		[integer!]								;-- record index
+		handle	[int-ptr!]								;-- new resource handle if it moved (relocated node), else null
+		/local
+			rec [record!]
+	][
 		#if debug? = yes [if verbose > 0 [print-line ["externals/mark: " idx]]]
 		assert idx < size
 		rec: as record! list + idx
 		assert rec/header and flag-free = 0
 		rec/header: rec/header or flag-mark
+		if handle <> null [rec/handle: as-integer handle]
 	]
 	
 	sweep: func [										;-- collect unreachable records (called by GC)

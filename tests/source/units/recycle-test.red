@@ -820,6 +820,22 @@ Red [
 		--assert true	;-- no crashes
 	]
 
+	--test-- "recycle-image-moved"						;-- freeing images whose node was moved by node compaction
+		recycle/on
+		loop 3 [
+			rim-junk: make block! 40000
+			rim-imgs: make block! 400
+			loop 400 [
+				loop 100 [append rim-junk make string! 1]
+				append rim-imgs make image! 2x2
+			]
+			rim-junk: none
+			loop 9 [recycle]								;-- sparse node frames, unchanged for 5+ cycles: compacted
+			rim-imgs: none
+			loop 3 [recycle]
+		]
+		--assert true	;-- no crashes
+
 ===end-group===
 
 ~~~end-file~~~

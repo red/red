@@ -720,7 +720,7 @@ OS-image: context [
 
 	mark: func [node [node!] /local inode [img-node!]][
 		inode: as img-node! (as series! node/value) + 1
-		externals/mark inode/extID
+		externals/mark inode/extID node					;-- node may have been relocated by node compaction
 	]
 
 	delete: func [

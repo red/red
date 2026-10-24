@@ -508,7 +508,7 @@ collector: context [
 				TYPE_HANDLE [
 					#if debug? = yes [if verbose > 1 [print "handler"]]
 					h: as red-handle! value
-					if h/extID >= 0 [externals/mark h/extID]
+					if h/extID >= 0 [externals/mark h/extID null]
 				]
 				TYPE_EVENT [									;-- synthetic `make event!` value: msg is a Red cell-node
 					evt: as red-event! value				;-- 00010000h = gui/EVT_FLAG_SYNTHETIC (View's platform.red; raw value here as the collector also compiles in core-only builds)
