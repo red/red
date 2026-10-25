@@ -836,6 +836,42 @@ Red [
 		]
 		--assert true	;-- no crashes
 
+	--test-- "recycle-hash-moved-keys"					;-- hash! identity lookups after node compaction moved the values
+		recycle/on
+		rhk-hash: make hash! 1000
+		rhk-objs: make block! 400
+		rhk-junk: make block! 40000
+		loop 400 [
+			loop 100 [append rhk-junk make string! 1]
+			rhk-obj: make object! [v: 1]
+			append rhk-objs rhk-obj
+			append rhk-hash rhk-obj
+		]
+		rhk-obj: none
+		rhk-junk: none
+		loop 12 [recycle]									;-- sparse node frames, unchanged for 6 cycles: compacted
+		rhk-found: 0
+		foreach rhk-obj rhk-objs [if find/same rhk-hash rhk-obj [rhk-found: rhk-found + 1]]
+		--assert rhk-found = length? rhk-objs
+
+	--test-- "recycle-owned-moved-keys"					;-- on-deep-change* events after node compaction moved owned series
+		recycle/on
+		rok-count: 0
+		rok-objs: make block! 400
+		rok-junk: make block! 40000
+		loop 400 [
+			loop 100 [append rok-junk make string! 1]
+			append rok-objs make object! [
+				data: copy []
+				on-deep-change*: func [owner word target action new index part][rok-count: rok-count + 1]
+			]
+		]
+		rok-junk: none
+		loop 12 [recycle]
+		rok-count: 0
+		foreach rok-obj rok-objs [append rok-obj/data 1]
+		--assert rok-count = (2 * length? rok-objs)		;-- two events per append
+
 ===end-group===
 
 ~~~end-file~~~

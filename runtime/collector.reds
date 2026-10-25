@@ -18,6 +18,7 @@ collector: context [
 	verbose: 0
 	active?: no
 	state: GC_DONE
+	compact?: yes										;-- no: node frames are not compacted (a hash table is being rebuilt)
 	
 	#enum frame-type! [
 		FRAME_NODES
@@ -1027,7 +1028,7 @@ collector: context [
 			if verbose > 1 [probe "^/marking..."]
 		]
 
-		do-node-cycle
+		if compact? [do-node-cycle]
 		mark-block root
 		#if debug? = yes [if verbose > 1 [probe "marking symbol table"]]
 		_hashtable/mark as int-ptr! :symbol/table		;-- will mark symbols

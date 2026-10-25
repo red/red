@@ -57,10 +57,10 @@ ownership: context [
 					s: GET_BUFFER(series)
 					s/flags: s/flags and not flag-series-owned
 				]
-				value: _hashtable/get-value table as-integer node
+				value: _hashtable/get-value table node
 				unless null? value [
 					loop 3 [value/header: TYPE_UNSET  value: value + 1] ;-- clear all related slots
-					_hashtable/delete-key table as-integer node
+					_hashtable/delete-key table node
 
 					if ANY_BLOCK?(type) [
 						value: s/offset + series/head
@@ -78,10 +78,10 @@ ownership: context [
 				node: bits/node
 				s: GET_BUFFER(bits)
 				s/flags: s/flags and not flag-series-owned
-				value: _hashtable/get-value table as-integer node
+				value: _hashtable/get-value table node
 				unless null? value [
 					loop 3 [value/header: TYPE_UNSET  value: value + 1] ;-- clear all related slots
-					_hashtable/delete-key table as-integer node
+					_hashtable/delete-key table node
 				]
 			]
 			true [0]
@@ -140,7 +140,7 @@ ownership: context [
 				]
 
 				if put? [								;-- process series if not already owned
-					slot: as red-value! _hashtable/put-key table as-integer series/node
+					slot: as red-value! _hashtable/put-key table series/node
 					copy-cell container slot
 					copy-cell as red-value! owner slot + 1
 					copy-cell as red-value! word  slot + 2
@@ -163,7 +163,7 @@ ownership: context [
 				s: GET_BUFFER(bits)
 				if s/flags and flag-series-owned = 0 [
 					s/flags: s/flags or flag-series-owned
-					slot: as red-value! _hashtable/put-key table as-integer bits/node
+					slot: as red-value! _hashtable/put-key table bits/node
 					copy-cell container slot
 					copy-cell as red-value! owner slot + 1
 					copy-cell as red-value! word  slot + 2
@@ -221,7 +221,7 @@ ownership: context [
 		/local
 			slot [red-value!]
 	][
-		slot: _hashtable/get-value table as-integer node
+		slot: _hashtable/get-value table node
 		if null? slot [return null]
 		as red-object! slot + 1
 	]
@@ -260,7 +260,7 @@ ownership: context [
 			]
 			true [assert false]
 		]
-		slot: _hashtable/get-value table as-integer node
+		slot: _hashtable/get-value table node
 		
 		either null? slot [false][
 			owner:  as red-object! slot + 1

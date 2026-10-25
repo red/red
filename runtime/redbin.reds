@@ -239,7 +239,7 @@ redbin: context [
 				here [int-ptr!]
 				slot [red-integer!]
 		][
-			slot: as red-integer! _hashtable/get-value map as-integer node
+			slot: as red-integer! _hashtable/get-value map node
 			if null? slot [return null]
 			list + slot/value
 		]
@@ -265,7 +265,7 @@ redbin: context [
 				list: new
 			]
 			assert not null? map
-			slot: as red-integer! _hashtable/put-key map as-integer node
+			slot: as red-integer! _hashtable/put-key map node
 			assert not null? slot
 			integer/make-at as cell! slot (as-integer top - list) / size? integer!
 			top/1: size
