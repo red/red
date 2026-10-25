@@ -240,6 +240,31 @@ stack: context [										;-- call stack
 		]
 	]
 	
+	gc-mark: func [										;-- GC: mark the contexts held by call frames, updating moved nodes
+		/local
+			p	[call-frame!]
+			ctx	[red-context!]
+	][
+		p: cbottom
+		while [p < ctop][
+			if p/ctx <> null [
+				either p/header >> 8 and FFFFh = words/self [	;-- as in collector/mark-values
+					collector/mark-block-node :p/ctx
+				][
+					collector/mark-context :p/ctx
+				]
+			]
+			if p/fctx <> null [
+				collector/mark-context :p/fctx
+				ctx: TO_CTX(p/fctx)
+				if all [p/saved <> null not ON_STACK?(ctx)][	;-- values node of a heap context (port actors), else a stack pointer
+					collector/mark-block-node :p/saved
+				]
+			]
+			p: p + 1
+		]
+	]
+	
 	get-call: func [
 		return: [red-word!]
 		/local

@@ -836,6 +836,24 @@ Red [
 		]
 		--assert true	;-- no crashes
 
+	--test-- "recycle-frame-moved-ctx"					;-- error raised in a call frame whose context node was moved
+		recycle/on
+		rfm-result: do [								;-- functions made at run time, compiled or interpreted
+			rfm-junk: make block! 40000
+			rfm-funcs: make block! 400
+			loop 400 [
+				loop 100 [append rfm-junk make string! 1]
+				append rfm-funcs func [h] [h]
+			]
+			rfm-junk: none
+			rfm-boom: func [] [
+				loop 12 [recycle]							;-- compacts the frame holding the caller's context
+				rfm-no-such-word							;-- error raised in the frame of `h`, a word of that context
+			]
+			rfm-f: last rfm-funcs							;-- made last: its context is in a frame that gets compacted
+			try [rfm-f :rfm-boom]
+		]
+		--assert error? rfm-result
 	--test-- "recycle-hash-moved-keys"					;-- hash! identity lookups after node compaction moved the values
 		recycle/on
 		rhk-hash: make hash! 1000

@@ -1039,8 +1039,11 @@ collector: context [
 		keep :arg-stk/node
 		keep :call-stk/node
 		mark-values stack/bottom stack/top
+		stack/gc-mark
 		
 		#if debug? = yes [if verbose > 1 [probe "marking globals"]]
+		if global-ctx <> null [mark-context as int-ptr! :global-ctx]
+		if _series/take-buffer <> null [keep as int-ptr! :_series/take-buffer]	;-- fixed series: unmarked below
 		if interpreter/near/node <> null [keep :interpreter/near/node]
 		lexer/mark-buffers
 		mark-block-node :references/list/node
@@ -1078,6 +1081,7 @@ collector: context [
 		unmark root/node
 		unmark arg-stk/node
 		unmark call-stk/node
+		if _series/take-buffer <> null [unmark _series/take-buffer]
 		
 		stats/cycles: stats/cycles + 1
 

@@ -177,8 +177,13 @@ screen: context [
 			obj [red-object!]
 			end [red-object!]
 			h	[handle!]
+			face [red-value!]
 	][
 		if w/ui <> null [collector/keep :w/ui]
+		if w/face <> 0 [							;-- the widget's copy of its face object
+			face: as red-value! :w/face
+			collector/mark-values face face + 1
+		]
 		p: CHILD_WIDGET(w)
 		if TYPE_OF(p) = TYPE_BLOCK [
 			obj: as red-object! block/rs-head p
