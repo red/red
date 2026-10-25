@@ -842,7 +842,7 @@ context [
 		oh/sub-system:			select defs/sub-system job/sub-system
 		oh/dll-flags:			flags
 		oh/stack-res-size:		to integer! #{00800000}
-		oh/stack-com-size:		to integer! #{00800000}
+		oh/stack-com-size:		to integer! #{00010000}	;-- every thread gets it: the main one commits its whole stack at startup (runtime/win32.reds)
 		oh/heap-res-size:		to integer! #{00800000}
 		oh/heap-com-size:		to integer! #{00800000}
 		oh/loader-flags:		0						;-- reserved, must be zero

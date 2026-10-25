@@ -23,6 +23,10 @@ Red/System [
 
 #define OS_DIR_SEP				 92		;-- #"\"
 
+#define WIN_MEM_COMMIT			 1000h
+#define WIN_MEM_RESERVE			 2000h
+#define WIN_PAGE_READWRITE		 04h
+
 #define CP_UTF8					 65001
 
 #if use-natives? = yes [
@@ -71,6 +75,26 @@ win32-startup-ctx: context [
 		; remaining fields skipped
 	]
 	
+	MEMORY_BASIC_INFORMATION!: alias struct! [
+		base		[byte-ptr!]
+		alloc-base	[byte-ptr!]
+		alloc-prot	[integer!]
+		size		[integer!]
+		state		[integer!]
+		protect		[integer!]
+		mem-type	[integer!]
+	]
+
+	THREAD_BASIC_INFORMATION!: alias struct! [
+		exit-status	[integer!]
+		teb			[byte-ptr!]
+		process-id	[integer!]
+		thread-id	[integer!]
+		affinity	[integer!]
+		priority	[integer!]
+		base-prio	[integer!]
+	]
+
 	#import [
 		"kernel32.dll" stdcall [
 			GetCommandLine: "GetCommandLineW" [
@@ -99,6 +123,29 @@ win32-startup-ctx: context [
 				hMem		[int-ptr!]
 				return:		[int-ptr!]
 			]
+			VirtualQuery: "VirtualQuery" [
+				address		[byte-ptr!]
+				info		[MEMORY_BASIC_INFORMATION!]
+				length		[integer!]
+				return:		[integer!]
+			]
+			VirtualAlloc: "VirtualAlloc" [
+				address		[byte-ptr!]
+				size		[integer!]
+				type		[integer!]
+				protection	[integer!]
+				return:		[byte-ptr!]
+			]
+			VirtualProtect: "VirtualProtect" [
+				address		[byte-ptr!]
+				size		[integer!]
+				protection	[integer!]
+				old			[int-ptr!]
+				return:		[logic!]
+			]
+			GetCurrentThread: "GetCurrentThread" [
+				return:		[integer!]
+			]
 			WideCharToMultiByte: "WideCharToMultiByte" [
 				CodePage			[integer!]
 				dwFlags				[integer!]
@@ -109,6 +156,16 @@ win32-startup-ctx: context [
 				lpDefaultChar		[c-string!]
 				lpUsedDefaultChar	[integer!]
 				return:				[integer!]
+			]
+		]
+		"ntdll.dll" stdcall [
+			NtQueryInformationThread: "NtQueryInformationThread" [
+				thread		[integer!]
+				class		[integer!]
+				info		[THREAD_BASIC_INFORMATION!]
+				length		[integer!]
+				returned	[int-ptr!]
+				return:		[integer!]
 			]
 		]
 		"shell32.dll" stdcall [
@@ -178,6 +235,7 @@ win32-startup-ctx: context [
 	;-- Initialize environment
 	;-------------------------------------------
 	init: does [
+		commit-stack
 		SetUnhandledExceptionFilter :exception-filter
 		SetErrorMode 1								;-- probably superseded by SetUnhandled...
 		
@@ -189,6 +247,38 @@ win32-startup-ctx: context [
 		#if type = 'exe [
 			#if use-natives? = no [on-start]		;-- allocate is not yet implemented as native function
 		]
+	]
+
+	;-------------------------------------------
+	;-- Commit the main thread's whole stack
+	;-------------------------------------------
+	commit-stack: func [
+		/local
+			info	[MEMORY_BASIC_INFORMATION! value]
+			tbi		[THREAD_BASIC_INFORMATION! value]
+			base	[byte-ptr!]
+			guard	[byte-ptr!]
+			tib		[int-ptr!]
+			old		[integer!]
+	][
+		;-- The PE header's stack commit applies to every thread, the ones drivers and the
+		;-- system start included, so it is kept small. Frames bigger than a page can skip
+		;-- the guard page, so the main thread commits its whole reserve here instead, and
+		;-- ends up as with a fully committed stack: no guard page, StackLimit at the bottom.
+		VirtualQuery as byte-ptr! system/stack/top :info size? MEMORY_BASIC_INFORMATION!
+		base: info/alloc-base							;-- bottom of the stack reservation
+		VirtualQuery base :info size? MEMORY_BASIC_INFORMATION!
+		if info/state <> WIN_MEM_RESERVE [exit]			;-- already committed by the PE header
+		guard: base + info/size
+		VirtualAlloc base info/size WIN_MEM_COMMIT WIN_PAGE_READWRITE
+		VirtualQuery guard :info size? MEMORY_BASIC_INFORMATION!
+		old: 0
+		VirtualProtect guard info/size WIN_PAGE_READWRITE :old
+
+		;-- exception dispatching checks handler frames against NT_TIB's StackLimit
+		NtQueryInformationThread GetCurrentThread 0 :tbi size? THREAD_BASIC_INFORMATION! null
+		tib: as int-ptr! tbi/teb						;-- NT_TIB: ExceptionList, StackBase, StackLimit
+		tib/3: as-integer base
 	]
 
 	;-------------------------------------------
