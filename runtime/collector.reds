@@ -327,7 +327,7 @@ collector: context [
 		while [p < end][
 			;probe ["p: " p ", node: " as int-ptr! p/value]
 			new: _hashtable/rs-get refs p/value
-			if new <> null [prin "." p/value: new/value]
+			if new <> null [p/value: new/value]
 			p: p + 1
 		]
 	]
