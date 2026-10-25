@@ -641,6 +641,7 @@ _hashtable: context [
 				s: as series! node/value
 				either s/flags and flag-gc-mark = 0 [
 					delete-key table node
+					val/header: TYPE_VALUE				;-- deleted even if delete-key missed it (stale bucket during a GC)
 					val/data1: 0
 				][
 					if type = HASH_TABLE_OWNERSHIP [
@@ -648,6 +649,7 @@ _hashtable: context [
 						s: as series! obj/ctx/value
 						if s/flags and flag-gc-mark = 0 [
 							delete-key table node
+							val/header: TYPE_VALUE
 							val/data1: 0
 						]
 					]
