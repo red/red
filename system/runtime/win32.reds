@@ -141,7 +141,7 @@ win32-startup-ctx: context [
 				size		[integer!]
 				protection	[integer!]
 				old			[int-ptr!]
-				return:		[logic!]
+				return:		[integer!]
 			]
 			GetCurrentThread: "GetCurrentThread" [
 				return:		[integer!]
@@ -265,18 +265,19 @@ win32-startup-ctx: context [
 		;-- system start included, so it is kept small. Frames bigger than a page can skip
 		;-- the guard page, so the main thread commits its whole reserve here instead, and
 		;-- ends up as with a fully committed stack: no guard page, StackLimit at the bottom.
+		;-- If a step fails (e.g. commit limit), the stack is left as the loader set it up.
+		if 0 <> NtQueryInformationThread GetCurrentThread 0 :tbi size? THREAD_BASIC_INFORMATION! null [exit]
 		VirtualQuery as byte-ptr! system/stack/top :info size? MEMORY_BASIC_INFORMATION!
 		base: info/alloc-base							;-- bottom of the stack reservation
 		VirtualQuery base :info size? MEMORY_BASIC_INFORMATION!
 		if info/state <> WIN_MEM_RESERVE [exit]			;-- already committed by the PE header
 		guard: base + info/size
-		VirtualAlloc base info/size WIN_MEM_COMMIT WIN_PAGE_READWRITE
+		if null? VirtualAlloc base info/size WIN_MEM_COMMIT WIN_PAGE_READWRITE [exit]	;-- the guard page still grows the stack
 		VirtualQuery guard :info size? MEMORY_BASIC_INFORMATION!
 		old: 0
-		VirtualProtect guard info/size WIN_PAGE_READWRITE :old
+		if zero? VirtualProtect guard info/size WIN_PAGE_READWRITE :old [exit]
 
 		;-- exception dispatching checks handler frames against NT_TIB's StackLimit
-		NtQueryInformationThread GetCurrentThread 0 :tbi size? THREAD_BASIC_INFORMATION! null
 		tib: as int-ptr! tbi/teb						;-- NT_TIB: ExceptionList, StackBase, StackLimit
 		tib/3: as-integer base
 	]
