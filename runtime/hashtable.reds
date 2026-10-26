@@ -723,7 +723,7 @@ _hashtable: context [
 			s: as series! h/blk/value
 			rebuild node (as-integer s/tail - s/offset) >> 4
 		][
-			either zero? h/size [h/stamp: collector/stats/nodes-cycles + 1][rebuild node h/n-buckets]
+			reindex node								;-- in place: a lookup must not allocate
 		]
 	]
 
@@ -1408,6 +1408,52 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 		h/stamp: stamp
+	]
+
+	reindex: func [										;-- node-keyed table NODE: buckets from the current key addresses, without allocating
+		node		[node!]
+		/local
+			s		[series!]
+			h		[hashtable!]
+			blk		[byte-ptr!]
+			keys flags k [int-ptr!]
+			offset len i ii sh mask step [integer!]
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+		s: as series! h/flags/value
+		flags: as int-ptr! s/offset
+		fill as byte-ptr! s/offset as byte-ptr! s/tail #"^(AA)"	;-- all buckets empty
+		s: as series! h/keys/value
+		keys: as int-ptr! s/offset
+		s: as series! h/blk/value
+		blk: as byte-ptr! s/offset
+		len: as-integer (as byte-ptr! s/tail) - blk
+		mask: h/n-buckets - 1
+		h/size: 0
+		h/n-occupied: 0
+		offset: 0
+		while [offset < len][
+			k: as int-ptr! blk + offset
+			if k/1 = TYPE_UNSET [						;-- a live entry (deleted ones are TYPE_VALUE)
+				i: (murmur3-x86-int k/2) and mask
+				_HT_CAL_FLAG_INDEX(i ii sh)
+				i: i + 1								;-- 1-based index
+				step: 0
+				while [_BUCKET_IS_NOT_EMPTY(flags ii sh)][	;-- put-key's probing (keys are unique)
+					i: i + step and mask
+					_HT_CAL_FLAG_INDEX(i ii sh)
+					i: i + 1
+					step: step + 1
+				]
+				keys/i: offset
+				_BUCKET_SET_BOTH_FALSE(flags ii sh)
+				h/size: h/size + 1
+				h/n-occupied: h/n-occupied + 1
+			]
+			offset: offset + as integer! h/indexes		;-- entry size in bytes
+		]
+		h/stamp: collector/stats/nodes-cycles + 1
 	]
 
 	rebuild: func [										;-- REHASH or RESIZE-MAP with node compaction paused, so no key moves meanwhile
