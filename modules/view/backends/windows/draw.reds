@@ -2421,6 +2421,31 @@ OS-draw-grad-pen: func [
 	]
 ]
 
+axis-aligned?: func [
+	"Does M keep rectangles axis-aligned (no skew, rotation by right angles only)?"
+	m		[D2D_MATRIX_3X2_F]
+	return: [logic!]
+	/local
+		a b c d ea eb ec ed [float32!]
+][
+	a: m/_11
+	b: m/_12
+	c: m/_21
+	d: m/_22
+	if a < F32_0 [a: F32_0 - a]
+	if b < F32_0 [b: F32_0 - b]
+	if c < F32_0 [c: F32_0 - c]
+	if d < F32_0 [d: F32_0 - d]
+	ea: a * as float32! 1e-6						;-- limits as plain values: with an expression
+	eb: b * as float32! 1e-6						;-- on each side, float comparisons come out inverted
+	ec: c * as float32! 1e-6
+	ed: d * as float32! 1e-6
+	any [
+		all [b <= ea c <= ed]						;-- each axis keeps its direction
+		all [a <= eb d <= ec]						;-- both axes turn by a right angle
+	]
+]
+
 OS-set-clip: func [
 	ctx		[draw-ctx!]
 	u		[red-pair!]
@@ -2443,10 +2468,28 @@ OS-set-clip: func [
 		inf2	[integer!]
 		inf1	[integer!]
 		pt		[red-point2D!]
+		m		[D2D_MATRIX_3X2_F value]
+		rc		[RECT_F! value]
+		bit		[integer!]
 ][
 	ctx/clip-cnt: ctx/clip-cnt + 1
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
+
+	if ctx/clip-cnt <= 32 [
+		bit: 1 << (ctx/clip-cnt - 1)
+		ctx/clip-axis: ctx/clip-axis and not bit
+		if rect? [
+			dc/GetTransform this :m
+			if axis-aligned? :m [							;-- no layer needed
+				GET_PAIR_XY(u rc/left rc/top)
+				GET_PAIR_XY(l rc/right rc/bottom)
+				dc/PushAxisAlignedClip this :rc 0			;-- D2D1_ANTIALIAS_MODE_PER_PRIMITIVE
+				ctx/clip-axis: ctx/clip-axis or bit
+				exit
+			]
+		]
+	]
 
 	para/mode: 0
 	matrix2d/identity para/trans
@@ -2483,11 +2526,16 @@ OS-clip-end: func [
 	/local
 		dc		[ID2D1DeviceContext]
 		this	[this!]
+		n		[integer!]
+		bit		[integer!]
 ][
-	ctx/clip-cnt: ctx/clip-cnt - 1
+	n: ctx/clip-cnt
+	ctx/clip-cnt: n - 1
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	dc/PopLayer this
+	bit: 0
+	if all [n >= 1 n <= 32][bit: ctx/clip-axis and (1 << (n - 1))]
+	either bit <> 0 [dc/PopAxisAlignedClip this][dc/PopLayer this]
 ]
 
 #define BEGIN_MATRIX_BRUSH [

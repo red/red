@@ -285,6 +285,7 @@ Red/System [
 						image			[int-ptr!]			;-- original image handle
 						pre-order?		[logic!]			;-- matrix order, default pre-order for row-major vector
 						draw-shape?		[logic!]
+						clip-axis		[integer!]			;-- bit N-1 set: clip N is an axis-aligned clip, not a layer
 						sub				[sub-path! value]
 						shadows			[shadow! value]
 					]
