@@ -875,7 +875,7 @@ make-profilable make target-class [
 		emit-i32 #{e1a02000}						;-- MOV r2, r0
 	]
 	
-	emit-save-last: does [
+	emit-save-last: func [/with arg][
 		last-saved?: yes
 		either find [float! float64!] compiler/last-type/1 [
 			emit-i32 #{e92d0003}					;-- PUSH {r0,r1}

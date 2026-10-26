@@ -3704,7 +3704,7 @@ system-dialect: make-profilable context [
 					left:  unbox list/1
 					right: unbox list/2
 					if saved?: all [block? left any [block? right path? right]][
-						emitter/target/emit-save-last	;-- optionally save left argument result
+						emitter/target/emit-save-last/with list/1	;-- optionally save left argument result
 					]
 					if block? unbox list/2 [comp-expression list/2 yes]	;-- nested call
 					if saved? [emitter/target/emit-restore-last]

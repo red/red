@@ -1508,6 +1508,292 @@ Red/System [
 ===end-group===
 
 
+===start-group=== "comparisons with computed operands"
+
+	fcmp32-a: as float32! 1.0
+	fcmp32-b: as float32! 2.0
+	fcmp32-two: as float32! 2.0
+	fcmp32-four: as float32! 4.0
+	fcmp32-i: 2
+	fcmp32-r: false
+	fcmp32-id: func [x [float32!] return: [float32!]][x]
+
+	--test-- "fcmp32-expr-1"
+		--assert fcmp32-a + fcmp32-a < (fcmp32-b * fcmp32-b)
+		--assert not (fcmp32-a + fcmp32-a < (fcmp32-a * fcmp32-b))
+		--assert not (fcmp32-b * fcmp32-b < (fcmp32-a + fcmp32-a))
+		--assert fcmp32-a + fcmp32-a < fcmp32-four
+		--assert not (fcmp32-a + fcmp32-a < fcmp32-two)
+		--assert not (fcmp32-b * fcmp32-b < fcmp32-two)
+		--assert fcmp32-two < (fcmp32-b * fcmp32-b)
+		--assert not (fcmp32-two < (fcmp32-a + fcmp32-a))
+		--assert not (fcmp32-four < (fcmp32-a + fcmp32-a))
+	--test-- "fcmp32-expr-2"
+		--assert fcmp32-a + fcmp32-a <= (fcmp32-b * fcmp32-b)
+		--assert fcmp32-a + fcmp32-a <= (fcmp32-a * fcmp32-b)
+		--assert not (fcmp32-b * fcmp32-b <= (fcmp32-a + fcmp32-a))
+		--assert fcmp32-a + fcmp32-a <= fcmp32-four
+		--assert fcmp32-a + fcmp32-a <= fcmp32-two
+		--assert not (fcmp32-b * fcmp32-b <= fcmp32-two)
+		--assert fcmp32-two <= (fcmp32-b * fcmp32-b)
+		--assert fcmp32-two <= (fcmp32-a + fcmp32-a)
+		--assert not (fcmp32-four <= (fcmp32-a + fcmp32-a))
+	--test-- "fcmp32-expr-3"
+		--assert not (fcmp32-a + fcmp32-a > (fcmp32-b * fcmp32-b))
+		--assert not (fcmp32-a + fcmp32-a > (fcmp32-a * fcmp32-b))
+		--assert fcmp32-b * fcmp32-b > (fcmp32-a + fcmp32-a)
+		--assert not (fcmp32-a + fcmp32-a > fcmp32-four)
+		--assert not (fcmp32-a + fcmp32-a > fcmp32-two)
+		--assert fcmp32-b * fcmp32-b > fcmp32-two
+		--assert not (fcmp32-two > (fcmp32-b * fcmp32-b))
+		--assert not (fcmp32-two > (fcmp32-a + fcmp32-a))
+		--assert fcmp32-four > (fcmp32-a + fcmp32-a)
+	--test-- "fcmp32-expr-4"
+		--assert not (fcmp32-a + fcmp32-a >= (fcmp32-b * fcmp32-b))
+		--assert fcmp32-a + fcmp32-a >= (fcmp32-a * fcmp32-b)
+		--assert fcmp32-b * fcmp32-b >= (fcmp32-a + fcmp32-a)
+		--assert not (fcmp32-a + fcmp32-a >= fcmp32-four)
+		--assert fcmp32-a + fcmp32-a >= fcmp32-two
+		--assert fcmp32-b * fcmp32-b >= fcmp32-two
+		--assert not (fcmp32-two >= (fcmp32-b * fcmp32-b))
+		--assert fcmp32-two >= (fcmp32-a + fcmp32-a)
+		--assert fcmp32-four >= (fcmp32-a + fcmp32-a)
+	--test-- "fcmp32-expr-5"
+		--assert not (fcmp32-a + fcmp32-a = (fcmp32-b * fcmp32-b))
+		--assert fcmp32-a + fcmp32-a = (fcmp32-a * fcmp32-b)
+		--assert not (fcmp32-b * fcmp32-b = (fcmp32-a + fcmp32-a))
+		--assert not (fcmp32-a + fcmp32-a = fcmp32-four)
+		--assert fcmp32-a + fcmp32-a = fcmp32-two
+		--assert not (fcmp32-b * fcmp32-b = fcmp32-two)
+		--assert not (fcmp32-two = (fcmp32-b * fcmp32-b))
+		--assert fcmp32-two = (fcmp32-a + fcmp32-a)
+		--assert not (fcmp32-four = (fcmp32-a + fcmp32-a))
+	--test-- "fcmp32-expr-6"
+		--assert fcmp32-a + fcmp32-a <> (fcmp32-b * fcmp32-b)
+		--assert not (fcmp32-a + fcmp32-a <> (fcmp32-a * fcmp32-b))
+		--assert fcmp32-b * fcmp32-b <> (fcmp32-a + fcmp32-a)
+		--assert fcmp32-a + fcmp32-a <> fcmp32-four
+		--assert not (fcmp32-a + fcmp32-a <> fcmp32-two)
+		--assert fcmp32-b * fcmp32-b <> fcmp32-two
+		--assert fcmp32-two <> (fcmp32-b * fcmp32-b)
+		--assert not (fcmp32-two <> (fcmp32-a + fcmp32-a))
+		--assert fcmp32-four <> (fcmp32-a + fcmp32-a)
+	--test-- "fcmp32-expr-7"
+		either fcmp32-a + fcmp32-a < (fcmp32-b * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert fcmp32-r
+		fcmp32-r: false
+		if fcmp32-a + fcmp32-a < (fcmp32-b * fcmp32-b) [fcmp32-r: true]
+		--assert fcmp32-r
+		either fcmp32-a + fcmp32-a < (fcmp32-a * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert not fcmp32-r
+		fcmp32-r: false
+		if fcmp32-a + fcmp32-a < (fcmp32-a * fcmp32-b) [fcmp32-r: true]
+		--assert not fcmp32-r
+		either fcmp32-b * fcmp32-b < (fcmp32-a + fcmp32-a) [fcmp32-r: true][fcmp32-r: false]
+		--assert not fcmp32-r
+		fcmp32-r: false
+		if fcmp32-b * fcmp32-b < (fcmp32-a + fcmp32-a) [fcmp32-r: true]
+		--assert not fcmp32-r
+	--test-- "fcmp32-expr-8"
+		either fcmp32-a + fcmp32-a <= (fcmp32-b * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert fcmp32-r
+		fcmp32-r: false
+		if fcmp32-a + fcmp32-a <= (fcmp32-b * fcmp32-b) [fcmp32-r: true]
+		--assert fcmp32-r
+		either fcmp32-a + fcmp32-a <= (fcmp32-a * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert fcmp32-r
+		fcmp32-r: false
+		if fcmp32-a + fcmp32-a <= (fcmp32-a * fcmp32-b) [fcmp32-r: true]
+		--assert fcmp32-r
+		either fcmp32-b * fcmp32-b <= (fcmp32-a + fcmp32-a) [fcmp32-r: true][fcmp32-r: false]
+		--assert not fcmp32-r
+		fcmp32-r: false
+		if fcmp32-b * fcmp32-b <= (fcmp32-a + fcmp32-a) [fcmp32-r: true]
+		--assert not fcmp32-r
+	--test-- "fcmp32-expr-9"
+		either fcmp32-a + fcmp32-a > (fcmp32-b * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert not fcmp32-r
+		fcmp32-r: false
+		if fcmp32-a + fcmp32-a > (fcmp32-b * fcmp32-b) [fcmp32-r: true]
+		--assert not fcmp32-r
+		either fcmp32-a + fcmp32-a > (fcmp32-a * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert not fcmp32-r
+		fcmp32-r: false
+		if fcmp32-a + fcmp32-a > (fcmp32-a * fcmp32-b) [fcmp32-r: true]
+		--assert not fcmp32-r
+		either fcmp32-b * fcmp32-b > (fcmp32-a + fcmp32-a) [fcmp32-r: true][fcmp32-r: false]
+		--assert fcmp32-r
+		fcmp32-r: false
+		if fcmp32-b * fcmp32-b > (fcmp32-a + fcmp32-a) [fcmp32-r: true]
+		--assert fcmp32-r
+	--test-- "fcmp32-expr-10"
+		either fcmp32-a + fcmp32-a >= (fcmp32-b * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert not fcmp32-r
+		fcmp32-r: false
+		if fcmp32-a + fcmp32-a >= (fcmp32-b * fcmp32-b) [fcmp32-r: true]
+		--assert not fcmp32-r
+		either fcmp32-a + fcmp32-a >= (fcmp32-a * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert fcmp32-r
+		fcmp32-r: false
+		if fcmp32-a + fcmp32-a >= (fcmp32-a * fcmp32-b) [fcmp32-r: true]
+		--assert fcmp32-r
+		either fcmp32-b * fcmp32-b >= (fcmp32-a + fcmp32-a) [fcmp32-r: true][fcmp32-r: false]
+		--assert fcmp32-r
+		fcmp32-r: false
+		if fcmp32-b * fcmp32-b >= (fcmp32-a + fcmp32-a) [fcmp32-r: true]
+		--assert fcmp32-r
+	--test-- "fcmp32-expr-11"
+		either fcmp32-a + fcmp32-a = (fcmp32-b * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert not fcmp32-r
+		fcmp32-r: false
+		if fcmp32-a + fcmp32-a = (fcmp32-b * fcmp32-b) [fcmp32-r: true]
+		--assert not fcmp32-r
+		either fcmp32-a + fcmp32-a = (fcmp32-a * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert fcmp32-r
+		fcmp32-r: false
+		if fcmp32-a + fcmp32-a = (fcmp32-a * fcmp32-b) [fcmp32-r: true]
+		--assert fcmp32-r
+		either fcmp32-b * fcmp32-b = (fcmp32-a + fcmp32-a) [fcmp32-r: true][fcmp32-r: false]
+		--assert not fcmp32-r
+		fcmp32-r: false
+		if fcmp32-b * fcmp32-b = (fcmp32-a + fcmp32-a) [fcmp32-r: true]
+		--assert not fcmp32-r
+	--test-- "fcmp32-expr-12"
+		either fcmp32-a + fcmp32-a <> (fcmp32-b * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert fcmp32-r
+		fcmp32-r: false
+		if fcmp32-a + fcmp32-a <> (fcmp32-b * fcmp32-b) [fcmp32-r: true]
+		--assert fcmp32-r
+		either fcmp32-a + fcmp32-a <> (fcmp32-a * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert not fcmp32-r
+		fcmp32-r: false
+		if fcmp32-a + fcmp32-a <> (fcmp32-a * fcmp32-b) [fcmp32-r: true]
+		--assert not fcmp32-r
+		either fcmp32-b * fcmp32-b <> (fcmp32-a + fcmp32-a) [fcmp32-r: true][fcmp32-r: false]
+		--assert fcmp32-r
+		fcmp32-r: false
+		if fcmp32-b * fcmp32-b <> (fcmp32-a + fcmp32-a) [fcmp32-r: true]
+		--assert fcmp32-r
+	--test-- "fcmp32-expr-13"
+		--assert (fcmp32-id fcmp32-a) < (fcmp32-id fcmp32-b)
+		--assert not ((fcmp32-id fcmp32-a) >= (fcmp32-id fcmp32-b))
+		--assert (fcmp32-a + fcmp32-a) * fcmp32-b > ((fcmp32-b * fcmp32-b) - fcmp32-a)
+		--assert not ((fcmp32-a + fcmp32-a) * fcmp32-b <= ((fcmp32-b * fcmp32-b) - fcmp32-a))
+		fcmp32-d: 0.1
+		fcmp32-d1: 1.0
+		--assert (as float32! fcmp32-d * fcmp32-d1) = (as float32! fcmp32-d * fcmp32-d1)
+		--assert not ((as float32! fcmp32-d * fcmp32-d1) <> (as float32! fcmp32-d * fcmp32-d1))
+	--test-- "fcmp32-expr-14"
+		--assert fcmp32-a + fcmp32-a < (as float32! fcmp32-i * fcmp32-i)
+		--assert not (fcmp32-a + fcmp32-a >= (as float32! fcmp32-i * fcmp32-i))
+		--assert (as float32! fcmp32-i * fcmp32-i) > (fcmp32-a + fcmp32-a)
+		--assert not ((as float32! fcmp32-i * fcmp32-i) <= (fcmp32-a + fcmp32-a))
+	--test-- "fcmp32-expr-15"
+		fcmp32-nan: as float32! 0.0 / 0.0
+		--assert not (fcmp32-nan * fcmp32-a < (fcmp32-b * fcmp32-b))
+		--assert not (fcmp32-nan * fcmp32-a <= (fcmp32-b * fcmp32-b))
+		--assert not (fcmp32-nan * fcmp32-a > (fcmp32-b * fcmp32-b))
+		--assert not (fcmp32-nan * fcmp32-a >= (fcmp32-b * fcmp32-b))
+		--assert not (fcmp32-nan * fcmp32-a = (fcmp32-b * fcmp32-b))
+		--assert fcmp32-nan * fcmp32-a <> (fcmp32-b * fcmp32-b)
+		--assert not (fcmp32-b * fcmp32-b < (fcmp32-nan * fcmp32-a))
+		--assert not (fcmp32-b * fcmp32-b >= (fcmp32-nan * fcmp32-a))
+		--assert fcmp32-b * fcmp32-b <> (fcmp32-nan * fcmp32-a)
+		either fcmp32-nan * fcmp32-a >= (fcmp32-b * fcmp32-b) [fcmp32-r: true][fcmp32-r: false]
+		--assert not fcmp32-r
+		either fcmp32-b * fcmp32-b <> (fcmp32-nan * fcmp32-a) [fcmp32-r: true][fcmp32-r: false]
+		--assert fcmp32-r
+	--test-- "fcmp32-expr-16"
+		fcmp32-r: false
+		while [fcmp32-a + fcmp32-a < (fcmp32-b * fcmp32-b)][fcmp32-r: true break]
+		--assert fcmp32-r
+		--assert all [fcmp32-a + fcmp32-a < (fcmp32-b * fcmp32-b)]
+		--assert not any [fcmp32-a + fcmp32-a > (fcmp32-b * fcmp32-b)]
+		case [
+			fcmp32-a + fcmp32-a > (fcmp32-b * fcmp32-b) [fcmp32-r: false]
+			fcmp32-a + fcmp32-a < (fcmp32-b * fcmp32-b) [fcmp32-r: true]
+		]
+		--assert fcmp32-r
+
+===end-group===
+
+===start-group=== "operators with casted operands"
+
+	fcst32-i1: 1
+	fcst32-i2: 2
+	fcst32-ione: 1
+	fcst32-sx: 278
+	fcst32-p: as int-ptr! allocate 2 * size? integer!
+	fcst32-p/1: 1
+	fcst32-p/2: 2
+	fcst32-a1: as float32! 1.0
+	fcst32-a2: as float32! 2.0
+	fcst32-one: as float32! 1.0
+	fcst32-f64one: 1.0
+	fcst32-u: 1.0 + (1.0 / 1073741824.0)				;-- 1 + 2^-30, 1.0 once stored as float32!
+	fcst32-r: false
+	fcst32-f: as float32! 0.0
+	fcst32-iid: func [i [integer!] return: [integer!]][i]
+	fcst32-clob: func [x [float32!] return: [float32!] /local i [integer!]][	;-- changes eax
+		i: fcst32-iid 12345
+		x
+	]
+	fcst32-width?: func [return: [float32!] /local w [integer!]][	;-- as font-width? in gtk3/gui.reds
+		w: fcst32-iid 100
+		(as float32! w) / as float32! 10.0
+	]
+
+	--test-- "fcst32-int-left-1"
+		--assert (as float32! fcst32-i1 * fcst32-ione) < (as float32! fcst32-i2 * fcst32-ione)
+		--assert not ((as float32! fcst32-i1 * fcst32-ione) = (as float32! fcst32-i2 * fcst32-ione))
+		--assert (as float32! fcst32-i2 * fcst32-ione) > (as float32! fcst32-iid fcst32-i1)
+		--assert (as float32! fcst32-iid fcst32-i1) <> (as float32! fcst32-iid fcst32-i2)
+		either (as float32! fcst32-i1 * fcst32-ione) >= (as float32! fcst32-i2 * fcst32-ione) [fcst32-r: true][fcst32-r: false]
+		--assert not fcst32-r
+	--test-- "fcst32-int-left-2"
+		--assert (as float32! fcst32-i1 * fcst32-ione) < (fcst32-clob fcst32-a2)
+		--assert (as float32! fcst32-i2 * fcst32-ione) > (fcst32-clob fcst32-a1)
+		fcst32-r: false
+		if (as float32! fcst32-i1 * fcst32-ione) <= (fcst32-clob fcst32-a2) [fcst32-r: true]
+		--assert fcst32-r
+	--test-- "fcst32-int-left-3"
+		fcst32-f: (as float32! fcst32-i1 * fcst32-ione) - (as float32! fcst32-i2 * fcst32-ione)
+		--assert fcst32-f = as float32! -1.0
+		fcst32-f: (as float32! fcst32-i1 * fcst32-ione) + (as float32! fcst32-iid fcst32-i2)
+		--assert fcst32-f = as float32! 3.0
+		fcst32-f: (as float32! fcst32-i1 * fcst32-ione) / (fcst32-clob fcst32-a2)
+		--assert fcst32-f = as float32! 0.5
+		fcst32-f: (as float32! fcst32-sx - 18) / fcst32-width?
+		--assert 26 = as-integer fcst32-f
+	--test-- "fcst32-int-left-4"
+		fcst32-f: (as float32! fcst32-i1 * fcst32-ione) - (fcst32-a2 * fcst32-one)
+		--assert fcst32-f = as float32! -1.0
+		fcst32-f: (as float32! fcst32-i1 * fcst32-ione) / (fcst32-a2 * fcst32-one)
+		--assert fcst32-f = as float32! 0.5
+		fcst32-f: (as float32! fcst32-i2 * fcst32-ione) * (fcst32-a2 * fcst32-one)
+		--assert fcst32-f = as float32! 4.0
+	--test-- "fcst32-int-value-1"
+		--assert fcst32-a1 < as float32! fcst32-i2
+		--assert fcst32-a1 <= as float32! fcst32-i2
+		--assert not (fcst32-a1 > as float32! fcst32-i2)
+		--assert not (fcst32-a1 >= as float32! fcst32-i2)
+		fcst32-r: fcst32-a1 < as float32! fcst32-i2
+		--assert fcst32-r
+	--test-- "fcst32-int-value-2"
+		--assert fcst32-a1 < as float32! fcst32-p/2
+		--assert not (fcst32-a1 >= as float32! fcst32-p/2)
+		--assert (as float32! fcst32-p/1) < fcst32-a2
+		--assert not ((as float32! fcst32-p/1) >= fcst32-a2)
+	--test-- "fcst32-float-cast-1"
+		fcst32-f: (as float32! fcst32-u * fcst32-f64one) - (as float32! fcst32-u * fcst32-f64one)
+		--assert fcst32-f = as float32! 0.0
+		fcst32-f: (as float32! fcst32-u * fcst32-f64one) - (fcst32-a1 * fcst32-one)
+		--assert fcst32-f = as float32! 0.0
+		--assert (as float32! fcst32-i1 * fcst32-ione) = (as float32! fcst32-u * fcst32-f64one)
+		--assert (as float32! fcst32-u * fcst32-f64one) = (as float32! fcst32-i1 * fcst32-ione)
+
+===end-group===
+
 ===start-group=== "Arithmetic and comparison"
 
   --test-- "float-auto-1"

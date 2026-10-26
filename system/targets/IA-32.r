@@ -289,10 +289,18 @@ make-profilable make target-class [
 		emit #{89C2}								;-- MOV edx, eax
 	]
 	
-	emit-save-last: does [
+	emit-save-last: func [/with arg][
 		last-saved?: yes
-		unless compiler/any-float? compiler/last-type [
-			emit #{50}								;-- PUSH eax
+		either all [								;-- integer value casted to float
+			object? arg
+			compiler/any-float? arg/type
+			not compiler/any-float? compiler/get-type arg/data
+		][
+			emit-casting arg no						;-- load it on FPU stack now, eax is not preserved
+		][
+			unless compiler/any-float? compiler/last-type [
+				emit #{50}							;-- PUSH eax
+			]
 		]
 	]
 	
@@ -2189,6 +2197,7 @@ make-profilable make target-class [
 		/local spec float32?
 	][
 		if reversed? [emit #{D9C9}]					;-- FXCH st0, st1
+		signed?: no									;-- FPU flags are tested as unsigned ones
 		
 		either compiler/job/cpu-version >= 6.0	[	;-- support for FCOMI* only with P6+
 			; emit #{DFE9}							;-- FUCOMIP st0, st1
@@ -2228,13 +2237,22 @@ make-profilable make target-class [
 
 	emit-float-operation: func [
 		name [word!] args [block!] 
-		/local a b left right spec reversed? type ldr? reg-right
+		/local a b left right spec reversed? type ldr? reg-right loaded?
 	][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 
+		loaded?: all [								;-- left integer already converted on FPU stack
+			object? args/1							;-- by emit-save-last
+			block? args/1/data
+			not compiler/any-float? compiler/get-type args/1/data
+			any [block? compiler/unbox args/2 path? compiler/unbox args/2]
+		]
 		if find comparison-op name [reverse args] 	;-- arguments will be pushed in reverse order
 		
 		set [a b] get-arguments-class args
+		if loaded? [								;-- left operand is b for comparisons
+			either find comparison-op name [ldr?: yes][a: 'fpu]
+		]
 
 		;-- First operand processing
 		left:  compiler/unbox args/1
@@ -2243,6 +2261,7 @@ make-profilable make target-class [
 		
 		reg-right: [
 			all [
+				not ldr?
 				object? args/2
 				block? right
 				ldr?: not find [float! float32!] args/2/type
@@ -2253,7 +2272,17 @@ make-profilable make target-class [
 				ldr?: yes
 			]
 		]
+		if all [									;-- a and b results already computed, in source
+			find comparison-op name					;-- order: a on top of FPU stack, or still in eax
+			block? left
+			block? right
+		][
+			if object? args/1 [emit-casting args/1 no]	;-- cast a while on top, or load it
+			emit #{D9C9}							;-- FXCH st0, st1		; b on top, as for other cases
+			a: 'fpu									;-- a fully processed
+		]
 		all [										;-- preload b if casted to any-float!
+			not ldr?
 			object? args/2
 			block? right
 			find [float! float32!] args/2/type
@@ -2282,7 +2311,13 @@ make-profilable make target-class [
 			reg [
 				if all [b = 'reg not path? right][do reg-right]
 				if object? args/1 [
-					if block? left [emit-casting args/1 no]
+					if block? left [
+						if block? right [			;-- b computed last, on top of a
+							emit #{D9C9}			;-- FXCH st0, st1
+							reversed?: yes
+						]
+						emit-casting args/1 no
+					]
 					set-width/type compiler/last-type: args/1/type
 				]
 				if path? left [emit-push/keep args/1] ;-- late path loading
@@ -2309,11 +2344,11 @@ make-profilable make target-class [
 			reg [unless ldr? [do reg-right]]
 		]
 		
-		reversed?: to logic! all [b = 'reg any [
+		reversed?: to logic! any [reversed? all [b = 'reg any [
 			all [a = 'ref block? right]
 			all [a = 'imm block? right]
 			all [path? left block? right]
-		]]
+		]]]
 		case [
 			find comparison-op name [emit-float-comparison-op name a b args reversed?]
 			find math-op	   name	[emit-float-math-op		  name a b args reversed?]

@@ -1537,6 +1537,283 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "comparisons with computed operands"
+
+	fcmp-a: 1.0
+	fcmp-b: 2.0
+	fcmp-two: 2.0
+	fcmp-four: 4.0
+	fcmp-i: 2
+	fcmp-r: false
+	fcmp-id: func [x [float!] return: [float!]][x]
+
+	--test-- "fcmp-expr-1"
+		--assert fcmp-a + fcmp-a < (fcmp-b * fcmp-b)
+		--assert not (fcmp-a + fcmp-a < (fcmp-a * fcmp-b))
+		--assert not (fcmp-b * fcmp-b < (fcmp-a + fcmp-a))
+		--assert fcmp-a + fcmp-a < fcmp-four
+		--assert not (fcmp-a + fcmp-a < fcmp-two)
+		--assert not (fcmp-b * fcmp-b < fcmp-two)
+		--assert fcmp-two < (fcmp-b * fcmp-b)
+		--assert not (fcmp-two < (fcmp-a + fcmp-a))
+		--assert not (fcmp-four < (fcmp-a + fcmp-a))
+	--test-- "fcmp-expr-2"
+		--assert fcmp-a + fcmp-a <= (fcmp-b * fcmp-b)
+		--assert fcmp-a + fcmp-a <= (fcmp-a * fcmp-b)
+		--assert not (fcmp-b * fcmp-b <= (fcmp-a + fcmp-a))
+		--assert fcmp-a + fcmp-a <= fcmp-four
+		--assert fcmp-a + fcmp-a <= fcmp-two
+		--assert not (fcmp-b * fcmp-b <= fcmp-two)
+		--assert fcmp-two <= (fcmp-b * fcmp-b)
+		--assert fcmp-two <= (fcmp-a + fcmp-a)
+		--assert not (fcmp-four <= (fcmp-a + fcmp-a))
+	--test-- "fcmp-expr-3"
+		--assert not (fcmp-a + fcmp-a > (fcmp-b * fcmp-b))
+		--assert not (fcmp-a + fcmp-a > (fcmp-a * fcmp-b))
+		--assert fcmp-b * fcmp-b > (fcmp-a + fcmp-a)
+		--assert not (fcmp-a + fcmp-a > fcmp-four)
+		--assert not (fcmp-a + fcmp-a > fcmp-two)
+		--assert fcmp-b * fcmp-b > fcmp-two
+		--assert not (fcmp-two > (fcmp-b * fcmp-b))
+		--assert not (fcmp-two > (fcmp-a + fcmp-a))
+		--assert fcmp-four > (fcmp-a + fcmp-a)
+	--test-- "fcmp-expr-4"
+		--assert not (fcmp-a + fcmp-a >= (fcmp-b * fcmp-b))
+		--assert fcmp-a + fcmp-a >= (fcmp-a * fcmp-b)
+		--assert fcmp-b * fcmp-b >= (fcmp-a + fcmp-a)
+		--assert not (fcmp-a + fcmp-a >= fcmp-four)
+		--assert fcmp-a + fcmp-a >= fcmp-two
+		--assert fcmp-b * fcmp-b >= fcmp-two
+		--assert not (fcmp-two >= (fcmp-b * fcmp-b))
+		--assert fcmp-two >= (fcmp-a + fcmp-a)
+		--assert fcmp-four >= (fcmp-a + fcmp-a)
+	--test-- "fcmp-expr-5"
+		--assert not (fcmp-a + fcmp-a = (fcmp-b * fcmp-b))
+		--assert fcmp-a + fcmp-a = (fcmp-a * fcmp-b)
+		--assert not (fcmp-b * fcmp-b = (fcmp-a + fcmp-a))
+		--assert not (fcmp-a + fcmp-a = fcmp-four)
+		--assert fcmp-a + fcmp-a = fcmp-two
+		--assert not (fcmp-b * fcmp-b = fcmp-two)
+		--assert not (fcmp-two = (fcmp-b * fcmp-b))
+		--assert fcmp-two = (fcmp-a + fcmp-a)
+		--assert not (fcmp-four = (fcmp-a + fcmp-a))
+	--test-- "fcmp-expr-6"
+		--assert fcmp-a + fcmp-a <> (fcmp-b * fcmp-b)
+		--assert not (fcmp-a + fcmp-a <> (fcmp-a * fcmp-b))
+		--assert fcmp-b * fcmp-b <> (fcmp-a + fcmp-a)
+		--assert fcmp-a + fcmp-a <> fcmp-four
+		--assert not (fcmp-a + fcmp-a <> fcmp-two)
+		--assert fcmp-b * fcmp-b <> fcmp-two
+		--assert fcmp-two <> (fcmp-b * fcmp-b)
+		--assert not (fcmp-two <> (fcmp-a + fcmp-a))
+		--assert fcmp-four <> (fcmp-a + fcmp-a)
+	--test-- "fcmp-expr-7"
+		either fcmp-a + fcmp-a < (fcmp-b * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert fcmp-r
+		fcmp-r: false
+		if fcmp-a + fcmp-a < (fcmp-b * fcmp-b) [fcmp-r: true]
+		--assert fcmp-r
+		either fcmp-a + fcmp-a < (fcmp-a * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert not fcmp-r
+		fcmp-r: false
+		if fcmp-a + fcmp-a < (fcmp-a * fcmp-b) [fcmp-r: true]
+		--assert not fcmp-r
+		either fcmp-b * fcmp-b < (fcmp-a + fcmp-a) [fcmp-r: true][fcmp-r: false]
+		--assert not fcmp-r
+		fcmp-r: false
+		if fcmp-b * fcmp-b < (fcmp-a + fcmp-a) [fcmp-r: true]
+		--assert not fcmp-r
+	--test-- "fcmp-expr-8"
+		either fcmp-a + fcmp-a <= (fcmp-b * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert fcmp-r
+		fcmp-r: false
+		if fcmp-a + fcmp-a <= (fcmp-b * fcmp-b) [fcmp-r: true]
+		--assert fcmp-r
+		either fcmp-a + fcmp-a <= (fcmp-a * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert fcmp-r
+		fcmp-r: false
+		if fcmp-a + fcmp-a <= (fcmp-a * fcmp-b) [fcmp-r: true]
+		--assert fcmp-r
+		either fcmp-b * fcmp-b <= (fcmp-a + fcmp-a) [fcmp-r: true][fcmp-r: false]
+		--assert not fcmp-r
+		fcmp-r: false
+		if fcmp-b * fcmp-b <= (fcmp-a + fcmp-a) [fcmp-r: true]
+		--assert not fcmp-r
+	--test-- "fcmp-expr-9"
+		either fcmp-a + fcmp-a > (fcmp-b * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert not fcmp-r
+		fcmp-r: false
+		if fcmp-a + fcmp-a > (fcmp-b * fcmp-b) [fcmp-r: true]
+		--assert not fcmp-r
+		either fcmp-a + fcmp-a > (fcmp-a * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert not fcmp-r
+		fcmp-r: false
+		if fcmp-a + fcmp-a > (fcmp-a * fcmp-b) [fcmp-r: true]
+		--assert not fcmp-r
+		either fcmp-b * fcmp-b > (fcmp-a + fcmp-a) [fcmp-r: true][fcmp-r: false]
+		--assert fcmp-r
+		fcmp-r: false
+		if fcmp-b * fcmp-b > (fcmp-a + fcmp-a) [fcmp-r: true]
+		--assert fcmp-r
+	--test-- "fcmp-expr-10"
+		either fcmp-a + fcmp-a >= (fcmp-b * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert not fcmp-r
+		fcmp-r: false
+		if fcmp-a + fcmp-a >= (fcmp-b * fcmp-b) [fcmp-r: true]
+		--assert not fcmp-r
+		either fcmp-a + fcmp-a >= (fcmp-a * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert fcmp-r
+		fcmp-r: false
+		if fcmp-a + fcmp-a >= (fcmp-a * fcmp-b) [fcmp-r: true]
+		--assert fcmp-r
+		either fcmp-b * fcmp-b >= (fcmp-a + fcmp-a) [fcmp-r: true][fcmp-r: false]
+		--assert fcmp-r
+		fcmp-r: false
+		if fcmp-b * fcmp-b >= (fcmp-a + fcmp-a) [fcmp-r: true]
+		--assert fcmp-r
+	--test-- "fcmp-expr-11"
+		either fcmp-a + fcmp-a = (fcmp-b * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert not fcmp-r
+		fcmp-r: false
+		if fcmp-a + fcmp-a = (fcmp-b * fcmp-b) [fcmp-r: true]
+		--assert not fcmp-r
+		either fcmp-a + fcmp-a = (fcmp-a * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert fcmp-r
+		fcmp-r: false
+		if fcmp-a + fcmp-a = (fcmp-a * fcmp-b) [fcmp-r: true]
+		--assert fcmp-r
+		either fcmp-b * fcmp-b = (fcmp-a + fcmp-a) [fcmp-r: true][fcmp-r: false]
+		--assert not fcmp-r
+		fcmp-r: false
+		if fcmp-b * fcmp-b = (fcmp-a + fcmp-a) [fcmp-r: true]
+		--assert not fcmp-r
+	--test-- "fcmp-expr-12"
+		either fcmp-a + fcmp-a <> (fcmp-b * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert fcmp-r
+		fcmp-r: false
+		if fcmp-a + fcmp-a <> (fcmp-b * fcmp-b) [fcmp-r: true]
+		--assert fcmp-r
+		either fcmp-a + fcmp-a <> (fcmp-a * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert not fcmp-r
+		fcmp-r: false
+		if fcmp-a + fcmp-a <> (fcmp-a * fcmp-b) [fcmp-r: true]
+		--assert not fcmp-r
+		either fcmp-b * fcmp-b <> (fcmp-a + fcmp-a) [fcmp-r: true][fcmp-r: false]
+		--assert fcmp-r
+		fcmp-r: false
+		if fcmp-b * fcmp-b <> (fcmp-a + fcmp-a) [fcmp-r: true]
+		--assert fcmp-r
+	--test-- "fcmp-expr-13"
+		--assert (fcmp-id fcmp-a) < (fcmp-id fcmp-b)
+		--assert not ((fcmp-id fcmp-a) >= (fcmp-id fcmp-b))
+		--assert (fcmp-a + fcmp-a) * fcmp-b > ((fcmp-b * fcmp-b) - fcmp-a)
+		--assert not ((fcmp-a + fcmp-a) * fcmp-b <= ((fcmp-b * fcmp-b) - fcmp-a))
+		fcmp-f32a: as float32! 1.0
+		fcmp-f32b: as float32! 2.0
+		--assert (as float! fcmp-f32a + fcmp-f32a) < (as float! fcmp-f32b * fcmp-f32b)
+		--assert not ((as float! fcmp-f32a + fcmp-f32a) > (as float! fcmp-f32b * fcmp-f32b))
+	--test-- "fcmp-expr-14"
+		--assert fcmp-a + fcmp-a < (as float! fcmp-i * fcmp-i)
+		--assert not (fcmp-a + fcmp-a >= (as float! fcmp-i * fcmp-i))
+		--assert (as float! fcmp-i * fcmp-i) > (fcmp-a + fcmp-a)
+		--assert not ((as float! fcmp-i * fcmp-i) <= (fcmp-a + fcmp-a))
+	--test-- "fcmp-expr-15"
+		fcmp-nan: 0.0 / 0.0
+		--assert not (fcmp-nan * fcmp-a < (fcmp-b * fcmp-b))
+		--assert not (fcmp-nan * fcmp-a <= (fcmp-b * fcmp-b))
+		--assert not (fcmp-nan * fcmp-a > (fcmp-b * fcmp-b))
+		--assert not (fcmp-nan * fcmp-a >= (fcmp-b * fcmp-b))
+		--assert not (fcmp-nan * fcmp-a = (fcmp-b * fcmp-b))
+		--assert fcmp-nan * fcmp-a <> (fcmp-b * fcmp-b)
+		--assert not (fcmp-b * fcmp-b < (fcmp-nan * fcmp-a))
+		--assert not (fcmp-b * fcmp-b >= (fcmp-nan * fcmp-a))
+		--assert fcmp-b * fcmp-b <> (fcmp-nan * fcmp-a)
+		either fcmp-nan * fcmp-a >= (fcmp-b * fcmp-b) [fcmp-r: true][fcmp-r: false]
+		--assert not fcmp-r
+		either fcmp-b * fcmp-b <> (fcmp-nan * fcmp-a) [fcmp-r: true][fcmp-r: false]
+		--assert fcmp-r
+	--test-- "fcmp-expr-16"
+		fcmp-r: false
+		while [fcmp-a + fcmp-a < (fcmp-b * fcmp-b)][fcmp-r: true break]
+		--assert fcmp-r
+		--assert all [fcmp-a + fcmp-a < (fcmp-b * fcmp-b)]
+		--assert not any [fcmp-a + fcmp-a > (fcmp-b * fcmp-b)]
+		case [
+			fcmp-a + fcmp-a > (fcmp-b * fcmp-b) [fcmp-r: false]
+			fcmp-a + fcmp-a < (fcmp-b * fcmp-b) [fcmp-r: true]
+		]
+		--assert fcmp-r
+
+===end-group===
+
+===start-group=== "operators with casted operands"
+
+	fcst-i1: 1
+	fcst-i2: 2
+	fcst-ione: 1
+	fcst-sx: 278
+	fcst-p: as int-ptr! allocate 2 * size? integer!
+	fcst-p/1: 1
+	fcst-p/2: 2
+	fcst-a1: 1.0
+	fcst-a2: 2.0
+	fcst-one: 1.0
+	fcst-r: false
+	fcst-f: 0.0
+	fcst-iid: func [i [integer!] return: [integer!]][i]
+	fcst-clob: func [x [float!] return: [float!] /local i [integer!]][	;-- changes eax
+		i: fcst-iid 12345
+		x
+	]
+	fcst-width?: func [return: [float!] /local w [integer!]][	;-- as font-width? in gtk3/gui.reds
+		w: fcst-iid 100
+		(as float! w) / 10.0
+	]
+
+	--test-- "fcst-int-left-1"
+		--assert (as float! fcst-i1 * fcst-ione) < (as float! fcst-i2 * fcst-ione)
+		--assert not ((as float! fcst-i1 * fcst-ione) = (as float! fcst-i2 * fcst-ione))
+		--assert (as float! fcst-i2 * fcst-ione) > (as float! fcst-iid fcst-i1)
+		--assert (as float! fcst-iid fcst-i1) <> (as float! fcst-iid fcst-i2)
+		either (as float! fcst-i1 * fcst-ione) >= (as float! fcst-i2 * fcst-ione) [fcst-r: true][fcst-r: false]
+		--assert not fcst-r
+	--test-- "fcst-int-left-2"
+		--assert (as float! fcst-i1 * fcst-ione) < (fcst-clob fcst-a2)
+		--assert (as float! fcst-i2 * fcst-ione) > (fcst-clob fcst-a1)
+		fcst-r: false
+		if (as float! fcst-i1 * fcst-ione) <= (fcst-clob fcst-a2) [fcst-r: true]
+		--assert fcst-r
+	--test-- "fcst-int-left-3"
+		fcst-f: (as float! fcst-i1 * fcst-ione) - (as float! fcst-i2 * fcst-ione)
+		--assert fcst-f = -1.0
+		fcst-f: (as float! fcst-i1 * fcst-ione) + (as float! fcst-iid fcst-i2)
+		--assert fcst-f = 3.0
+		fcst-f: (as float! fcst-i1 * fcst-ione) / (fcst-clob fcst-a2)
+		--assert fcst-f = 0.5
+		fcst-f: (as float! fcst-sx - 18) / fcst-width?
+		--assert fcst-f = 26.0
+	--test-- "fcst-int-left-4"
+		fcst-f: (as float! fcst-i1 * fcst-ione) - (fcst-a2 * fcst-one)
+		--assert fcst-f = -1.0
+		fcst-f: (as float! fcst-i1 * fcst-ione) / (fcst-a2 * fcst-one)
+		--assert fcst-f = 0.5
+		fcst-f: (as float! fcst-i2 * fcst-ione) * (fcst-a2 * fcst-one)
+		--assert fcst-f = 4.0
+	--test-- "fcst-int-value-1"
+		--assert fcst-a1 < as float! fcst-i2
+		--assert fcst-a1 <= as float! fcst-i2
+		--assert not (fcst-a1 > as float! fcst-i2)
+		--assert not (fcst-a1 >= as float! fcst-i2)
+		fcst-r: fcst-a1 < as float! fcst-i2
+		--assert fcst-r
+	--test-- "fcst-int-value-2"
+		--assert fcst-a1 < as float! fcst-p/2
+		--assert not (fcst-a1 >= as float! fcst-p/2)
+		--assert (as float! fcst-p/1) < fcst-a2
+		--assert not ((as float! fcst-p/1) >= fcst-a2)
+
+===end-group===
+
 ===start-group=== "Arithmetic & Comparison"
 
   --test-- "float-auto-1"
