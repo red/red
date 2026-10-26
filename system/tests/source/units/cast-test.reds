@@ -393,6 +393,62 @@ Red/System [
 		]
 		--assert 201 = to-epoch 100.9
 
+	--test-- "fl-cast-12"
+		fi-a: 1.0
+		fi-b: 2.0
+		fi-one: 1.0
+		--assert (as integer! fi-a * fi-one) < (as integer! fi-b * fi-one)
+		--assert -1 = ((as integer! fi-a * fi-one) - (as integer! fi-b * fi-one))
+		c: (as integer! fi-b * fi-one) - (as integer! foo37 fi-a)
+		--assert c = 1
+		either (as integer! fi-a * fi-one) >= (as integer! fi-b * fi-one) [c: 1][c: 0]
+		--assert c = 0
+
+	--test-- "fl-cast-13"
+		fi-p: as pointer! [float!] allocate 2 * size? float!
+		fi-p/1: 1.0
+		fi-p/2: 2.0
+		--assert -1 = ((as integer! fi-p/1) - (as integer! fi-p/2))
+		--assert (as integer! fi-p/1) < (as integer! fi-p/2)
+		--assert -1 = ((as integer! fi-a * fi-one) - (as integer! fi-p/2))
+		--assert -1 = (1 - as integer! fi-p/2)
+		c: 3 - as integer! fi-p/1
+		--assert c = 2
+
+	--test-- "fl-cast-14"
+		c: 1 << as integer! fi-b
+		--assert c = 4
+		c: 16 >> as integer! fi-b
+		--assert c = 4
+
+	--test-- "fl-cast-15"
+		fi-i: 3
+		--assert 1 = (fi-i - as integer! fi-b * fi-one)
+		--assert 1 = (fi-i - as integer! fi-p/2)
+		--assert 1 = ((as integer! fi-p/2) - (fi-i - 2))
+		--assert -1 = ((as integer! fi-a) - (fi-i - 1))
+		--assert 2 = (fi-i and as integer! fi-b)
+		--assert 1 = (fi-i xor as integer! fi-b)
+
+	--test-- "fl-cast-16"
+		fi-pad!: alias struct! [
+			p1 [float!] p2 [float!] p3 [float!] p4 [float!] p5 [float!] p6 [float!] p7 [float!] p8 [float!]
+			p9 [float!] p10 [float!] p11 [float!] p12 [float!] p13 [float!] p14 [float!] p15 [float!] p16 [float!]
+			p17 [float!] p18 [float!] p19 [float!] p20 [float!] p21 [float!] p22 [float!] p23 [float!] p24 [float!]
+			p25 [float!] p26 [float!] p27 [float!] p28 [float!] p29 [float!] p30 [float!] p31 [float!] p32 [float!]
+			p33 [float!] p34 [float!]
+		]
+		fi-fs!: alias struct! [a [integer!] fv [float!]]
+		fi-far: func [/local pad [fi-pad! value] s [fi-fs! value] k [integer!]][	;-- s more than 255 bytes below fp
+			s/a: 7
+			s/fv: 2.0
+			k: 5
+			--assert -3 = ((as integer! s/fv) - (k * 1))
+			--assert 3 = ((k * 1) - (as integer! s/fv))
+			--assert 5 = (s/a - as integer! s/fv)
+		]
+		fi-far
+
 ===end-group===
 
 
@@ -440,6 +496,57 @@ Red/System [
 		f32: as float32! 1.5
 		c: as integer! keep f32
 		--assert c = 1069547520
+
+	--test-- "fl32-cast-11"
+		fi32-a: as float32! 1.0
+		fi32-b: as float32! 2.0
+		fi32-one: as float32! 1.0
+		--assert (as integer! fi32-a * fi32-one) < (as integer! fi32-b * fi32-one)
+		--assert -1 = ((as integer! fi32-a * fi32-one) - (as integer! fi32-b * fi32-one))
+		c: (as integer! fi32-b * fi32-one) - (as integer! foo47 fi32-a)
+		--assert c = 1
+		either (as integer! fi32-a * fi32-one) >= (as integer! fi32-b * fi32-one) [c: 1][c: 0]
+		--assert c = 0
+
+	--test-- "fl32-cast-12"
+		fi32-p: as pointer! [float32!] allocate 2 * size? float32!
+		fi32-p/1: as float32! 1.0
+		fi32-p/2: as float32! 2.0
+		--assert -1 = ((as integer! fi32-p/1) - (as integer! fi32-p/2))
+		--assert (as integer! fi32-p/1) < (as integer! fi32-p/2)
+		--assert -1 = ((as integer! fi32-a * fi32-one) - (as integer! fi32-p/2))
+		--assert -1 = (1 - as integer! fi32-p/2)
+		c: 3 - as integer! fi32-p/1
+		--assert c = 2
+
+	--test-- "fl32-cast-13"
+		c: 1 << as integer! fi32-b
+		--assert c = 4
+		c: 16 >> as integer! fi32-b
+		--assert c = 4
+
+	--test-- "fl32-cast-14"
+		--assert 1 = ((as integer! fi32-b * fi32-one) - (as integer! fi-a * fi-one))
+		--assert 1 = ((as integer! fi-b) - (as integer! fi32-p/1))
+		--assert -1 = ((as integer! fi32-p/1) - (as integer! fi-p/2))
+		--assert 3 = ((as integer! fi32-a) + (as integer! fi-p/2))
+
+	--test-- "fl32-cast-15"
+		c: 1 << as integer! keep fi32-b
+		--assert c = 1
+		c: 40000001h and as integer! keep fi32-b
+		--assert c = 40000000h
+
+	--test-- "fl32-cast-16"
+		fi32-k: as float32! 1.5
+		c: 1 + as integer! keep fi32-k
+		--assert c = 3FC00001h
+		c: 40000001h - as integer! keep fi32-p/2
+		--assert c = 1
+		c: 40000001h - as integer! keep fi32-b * fi32-one
+		--assert c = 1
+		--assert 40000000h = as integer! keep fi32-p/2
+		--assert 3FFFFFFFh < as integer! keep fi32-b * fi32-one
 
 ===end-group===
 

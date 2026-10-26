@@ -291,20 +291,17 @@ make-profilable make target-class [
 	
 	emit-save-last: func [/with arg][
 		last-saved?: yes
-		either all [								;-- integer value casted to float
-			object? arg
-			compiler/any-float? arg/type
-			not compiler/any-float? compiler/get-type arg/data
-		][
-			emit-casting arg no						;-- load it on FPU stack now, eax is not preserved
-		][
-			unless compiler/any-float? compiler/last-type [
-				emit #{50}							;-- PUSH eax
-			]
+		all [										;-- a casting moving the value between eax and
+			object? arg								;-- FPU stack is done now, before b is computed
+			(compiler/any-float? arg/type) <> compiler/any-float? compiler/get-type arg/data
+			emit-casting arg no
+		]
+		unless compiler/any-float? compiler/last-type [
+			emit #{50}								;-- PUSH eax
 		]
 	]
 	
-	emit-restore-last: does [
+	emit-restore-last: func [/with arg][
 		unless find [float! float64! float32!] compiler/last-type/1 [
 			emit #{5A}					   			;-- POP edx
 		]
@@ -1808,10 +1805,14 @@ make-profilable make target-class [
 		]
 		switch b [
 			ref [
-				emit-variable args/2
-					#{8A0D}							;-- MOV cl, byte [value]	; global
-					#{8A8B}							;-- MOV cl, byte [ebx+disp]	; PIC
-					#{8A4D}							;-- MOV cl, byte [ebp+n]	; local
+				either all [object? args/2 not args/2/keep? compiler/any-float? compiler/get-type args/2/data][
+					emit #{88D1}					;-- MOV cl, dl				; float converted in edx
+				][
+					emit-variable args/2
+						#{8A0D}						;-- MOV cl, byte [value]	; global
+						#{8A8B}						;-- MOV cl, byte [ebx+disp]	; PIC
+						#{8A4D}						;-- MOV cl, byte [ebp+n]	; local
+				]
 			]
 			reg [emit #{88D1}]						;-- MOV cl, dl
 		]
@@ -1943,7 +1944,13 @@ make-profilable make target-class [
 				][									;-- 'b will now be stored in reg, so save 'a			
 					emit-poly [#{88C2} #{89C2}]		;-- MOV rD, rA
 					emit-load args/2
-					if object? args/2 [implicit-cast compiler/unbox args/2 no]
+					if object? args/2 [
+						either args/2/keep? [
+							emit-casting args/2 no		;-- keeps the float32! bits
+						][
+							implicit-cast compiler/unbox args/2 no
+						]
+					]
 				]
 				emit-math-op '* 'reg 'imm reduce [arg2 scale]
 				if name = '- [emit #{92}]			;-- XCHG eax, edx		; put operands in right order
@@ -2090,12 +2097,18 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][
+	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right conv?][
 		if verbose >= 3 [print [">>>inlining integer op:" mold name mold args]]
 
 		set-width args/1							;-- set reg/mem access width
 		set [a b] get-arguments-class args
 		last-saved?: no								;-- reset flag
+		conv?: all [								;-- float a already converted by emit-save-last
+			object? args/1
+			block? args/1/data
+			compiler/any-float? compiler/get-type args/1/data
+			any [block? compiler/unbox args/2 path? compiler/unbox args/2]
+		]
 
 		;-- First operand processing
 		left:  compiler/unbox args/1
@@ -2107,8 +2120,8 @@ make-profilable make target-class [
 			imm/reg [								;-- eax = b
 				if path? right [
 					emit-load args/2				;-- late path loading
-					if object? args/2 [
-						emit-casting args/2 no
+					if all [object? args/2 not compiler/any-float? compiler/get-type right][
+						emit-casting args/2 no		;-- a float b is converted below, from FPU stack
 					]
 				]
 				emit-poly [#{88C2} #{89C2}]			;-- MOV rD, rA
@@ -2145,6 +2158,10 @@ make-profilable make target-class [
 						sorted?: yes				;-- eax = a, edx = b
 					]
 					emit-load args/1				;-- late path loading
+					if all [object? args/1 compiler/any-float? compiler/get-type left][
+						emit-casting args/1 no		;-- convert a before b is loaded on FPU stack
+						conv?: yes
+					]
 				]
 				if path? right [
 					emit #{92}						;-- XCHG eax, edx	; eax = b, edx = a
@@ -2153,7 +2170,7 @@ make-profilable make target-class [
 				unless sorted? [emit #{92}]			;-- XCHG eax, edx	; eax = a, edx = b
 			]
 		]
-		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion on eax if required
+		if all [object? args/1 not conv?][emit-casting args/1 no]	;-- do runtime conversion on eax if required
 
 		;-- Operator and second operand processing
 		either all [
@@ -2171,7 +2188,11 @@ make-profilable make target-class [
 				emit-load/alt args/2/data
 			]
 			unless compiler/any-pointer? compiler/resolve-expr-type args/2 [
-				implicit-cast right yes
+				either all [object? args/2 args/2/keep?][
+					emit-casting args/2 yes			;-- keeps the float32! bits
+				][
+					implicit-cast right yes
+				]
 			]
 		]
 		case [

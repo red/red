@@ -3707,7 +3707,7 @@ system-dialect: make-profilable context [
 						emitter/target/emit-save-last/with list/1	;-- optionally save left argument result
 					]
 					if block? unbox list/2 [comp-expression list/2 yes]	;-- nested call
-					if saved? [emitter/target/emit-restore-last]
+					if saved? [emitter/target/emit-restore-last/with list/2]
 				]
 			]
 			if all [user-code? spec/2 <> 'import][libRedRT/collect-extra name]

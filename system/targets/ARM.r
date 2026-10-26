@@ -875,16 +875,41 @@ make-profilable make target-class [
 		emit-i32 #{e1a02000}						;-- MOV r2, r0
 	]
 	
-	emit-save-last: func [/with arg][
+	emit-load-float-cast: func [value [object!]][	;-- load a float casted to integer in r0, keeping r1
+		emit-i32 #{e92d0002}						;-- PUSH {r1}	; loading a path can use r3 and r4
+		emit-load value								;-- r0[:r1] = float
+		emit-casting value no						;-- r0 = integer
+		emit-i32 #{e8bd0002}						;-- POP {r1}
+	]
+	
+	emit-save-last: func [/with arg /local type][
 		last-saved?: yes
-		either find [float! float64!] compiler/last-type/1 [
+		type: compiler/last-type
+		if object? arg [
+			type: compiler/get-type arg/data		;-- saved before its casting, at its own size
+			if all [
+				not compiler/any-float? arg/type
+				compiler/any-float? type
+			][
+				emit-casting arg no					;-- except a float to integer: only r1 is restored
+				type: arg/type
+			]
+		]
+		either find [float! float64!] type/1 [
 			emit-i32 #{e92d0003}					;-- PUSH {r0,r1}
 		][
 			emit-i32 #{e92d0001}					;-- PUSH {r0}
 		]
 	]
 
-	emit-restore-last: does [
+	emit-restore-last: func [/with arg][
+		all [										;-- b casted from float to integer: converted
+			object? arg								;-- now, before r1 is overwritten
+			block? arg/data
+			not compiler/any-float? arg/type
+			compiler/any-float? compiler/get-type arg/data
+			emit-casting arg no
+		]
 		unless find [float! float64! float32!] compiler/last-type/1 [
 			emit-i32 #{e8bd0002}		   			;-- POP {r1}
 		]
@@ -2227,10 +2252,14 @@ make-profilable make target-class [
 		]
 		switch b [
 			ref [
-				emit-variable args/2
-					#{e5d33000}						;-- LDRB r3, [r3]			; global
-					#{e7d33009}						;-- LDRB r3, [r3, sb]		; PIC
-					#{e5db3000}						;-- LDRB r3, [fp, #[-]n]	; local
+				either all [object? args/2 not args/2/keep? compiler/any-float? compiler/get-type args/2/data][
+					emit-i32 #{e1a03001}			;-- MOV r3, r1				; float converted in r1
+				][
+					emit-variable args/2
+						#{e5d33000}					;-- LDRB r3, [r3]			; global
+						#{e7d33009}					;-- LDRB r3, [r3, sb]		; PIC
+						#{e5db3000}					;-- LDRB r3, [fp, #[-]n]	; local
+				]
 			]
 			reg [emit-i32 #{e1a03001}]				;-- MOV r3, r1
 		]
@@ -2280,8 +2309,10 @@ make-profilable make target-class [
 				emit-i32 code						;-- <OP> r0, r0, r1
 			]
 			ref [
-				emit-load/alt args/2
-				if object? args/2 [emit-casting args/2 yes]
+				unless all [object? args/2 not args/2/keep? compiler/any-float? compiler/get-type args/2/data][
+					emit-load/alt args/2			;-- a float casted to integer is already in r1
+					if object? args/2 [emit-casting args/2 yes]
+				]
 				emit-i32 code
 			]
 			reg [emit-i32 code]						;-- <OP> r0, r0, r1		; commutable op
@@ -2497,7 +2528,10 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][
+	emit-integer-operation: func [
+		name [word!] args [block!]
+		/local a b sorted? left right float-a? float-b? conv-a? conv-b?
+	][
 		if verbose >= 3 [print [">>>inlining integer op:" mold name mold args]]
 
 		set-width args/1							;-- set reg/mem access width
@@ -2507,6 +2541,10 @@ make-profilable make target-class [
 		;-- First operand processing
 		left:  compiler/unbox args/1
 		right: compiler/unbox args/2
+		float-a?: all [object? args/1 compiler/any-float? compiler/get-type left]	;-- float casted to integer
+		float-b?: all [object? args/2 compiler/any-float? compiler/get-type right]
+		conv-a?: all [float-a? block? left any [block? right path? right]]	;-- converted by emit-save-last
+		conv-b?: all [float-b? block? right block? left]					;-- converted by emit-restore-last
 
 		switch to path! reduce [a b] [
 			imm/imm	[emit-load-imm32 left]			;-- MOV r0, a
@@ -2514,6 +2552,10 @@ make-profilable make target-class [
 			imm/reg [								;-- r0 = b
 				if path? right [
 					emit-load args/2				;-- late path loading
+				]
+				if float-b? [						;-- converted while still in r0[:r1]
+					emit-casting args/2 no
+					conv-b?: yes
 				]
 				emit-move-alt						;-- MOV r1, r0
 				emit-load-imm32 left				;-- MOV r0, a		; r0 = a, r1 = b
@@ -2524,8 +2566,17 @@ make-profilable make target-class [
 				if path? right [
 					emit-load args/2				;-- late path loading
 				]
+				if float-b? [						;-- converted while still in r0[:r1]
+					emit-casting args/2 no
+					conv-b?: yes
+				]
 				emit-move-alt						;-- MOV r1, r0
-				emit-load args/1					;-- r0 = a, r1 = b
+				either float-a? [
+					emit-load-float-cast args/1		;-- r0 = a, r1 = b
+					conv-a?: yes
+				][
+					emit-load args/1				;-- r0 = a, r1 = b
+				]
 			]
 			reg/imm [								;-- r0 = a (or r1 = a if last-saved)
 				if path? left [
@@ -2545,25 +2596,42 @@ make-profilable make target-class [
 						args/2 = <last>				;-- inlined statement
 						block? right				;-- function call
 					][				 				;-- r1 = b
+						if all [float-b? not conv-b?][
+							emit-casting args/2 no	;-- converted while still in r0[:r1]
+							conv-b?: yes
+						]
 						emit-swap-regs				;-- swap r0, r1
 						sorted?: yes				;-- r0 = a, r1 = b
 					]
-					emit-load args/1				;-- late path loading
+					either float-a? [
+						emit-load-float-cast args/1	;-- late path loading
+						conv-a?: yes
+					][
+						emit-load args/1			;-- late path loading
+					]
 				]
 				if path? right [
 					emit-swap-regs					;-- swap r0, r1	; r0 = b, r1 = a
-					emit-load args/2
+					either float-b? [
+						emit-load-float-cast args/2
+						conv-b?: yes
+					][
+						emit-load args/2
+					]
 				]
 				unless sorted? [emit-swap-regs]		;-- swap r0, r1	; r0 = a, r1 = b
 			]
 		]
-		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion if required
+		if all [object? args/1 not conv-a?][emit-casting args/1 no]	;-- do runtime conversion if required
 
 		;-- Operator and second operand processing
-		unless all [
-			object? args/2
-			find [imm reg] b
-			args/2/type/1 <> 'integer!				;-- skip explicit casting to integer! (implicit)
+		unless any [
+			conv-b?
+			all [
+				object? args/2
+				find [imm reg] b
+				args/2/type/1 <> 'integer!			;-- skip explicit casting to integer! (implicit)
+			]
 		][
 			either all [
 				object? args/2
@@ -2573,7 +2641,11 @@ make-profilable make target-class [
 			][
 				emit-i32 #{e1a04000}				;-- MOV r4, r0	; save a
 				emit-load/alt args/2/data
-				implicit-cast right yes
+				either all [args/2/keep? 'float32! = first compiler/get-type right][
+					emit-casting args/2 yes			;-- keeps the float32! bits
+				][
+					implicit-cast right yes
+				]
 				emit-i32 #{e1a00004}				;-- MOV r0, r4	; restore a
 			][
 				implicit-cast right yes
@@ -2682,6 +2754,7 @@ make-profilable make target-class [
 			]
 			reg [
 				if block? left [
+					set-width left					;-- value moved at its own size, then casted
 					either b = 'reg [
 						emit-pop-float 0
 					][
@@ -2691,10 +2764,15 @@ make-profilable make target-class [
 					]
 				]
 				if path? left [
-					if all [b = 'reg not path? right][
-						emit-push <last>			;-- push right result on stack
+					if all [b = 'reg not path? right][	;-- push right result on stack, at its own size
+						either find [float! float64!] first compiler/get-type right [
+							emit-i32 #{e92d0003}	;-- PUSH {r0,r1}
+						][
+							emit-i32 #{e92d0001}	;-- PUSH {r0}
+						]
 					]
 					emit-load args/1				;-- late path loading
+					set-width left
 					emit-float 
 						#{ec410b10}					;-- FMDRR d0, r1, r0
 						#{ee000a10}					;-- FMSR s0, r0

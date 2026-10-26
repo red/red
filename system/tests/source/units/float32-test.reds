@@ -1791,6 +1791,22 @@ Red/System [
 		--assert fcst32-f = as float32! 0.0
 		--assert (as float32! fcst32-i1 * fcst32-ione) = (as float32! fcst32-u * fcst32-f64one)
 		--assert (as float32! fcst32-u * fcst32-f64one) = (as float32! fcst32-i1 * fcst32-ione)
+	--test-- "fcst32-narrow-1"
+		fcst32-q: as pointer! [float!] allocate 2 * size? float!
+		fcst32-q/1: 1.0
+		fcst32-q/2: 2.0
+		fcst32-s: declare struct! [v [float32!] w [float!]]
+		fcst32-s/v: as float32! 1.0
+		fcst32-s/w: 2.0
+		fcst32-f: (as float32! fcst32-q/2) - fcst32-a1
+		--assert fcst32-f = as float32! 1.0
+		--assert (as float32! fcst32-s/w) > fcst32-a1
+		fcst32-f: (as float32! fcst32-q/2 * fcst32-f64one) - (as float32! fcst32-q/1 * fcst32-f64one)
+		--assert fcst32-f = as float32! 1.0
+	--test-- "fcst32-narrow-2"
+		--assert fcst32-s/v < as float32! fcst32-q/2 * fcst32-f64one
+		fcst32-f: fcst32-s/v - as float32! fcst32-q/2 * fcst32-f64one
+		--assert fcst32-f = as float32! -1.0
 
 ===end-group===
 
