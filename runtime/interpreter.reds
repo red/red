@@ -585,6 +585,7 @@ interpreter: context [
 		get?	[logic!]
 		sub?	[logic!]
 		case?	[logic!]
+		parens	[red-value!]							;-- values of the path's parens computed by compiled code, or null
 		return: [red-value!]
 		/local
 			head tail item parent gparent saved prev arg p-item [red-value!]
@@ -645,8 +646,14 @@ interpreter: context [
 			value: switch TYPE_OF(item) [ 
 				TYPE_GET_WORD [_context/get as red-word! item]
 				TYPE_PAREN 	  [
-					eval as red-block! item no			;-- eval paren content
-					stack/top - 1
+					either null? parens [
+						eval as red-block! item no		;-- eval paren content
+						value: stack/top - 1
+					][
+						value: parens					;-- paren already evaluated by compiled code
+						parens: parens + 1
+					]
+					value
 				]
 				default [item]
 			]
@@ -761,7 +768,7 @@ interpreter: context [
 								new: copy-cell _context/get as red-word! pc stack/push*
 								if tracing? [fire-event EVT_PUSH code pc pc new]
 							]
-							TYPE_GET_PATH [eval-path pc pc + 1 end code no yes yes no]
+							TYPE_GET_PATH [eval-path pc pc + 1 end code no yes yes no null]
 							default		  [
 								if tracing? [fire-event EVT_FETCH code pc pc pc]
 								new: stack/push pc
@@ -1179,7 +1186,7 @@ interpreter: context [
 				stack/mark-interp-native words/_set-path
 				pc: eval-expression pc end code no yes no	;-- yes: push value on top of stack
 				if tracing? [fire-event EVT_SET code pc value stack/get-top]
-				pc: eval-path value pc end code yes no sub? no
+				pc: eval-path value pc end code yes no sub? no null
 				either sub? [stack/unwind][stack/unwind-last]
 				if tracing? [value: stack/arguments]
 			]
@@ -1253,7 +1260,7 @@ interpreter: context [
 			TYPE_PATH [
 				value: pc
 				pc: pc + 1
-				pc: eval-path value pc end code no no sub? no
+				pc: eval-path value pc end code no no sub? no null
 				if tracing? [
 					value: either sub? [stack/get-top][stack/arguments]
 					fire-event EVT_PUSH code pc pc value
@@ -1262,7 +1269,7 @@ interpreter: context [
 			TYPE_GET_PATH [
 				value: pc
 				pc: pc + 1
-				pc: eval-path value pc end code no yes sub? no
+				pc: eval-path value pc end code no yes sub? no null
 				if tracing? [
 					fire-event EVT_PUSH code value value stack/arguments
 					value: stack/arguments

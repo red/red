@@ -614,7 +614,7 @@ natives: context [
 			switch TYPE_OF(arg) [
 				TYPE_ANY_LIST [do-block]
 				TYPE_PATH  [
-					interpreter/eval-path arg arg arg + 1 null no no no no
+					interpreter/eval-path arg arg arg + 1 null no no no no null
 				]
 				TYPE_STRING [
 					lexer/scan-alt arg as red-string! arg -1 no yes yes no null null null
@@ -679,7 +679,7 @@ natives: context [
 		
 		switch TYPE_OF(value) [
 			TYPE_ANY_PATH [
-				interpreter/eval-path value null null null no yes no case? <> -1
+				interpreter/eval-path value null null null no yes no case? <> -1 null
 			]
 			TYPE_OBJECT [
 				object/reflect as red-object! value words/values
@@ -722,7 +722,7 @@ natives: context [
 			TYPE_ANY_PATH [
 				value: stack/push stack/arguments
 				copy-cell stack/arguments + 1 stack/arguments
-				interpreter/eval-path value null null null yes any? no case? <> -1
+				interpreter/eval-path value null null null yes any? no case? <> -1 null
 			]
 			TYPE_OBJECT [
 				object/set-many as red-object! w value any? only? some?

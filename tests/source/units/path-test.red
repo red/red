@@ -126,6 +126,138 @@ Red [
 ===end-group===
 
 
+===start-group=== "paren paths"
+
+	ppt-get: function [b [block!] i [integer!]][b/(i + 1)]
+	ppt-set: function [b [block!] i [integer!] v][b/(i + 1): v]
+	ppt-ret: function [b [block!]][b/(return 'returned) 'not-returned]
+	ppt-trail: make block! 8
+	ppt-tick: func [tag [word!] value][append ppt-trail tag :value]
+
+	--test-- "paren-path-1"
+		ppt-b: [10 20 30 [40 50] x 60]
+		--assert 20 = ppt-get ppt-b 1
+		--assert 50 = ppt-b/(1 + 3)/(1 + 1)
+		--assert 60 = ppt-b/('x)
+		--assert 10 = ppt-b/((1))
+		--assert none? ppt-b/(99)
+		--assert none? ppt-b/(0)
+		--assert error? try [ppt-b/(99)/1]
+		--assert error? try [ppt-b/(())]
+
+	--test-- "paren-path-2"
+		ppt-c: copy/deep [10 20 30 [40 50]]
+		--assert 99 = ppt-set ppt-c 0 99
+		--assert 7 = ppt-c/(1 + 3)/(1): 7
+		--assert [99 20 30 [7 50]] = ppt-c
+		--assert error? try [ppt-c/(99): 1]
+
+	--test-- "paren-path-3"
+		ppt-s: copy "hello"
+		--assert #"e" = ppt-s/(1 + 1)
+		--assert #"j" = ppt-s/(1): #"j"
+		--assert "jello" = ppt-s
+		ppt-bin: copy #{010203}
+		--assert 2 = ppt-bin/(1 + 1)
+		ppt-m: make map! [a: 1 "k" 2]
+		--assert 2 = ppt-m/("k")
+		--assert 5 = ppt-m/('n): 5
+		--assert 5 = ppt-m/n
+		ppt-v: make vector! [1 2 3]
+		--assert 20 = ppt-v/(1 + 1): 20
+		--assert 20 = ppt-v/2
+		ppt-p: 3x4
+		--assert 4 = ppt-p/('y)
+		--assert 9 = ppt-p/(1): 9
+		--assert 9x4 = ppt-p
+
+	--test-- "paren-path-4"						;-- objects, on-change*
+		ppt-o: object [
+			a: 1
+			sub: object [x: 1x2]
+			on-change*: func [word old new][append ppt-trail word]
+		]
+		clear ppt-trail
+		--assert 1 = ppt-o/('a)
+		--assert 5 = ppt-o/('a): 5
+		--assert [a] = ppt-trail
+		--assert 42 = ppt-o/('sub)/x/(1): 42
+		--assert 42x2 = ppt-o/sub/x
+		--assert error? try [ppt-o/('zz)]
+
+	--test-- "paren-path-5"						;-- get-paths
+		--assert 20 = :ppt-b/(1 + 1)
+		ppt-fb: reduce ['foo does [42]]
+		--assert function? :ppt-fb/('foo)
+		--assert 42 = ppt-fb/('foo)
+		--assert unset? :ppt-o/('zz)
+
+	--test-- "paren-path-6"						;-- evaluation order, return, break, throw
+		ppt-nb: [[1 2] [3 4]]
+		clear ppt-trail
+		--assert 9 = ppt-nb/(ppt-tick 'a 1)/(ppt-tick 'b 2): ppt-tick 'v 9
+		--assert [v a b] = ppt-trail
+		--assert [[1 9] [3 4]] = ppt-nb
+		--assert 'returned = ppt-ret [1]
+		ppt-r: make block! 3
+		loop 3 [append ppt-r ppt-nb/(if 1 < length? ppt-r [break] 1)]
+		--assert [1 9] = ppt-r
+		--assert 'thrown = catch [ppt-nb/(throw 'thrown)]
+		--assert 20 = ppt-b/(ppt-x: 1 ppt-x + 1)
+
+===end-group===
+
+
+===start-group=== "self paths"
+
+	spt-trail: make block! 4
+	spt-o: context [
+		lb: [1 2 3]
+		w: 'lb
+		paren-get: func [][self/(w)/(1)]
+		paren-set: func [][self/(w)/(2): 'x]
+		getword: func [][self/:w]
+		getword-int: func [][self/:w/1]
+		word-int-set: func [][self/lb/3: 'z]
+		getword-set: func [][self/:w: [4 5 6]]
+		in-do: func [][do [self/lb]]
+	]
+	spt-d: make spt-o [lb: [7 8 9]]
+	spt-e: context [
+		a: 1
+		w: 'a
+		on-change*: func [word old new][append spt-trail word]
+		set-a: func [v][self/(w): v]
+		set-a2: func [v][self/:w: v]
+	]
+
+	--test-- "self-path-1"
+		--assert 1 = spt-o/paren-get
+		--assert 'x = spt-o/paren-set
+		--assert [1 x 3] = spt-o/getword
+		--assert 1 = spt-o/getword-int
+		--assert 'z = spt-o/word-int-set
+		--assert [1 x z] = spt-o/lb
+
+	--test-- "self-path-2"
+		--assert [4 5 6] = spt-o/getword-set
+		--assert [4 5 6] = spt-o/lb
+		--assert [4 5 6] = spt-o/in-do
+
+	--test-- "self-path-3"						;-- copy made at compile time
+		--assert 7 = spt-d/paren-get
+		--assert 7 = spt-d/getword-int
+		--assert [7 8 9] = spt-d/in-do
+
+	--test-- "self-path-4"						;-- on-change* through SELF paths
+		--assert 5 = spt-e/set-a 5
+		--assert 6 = spt-e/set-a2 6
+		--assert [a a] = spt-trail
+		--assert 6 = spt-e/a
+
+===end-group===
+
+
 ===start-group=== "issues"
 
 	--test-- "issue #1993"

@@ -13,7 +13,7 @@ context [
 	sym-string:	make binary! 10'000
 	sym-offsets: make block!  1'000						;-- byte offset of each symbol in sym-string
 	symbols:	make hash! 	 1'000						;-- [word1 word2 ...]
-	contexts:	make hash!	 1'000						;-- [name [symbols] index ...]
+	contexts:	make hash!	 1'000						;-- [name [symbols] index self? ...]
 	index:		0
 	
 	stats:		make block! 100
@@ -332,9 +332,12 @@ context [
 		ctx-field: -1
 		idx: -1
 		if all [ctx entry: find contexts ctx][
-			if pos: find entry/2 to word! word [
-				ctx-field: entry/3
-				idx: (index? pos) - 1
+			case [
+				pos: find entry/2 to word! word [
+					ctx-field: entry/3
+					idx: (index? pos) - 1
+				]
+				all [entry/4 word? :word word = 'self][ctx-field: entry/3]	;-- an object's SELF, index -1
 			]
 		]
 		idx: any [ctx-idx idx]
@@ -504,7 +507,7 @@ context [
 		name [word!] spec [block!] stack? [logic!] self? [logic!] type [word!] /root
 		/local flags
 	][
-		repend contexts [name copy spec index]			;-- COPY to avoid late word decorations
+		repend contexts [name copy spec index self?]	;-- COPY to avoid late word decorations
 		flags: select [function 1 object 2] type
 		if stack? [flags: flags or 4]
 		if self?  [flags: flags or 8]

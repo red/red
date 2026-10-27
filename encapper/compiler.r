@@ -370,7 +370,15 @@ red: context [
 				rebol-gctx <> obj: bind? original
 				any [select objects obj select shadow-funcs obj]
 			]
-			attempt [idx: get-word-index/with to word! original ctx]
+			any [
+				attempt [idx: get-word-index/with to word! original ctx]
+				all [									;-- an object's SELF: no slot, index -1
+					word? :original
+					original = 'self
+					select objects obj
+					idx: -1
+				]
+			]
 			reduce [ctx idx]
 		]
 	]
@@ -3308,7 +3316,7 @@ red: context [
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj? new t? p
-			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks 
+			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks parens
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -3316,7 +3324,12 @@ red: context [
 		
 		unless path: system-words-path? path [exit]
 		
-		if dynamic?: find path paren! [					;-- fallback to interpreter if parens found
+		if dynamic?: any [								;-- parens are compiled, interpreter/eval-path walks the path
+			find path paren!
+			all [path/1 = 'self not parse next to block! path [some word!]]	;-- not a static SELF path
+		][
+			value: pc/1
+			get?: get-word? value/1
 			emit-open-frame 'body
 			if set? [
 				saved: pc
@@ -3325,14 +3338,56 @@ red: context [
 				after: pc
 				pc: saved
 			]
-			comp-literal
-			pc: back pc
-			
-			unless set? [emit [stack/mark-native words/_body]]	;@@ not clean...
-			emit compose [
-				interpreter/eval-path stack/top - 1 null null null (to word! form set?) no (to word! form root?) no
+			parens: none
+			unless any [								;-- a paren refining a function is left to the interpreter
+				not any-word? value/1
+				find functions to word! value/1			;-- also a local word named after a function
+				find-function get-prefix-func to word! value/1 value/1
+				all [
+					p: find to block! value paren!
+					p: copy/part head p p
+					1 < length? p
+					parse p [some word!]
+					obj-func-path? to path! p
+				]
+			][
+				saved: pc
+				pc: next value
+				until [
+					if paren? pc/1 [					;-- push the paren's value (no frame needed)
+						p: pc
+						pc: pc/1
+						either tail? pc [emit 'unset/push][
+							until [
+								comp-expression
+								unless tail? pc [emit [stack/pop 1]]	;-- keep only the last value
+								tail? pc
+							]
+						]
+						pc: p
+					]
+					tail? pc: next pc
+				]
+				pc: saved
+				parens: either set? [[stack/arguments + 1]][[stack/arguments]]
 			]
-			unless set? [emit [stack/unwind-last]]
+			index: either empty? ctx-stack [
+				redbin/emit-block value
+			][
+				redbin/emit-block/with value last ctx-stack
+			]
+			
+			either parens [								;-- result goes to the frame's slot
+				emit compose [
+					interpreter/eval-path as red-value! get-root (index) null null null (to word! form set?) (to word! form get?) no no (parens)
+				]
+			][
+				unless set? [emit [stack/mark-native words/_body]]	;@@ not clean...
+				emit compose [
+					interpreter/eval-path as red-value! get-root (index) null null null (to word! form set?) (to word! form get?) (to word! form root?) no null
+				]
+				unless set? [emit [stack/unwind-last]]
+			]
 			
 			emit-close-frame
 			pc: either set? [after][next pc]
