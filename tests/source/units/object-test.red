@@ -2360,6 +2360,48 @@ Red [
 		ooc1/a: 3
 		--assert ooc1/b = 9
 		
+	--test-- "ooc2"										;-- chained set-paths through a field with ON-CHANGE*
+		ooc2-log: make block! 4
+		ooc2: make object! [
+			a: 1
+			on-change*: func [word old new][repend ooc2-log [word old new]]
+		]
+		ooc2-x: ooc2/a: 2
+		--assert ooc2-x = 2
+		--assert ooc2/a = 2
+		--assert ooc2-log = [a 1 2]
+
+	--test-- "ooc3"
+		ooc3-f: func [u v][reduce [u v]]
+		ooc3: ooc3-f 10 ooc2/a: 3
+		--assert ooc3 = [10 3]
+		--assert ooc2/a = 3
+
+	--test-- "ooc4"
+		ooc4: either true [ooc2/a: 4][0]
+		--assert ooc4 = 4
+		--assert ooc2/a = 4
+
+	--test-- "ooc5"
+		ooc5: 0
+		loop 3 [ooc5: ooc5 + ooc2/a: 5]
+		--assert ooc5 = 15
+
+	--test-- "ooc6"
+		ooc6: make object! [
+			b: 1
+			on-change*: func [word old new][]
+			m: func [/local t][t: self/b: 6 t]
+		]
+		--assert ooc6/m = 6
+		--assert ooc6/b = 6
+
+	--test-- "ooc7"
+		ooc7: context [i: make object! [k: 1 on-change*: func [word old new][]]]
+		ooc7-x: ooc7/i/k: 7
+		--assert ooc7-x = 7
+		--assert ooc7/i/k = 7
+
 ===end-group===
 
 ===start-group=== "on deep change"

@@ -3317,6 +3317,7 @@ red: context [
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj? new t? p
 			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks parens
+			start frame framed?
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -3464,6 +3465,7 @@ red: context [
 		
 		if set? [
 			pc: next pc
+			start: tail output							;-- beginning of the assigned value's code
 			either obj? [									;-- fetch assigned value earlier
 				unless defer: dispatch-ctx-keywords none [	;-- detect function/object declaration
 					comp-expression
@@ -3554,6 +3556,11 @@ red: context [
 					stack/reset
 				]
 				foreach pos breaks [new-line skip tail any [mark last output] pos yes]
+				
+				frame: tail output						;-- STACK/KEEP and STACK/RESET need the value at a frame's base
+				emit-open-frame 'set-path
+				insert start take/part frame tail output	;-- frame opened before the assigned value's code
+				framed?: yes
 			]
 		]
 		mark: tail output
@@ -3568,6 +3575,7 @@ red: context [
 		;]
 		
 		if all [obj? not self?][change/only/part mark copy mark tail output]
+		if framed? [emit-close-frame]					;-- new value passed to the enclosing frame
 		unless set? [pc: next pc]
 	]
 	
