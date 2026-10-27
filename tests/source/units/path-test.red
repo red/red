@@ -183,4 +183,41 @@ Red [
 
 ===end-group===
 
+===start-group=== "functions reached through paths"
+
+	--test-- "path-call-1"						;-- compiled code cannot pass the argument: no-arg, no crash
+		fpc-b: reduce ['one func [x][x + 1] 'zero does [42]]
+		fpc-e: try [fpc-b/('one) 5]
+		either system/state/interpreted? [
+			--assert 6 = fpc-e
+		][
+			--assert error? fpc-e
+			--assert 'no-arg = fpc-e/id
+		]
+
+	--test-- "path-call-2"
+		fpc-o: reduce [object [f: func [x][x * 2]]]
+		fpc-e: try [fpc-o/(1)/f 5]
+		either system/state/interpreted? [
+			--assert 10 = fpc-e
+		][
+			--assert error? fpc-e
+			--assert 'no-arg = fpc-e/id
+		]
+
+	--test-- "path-call-3"
+		--assert error? try [append/('only) [] [1]]
+
+	--test-- "path-call-4"
+		fpc-h: func [x /r][x]
+		fpc-hh: :fpc-h
+		--assert error? try [fpc-hh/(1) 5]
+
+	--test-- "path-call-5"						;-- traced call from compiled code
+		fpc-f0: does [fpc-b/('zero)]
+		fpc-tracer: function [event [word!] code [any-block! none!] offset [integer!] value [any-type!] ref [any-type!] frame [pair!]][]
+		--assert 42 = do/trace [fpc-f0] :fpc-tracer
+
+===end-group===
+
 ~~~end-file~~~

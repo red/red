@@ -787,7 +787,7 @@ interpreter: context [
 			call-pos: either path = null [ref-pos][as red-value! path]
 			fname: as red-word! ref-pos
 		][
-			call-pos: pc - 1
+			call-pos: either null? pc [as red-value! path][pc - 1]	;-- null pc: called from compiled code
 			fname: as red-word! call-pos
 		]
 		if infix? [stack/top: stack/top + 1]
@@ -1031,6 +1031,7 @@ interpreter: context [
 			ctx	  [node!]
 	][
 		pos: either mode >= MODE_APPLY [slot][pc - 1]
+		if null? pc [pos: as red-value! path]			;-- null pc: called from compiled code
 		name: as red-word! either null? slot [pos][slot]
 		if tracing? [
 			if infix? [stack/top: stack/top + 1]
