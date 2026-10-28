@@ -723,11 +723,11 @@ draw-end: func [
 	unless zero? ctx/other/gradient-fill/matrix		[ GdipDeleteMatrix ctx/other/gradient-fill/matrix ]
 	ptrn: as red-image! ctx/other/pattern-image-fill
 	unless null? ptrn/node [
-		OS-image/delete as red-image! ctx/other/pattern-image-fill
+		OS-image/delete ptrn/node
 	]
 	ptrn: as red-image! ctx/other/pattern-image-pen
 	unless null? ptrn/node [
-		OS-image/delete as red-image! ctx/other/pattern-image-pen
+		OS-image/delete ptrn/node
 	]
 
 	if ctx/bitmap <> null [DeleteObject ctx/bitmap]
@@ -2240,7 +2240,7 @@ OS-draw-image: func [
 		image/any-resize src dst crop1 start end :x :y :w :h
 		if dst/header = TYPE_NONE [return 0]
 		GdipDrawImageRectI ctx/graphics as-integer dst/node x y w h
-		OS-image/delete dst
+		OS-image/delete dst/node
 	][
 		src.w: IMAGE_WIDTH(src/size)
 		src.h: IMAGE_HEIGHT(src/size)
@@ -2544,7 +2544,7 @@ OS-draw-brush-pattern: func [
 		[ as red-image! ctx/other/pattern-image-fill ]
 		[ as red-image! ctx/other/pattern-image-pen ]
 	unless null? pat-image/node [
-		OS-image/delete pat-image
+		OS-image/delete pat-image/node
 	]
 	pat-image/header: TYPE_IMAGE
 	pat-image/head:   0
@@ -2552,7 +2552,7 @@ OS-draw-brush-pattern: func [
 	bkg-alpha:        as byte! 0
 	len:              size/x * size/y
 	p-alpha/node:	  null								;-- avoid garbage during GC stack pointers scanning
-	bin: binary/make-at :p-alpha len
+	bin: binary/make-at as red-value! :p-alpha len
 	s: GET_BUFFER(bin)
 	p: as byte-ptr! s/offset
 	s/tail: as cell! (p + len)

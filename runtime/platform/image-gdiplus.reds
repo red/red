@@ -161,6 +161,11 @@ OS-image: context [
 				bitmap		[int-ptr!]
 				return:		[integer!]
 			]
+			GdipImageRotateFlip: "GdipImageRotateFlip" [
+				image		[integer!]
+				type		[integer!]
+				return:		[integer!]
+			]
 			GdipCreateBitmapFromStream: "GdipCreateBitmapFromStream" [
 				stream		[integer!]
 				bitmap		[int-ptr!]
@@ -260,16 +265,42 @@ OS-image: context [
 		PixelFormat32bppARGB
 	]
 
-	create-bitmap-from-scan0: func [
-		width		[integer!]
+	create-bitmap-from-scan0: func [					;-- copies the pixels, as the WIC version: scan0 is
+		width		[integer!]							;-- memory owned by the caller (clipboard, camera)
 		height		[integer!]
 		stride		[integer!]
-		format		[integer!]
+		format		[integer!]							;-- only 32-bit formats for now (as WIC)
 		scan0		[byte-ptr!]
 		bitmap		[int-ptr!]
 		return:		[integer!]
+		/local
+			data	[BitmapData!]
+			dst		[byte-ptr!]
+			res		[integer!]
 	][
-		GdipCreateBitmapFromScan0 width height stride format scan0 bitmap
+		if stride = 0 [stride: width * 4]
+		res: GdipCreateBitmapFromScan0 width height 0 format null bitmap
+		if zero? res [
+			data: as BitmapData! lock-bitmap-fmt bitmap/value format yes
+			if data <> null [
+				dst: data/scan0
+				loop height [
+					copy-memory dst scan0 width * 4
+					dst: dst + data/stride
+					scan0: scan0 + stride
+				]
+				unlock-bitmap-fmt bitmap/value as-integer data
+			]
+		]
+		res
+	]
+
+	flip: func [										;-- vertically, in place
+		bmp			[node!]
+		return:		[node!]
+	][
+		GdipImageRotateFlip as-integer bmp 6			;-- RotateNoneFlipY
+		bmp
 	]
 
 	create-bitmap-from-gdidib: func [
@@ -392,6 +423,8 @@ OS-image: context [
 		width: width? bitmap
 		GdipBitmapSetPixel as-integer bitmap index % width index / width color
 	]
+
+	mark: func [node [node!]][]								;-- GDI+ images are not GC-managed (see collector)
 
 	delete: func [node [node!]][
 		GdipDisposeImage as-integer node
