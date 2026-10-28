@@ -45,6 +45,7 @@
 	red/stack/set-last
 
 	red/interpreter/eval-path
+	red/interpreter/eval-path-paren
 	red/lexer/scan
 	red/lexer/scan-alt
 

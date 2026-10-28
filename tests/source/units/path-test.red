@@ -133,6 +133,10 @@ Red [
 	ppt-ret: function [b [block!]][b/(return 'returned) 'not-returned]
 	ppt-trail: make block! 8
 	ppt-tick: func [tag [word!] value][append ppt-trail tag :value]
+	ppt-order: function [b [block!]][i: 1 v: b/:i/(i: 2 1) reduce [v i]]
+	ppt-ret2: function [b [block!]][b/1/(return 'second) 'not-returned]
+	ppt-exit: function [b [block!]][b/1/(exit) 'not-exited]
+	ppt-gc: function [][nb: [[1 9] [3 4]] nb/(recycle 2)/(recycle 1)]
 
 	--test-- "paren-path-1"
 		ppt-b: [10 20 30 [40 50] x 60]
@@ -204,6 +208,58 @@ Red [
 		--assert [1 9] = ppt-r
 		--assert 'thrown = catch [ppt-nb/(throw 'thrown)]
 		--assert 20 = ppt-b/(ppt-x: 1 ppt-x + 1)
+
+	--test-- "paren-path-7"						;-- each paren runs when the walk reaches it
+		ppt-ob: [[10] [20]]
+		ppt-i: 1
+		--assert 10 = ppt-ob/:ppt-i/(ppt-i: 2 1)
+		--assert 2 = ppt-i
+		ppt-i: 1
+		--assert 99 = ppt-ob/:ppt-i/(ppt-i: 2 1): 99
+		--assert [[99] [20]] = ppt-ob
+		--assert [10 2] = ppt-order [[10] [20]]
+		ppt-hb: [[5] [6]]
+		--assert 5 = ppt-hb/1/(ppt-hb: [[9]] 1)
+		ppt-mb: [[1 2] [3 4]]
+		ppt-i: 1
+		--assert 4 = ppt-mb/(ppt-i: 2)/:ppt-i
+		ppt-eb: [[1 2] [3 4]]
+		clear ppt-trail
+		--assert error? try [ppt-eb/(ppt-tick 'a 3)/1/(ppt-tick 'b 1)]
+		--assert [a] = ppt-trail
+		ppt-fr: reduce ['foo func [/bar][either bar ['baz]['qux]]]
+		clear ppt-trail
+		--assert error? try [ppt-fr/('foo)/(ppt-tick 'c 'bar)]
+		--assert [] = ppt-trail
+
+	--test-- "paren-path-8"						;-- GC, return, exit and break in a later paren
+		--assert 3 = ppt-gc
+		ppt-gb: reduce [reduce [1 2] reduce [3 1x2]]
+		--assert 2 = ppt-gb/(1)/(recycle 2)
+		ppt-gb/(2)/(2)/(recycle 1): 5
+		--assert 5x2 = ppt-gb/2/2
+		--assert 'second = ppt-ret2 [[1]]
+		--assert unset? ppt-exit [[1]]
+		ppt-n: 0
+		loop 3 [ppt-n: ppt-n + 1 ppt-eb/1/(break)]
+		--assert 1 = ppt-n
+
+	--test-- "paren-path-9"						;-- a paren setting a field of an object with on-change*
+		ppt-oc: object [i: 0 on-change*: func [word old new][append ppt-trail word]]
+		ppt-onset: function [][nb: [[1 2] [3 4]] r: nb/(1)/(ppt-oc/i: 2) reduce [r ppt-oc/i]]
+		ppt-sb: [10]
+		clear ppt-trail
+		--assert 10 = ppt-sb/(ppt-oc/i: 1)
+		--assert 1 = ppt-oc/i
+		--assert [i] = ppt-trail
+		ppt-snb: [[1 2] [3 4]]
+		--assert 3 = ppt-snb/(ppt-oc/i: 2)/(ppt-oc/i: 1)
+		--assert 1 = ppt-oc/i
+		ppt-sc: copy [1 2]
+		ppt-sc/(ppt-oc/i: 2): 99
+		--assert [1 99] = ppt-sc
+		--assert 2 = ppt-oc/i
+		--assert [2 2] = ppt-onset
 
 ===end-group===
 

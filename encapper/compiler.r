@@ -3316,7 +3316,7 @@ red: context [
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj? new t? p
-			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks parens
+			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks call marks cnt
 			start frame framed?
 	][
 		path:  copy pc/1
@@ -3339,8 +3339,12 @@ red: context [
 				after: pc
 				pc: saved
 			]
-			parens: none
-			unless any [								;-- a paren refining a function is left to the interpreter
+			index: either empty? ctx-stack [
+				redbin/emit-block value
+			][
+				redbin/emit-block/with value last ctx-stack
+			]
+			either any [								;-- a paren refining a function is left to the interpreter
 				not any-word? value/1
 				find functions to word! value/1			;-- also a local word named after a function
 				find-function get-prefix-func to word! value/1 value/1
@@ -3352,10 +3356,23 @@ red: context [
 					obj-func-path? to path! p
 				]
 			][
+				unless set? [emit [stack/mark-native words/_body]]	;@@ not clean...
+				emit compose [
+					interpreter/eval-path as red-value! get-root (index) null null null (to word! form set?) (to word! form get?) (to word! form root?) no null
+				]
+				unless set? [emit [stack/unwind-last]]
+			][
+				call: compose [interpreter/eval-path-paren as red-value! get-root (index) (to word! form set?) (to word! form get?)]
+				marks: make block! 4
+				cnt: 0
+				foreach item next to block! value [if paren? item [cnt: cnt + 1]]
+				emit compose either zero? cnt [[(call) yes]][[if (call) yes]]	;-- each paren runs when the walk reaches it
 				saved: pc
 				pc: next value
 				until [
-					if paren? pc/1 [					;-- push the paren's value (no frame needed)
+					if paren? pc/1 [					;-- push the paren's value
+						append/only marks tail output
+						emit-open-frame 'body			;-- its code may keep or reset the frame's slots
 						p: pc
 						pc: pc/1
 						either tail? pc [emit 'unset/push][
@@ -3366,28 +3383,14 @@ red: context [
 							]
 						]
 						pc: p
+						emit-close-frame
+						cnt: cnt - 1
+						emit compose either zero? cnt [[(call) no]][[if (call) no]]
 					]
 					tail? pc: next pc
 				]
 				pc: saved
-				parens: either set? [[stack/arguments + 1]][[stack/arguments]]
-			]
-			index: either empty? ctx-stack [
-				redbin/emit-block value
-			][
-				redbin/emit-block/with value last ctx-stack
-			]
-			
-			either parens [								;-- result goes to the frame's slot
-				emit compose [
-					interpreter/eval-path as red-value! get-root (index) null null null (to word! form set?) (to word! form get?) no no (parens)
-				]
-			][
-				unless set? [emit [stack/mark-native words/_body]]	;@@ not clean...
-				emit compose [
-					interpreter/eval-path as red-value! get-root (index) null null null (to word! form set?) (to word! form get?) (to word! form root?) no null
-				]
-				unless set? [emit [stack/unwind-last]]
+				foreach pos reverse marks [convert-to-block pos]	;-- nest each paren's code in the previous walk's IF
 			]
 			
 			emit-close-frame

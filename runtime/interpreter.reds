@@ -20,6 +20,14 @@ interpreter: context [
 		MODE_APPLY_SAFER:	4							;-- fetch one value only per argument; skip if inactive
 	]
 	
+	#enum walk-mode! [									;-- compiled path stopped at a paren: how to find its parent again
+		WALK_HEAD:			0							;-- read through the head word again
+		WALK_STACK:			1							;-- on the Red stack (fixed region), kept as is
+		WALK_SERIES:		2							;-- slot index in the grand-parent's series
+		WALK_CONTEXT:		3							;-- slot index in the grand-parent's context
+		WALK_COPY:			4							;-- copy of the value
+	]
+	
 	#enum fetch-type! [									;	Bits 21-20 of a typeset! slot header
 		FETCH_WORD:			00000000h
 		FETCH_GET_WORD:		00100000h
@@ -576,6 +584,56 @@ interpreter: context [
 		]
 	]
 	
+	suspend-walk: func [								;-- compiled path stopped at a paren: save its walk (series can move meanwhile)
+		walk	[cell!]									;-- data1: paren index + 1, data2: walk-mode!, data3: slot index or pointer
+		parent	[red-value!]
+		gparent	[red-value!]
+		idx		[integer!]
+		/local
+			slot [red-value!]
+			ser	 [red-series!]
+			obj	 [red-object!]
+			ctx	 [red-context!]
+			s	 [series!]
+			type [integer!]
+	][
+		walk/data1: idx + 1
+		if zero? idx [walk/data2: WALK_HEAD exit]		;-- parent and gparent: through the head word
+		walk/data2: WALK_COPY
+		slot: walk + 2									;-- gparent first: it can be the previous parent's copy
+		slot/header: TYPE_UNSET
+		if gparent <> null [gparent: copy-cell gparent slot]
+		copy-cell parent walk + 1						;-- also the fallback
+		
+		if all [stack/bottom <= parent parent < stack/top][	;-- the Red stack does not move
+			walk/data2: WALK_STACK
+			walk/data3: as-integer parent
+			exit
+		]
+		if null? gparent [exit]
+		type: TYPE_OF(gparent)
+		case [
+			any [ANY_BLOCK?(type) type = TYPE_MAP][
+				ser: as red-series! gparent
+				s: GET_BUFFER(ser)
+				walk/data2: WALK_SERIES
+			]
+			any [type = TYPE_OBJECT type = TYPE_ERROR type = TYPE_PORT][
+				obj: as red-object! gparent
+				ctx: GET_CTX(obj)
+				if ON_STACK?(ctx) [exit]
+				s: as series! ctx/values/value
+				walk/data2: WALK_CONTEXT
+			]
+			true [exit]
+		]
+		either all [s/offset <= parent parent < s/tail][
+			walk/data3: (as-integer parent - s/offset) >> 4	;-- slot index
+		][
+			walk/data2: WALK_COPY
+		]
+	]
+	
 	eval-path: func [
 		value   [red-value!]							;-- path to evaluate
 		pc		[red-value!]
@@ -585,75 +643,116 @@ interpreter: context [
 		get?	[logic!]
 		sub?	[logic!]
 		case?	[logic!]
-		parens	[red-value!]							;-- values of the path's parens computed by compiled code, or null
+		walk	[red-value!]							;-- compiled code: walk state (see eval-path-paren), or null
 		return: [red-value!]
 		/local
-			head tail item parent gparent saved prev arg p-item [red-value!]
+			head tail item parent gparent saved prev arg p-item slot [red-value!]
 			path  [red-path!]
 			obj	  [red-object!]
 			w	  [red-word!]
 			ser	  [red-series!]
+			ctx	  [red-context!]
+			s	  [series!]
 			type idx   [integer!]
-			tail? evt? [logic!]
+			tail? evt? resumed? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
 		
 		path: as red-path! value
 		head: block/rs-head as red-block! path
 		tail: block/rs-tail as red-block! path
-		if head = tail [fire [TO_ERROR(script empty-path)]]
-		if tracing? [fire-event EVT_ENTER as red-block! path head null null]
-		if tracing? [fire-event EVT_FETCH as red-block! path head head head]
+		resumed?: all [walk <> null walk/data1 <> 0]
 		
-		item:  head + 1
-		saved: stack/top
-		idx:   0
-		
-		if TYPE_OF(head) <> TYPE_WORD [fire [TO_ERROR(script word-first) path]]
-		
-		p-item: head
-		w: as red-word! head
-		parent: _context/get w
-		gparent: null
-		
-		switch TYPE_OF(parent) [
-			TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
-			TYPE_NATIVE
-			TYPE_ROUTINE
-			TYPE_FUNCTION [
-				if set? [fire [TO_ERROR(script invalid-path-set) path]]
-				if get? [fire [TO_ERROR(script invalid-path-get) path]]
-				pc: eval-code parent pc end code yes path item - 1 parent MODE_FETCH no
-				unless sub? [stack/set-last stack/top]
-				if tracing? [fire-event EVT_EXIT as red-block! path tail null stack/arguments]
-				return pc
+		either resumed? [								;-- compiled code has pushed the value of the paren at idx
+			idx:     walk/data1 - 1
+			p-item:  head + idx
+			item:    p-item + 1
+			saved:   walk + 3							;-- stack top when the walk started
+			parent:  walk + 1							;-- the copy, unless found again below
+			gparent: walk + 2
+			if TYPE_OF(gparent) = TYPE_UNSET [gparent: null]
+			s: null
+			switch walk/data2 [
+				WALK_HEAD	 [							;-- as the head code does
+					w: as red-word! head
+					parent: _context/get w
+					gparent: null
+					if w/ctx <> global-ctx [
+						obj: as red-object! GET_CTX(w) + 1
+						if TYPE_OF(obj) <> TYPE_OBJECT [gparent: as red-value! obj]
+					]
+				]
+				WALK_STACK	 [parent: as red-value! walk/data3]
+				WALK_SERIES	 [
+					ser: as red-series! gparent
+					s: GET_BUFFER(ser)
+				]
+				WALK_CONTEXT [
+					obj: as red-object! gparent
+					ctx: GET_CTX(obj)
+					s: as series! ctx/values/value
+				]
+				default [0]
 			]
-			TYPE_UNSET [fire [TO_ERROR(script unset-path) path head]]
-			default	   [0]
-		]
-		if tracing? [fire-event EVT_PUSH as red-block! path head head parent]
+			if s <> null [
+				slot: s/offset + walk/data3
+				if slot < s/tail [parent: slot]
+			]
+			walk/data1: 0								;-- done, unless it stops at another paren
+		][
+			if head = tail [fire [TO_ERROR(script empty-path)]]
+			if tracing? [fire-event EVT_ENTER as red-block! path head null null]
+			if tracing? [fire-event EVT_FETCH as red-block! path head head head]
+			
+			item:  head + 1
+			saved: stack/top
+			idx:   0
+			
+			if TYPE_OF(head) <> TYPE_WORD [fire [TO_ERROR(script word-first) path]]
+			
+			p-item: head
+			w: as red-word! head
+			parent: _context/get w
+			gparent: null
+			
+			switch TYPE_OF(parent) [
+				TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
+				TYPE_NATIVE
+				TYPE_ROUTINE
+				TYPE_FUNCTION [
+					if set? [fire [TO_ERROR(script invalid-path-set) path]]
+					if get? [fire [TO_ERROR(script invalid-path-get) path]]
+					pc: eval-code parent pc end code yes path item - 1 parent MODE_FETCH no
+					unless sub? [stack/set-last stack/top]
+					if tracing? [fire-event EVT_EXIT as red-block! path tail null stack/arguments]
+					return pc
+				]
+				TYPE_UNSET [fire [TO_ERROR(script unset-path) path head]]
+				default	   [0]
+			]
+			if tracing? [fire-event EVT_PUSH as red-block! path head head parent]
 
-		if w/ctx <> global-ctx [
-			obj: as red-object! GET_CTX(w) + 1
-			if TYPE_OF(obj) <> TYPE_OBJECT [gparent: as red-value! obj]
+			if w/ctx <> global-ctx [
+				obj: as red-object! GET_CTX(w) + 1
+				if TYPE_OF(obj) <> TYPE_OBJECT [gparent: as red-value! obj]
+			]
 		]
 		
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
 			
+			if all [walk <> null not resumed? TYPE_OF(item) = TYPE_PAREN][	;-- compiled code evaluates it
+				suspend-walk walk parent gparent idx
+				return pc
+			]
 			if tracing? [fire-event EVT_FETCH as red-block! path item item item]
 			
 			value: switch TYPE_OF(item) [ 
 				TYPE_GET_WORD [_context/get as red-word! item]
 				TYPE_PAREN 	  [
-					either null? parens [
-						eval as red-block! item no		;-- eval paren content
-						value: stack/top - 1
-					][
-						value: parens					;-- paren already evaluated by compiled code
-						parens: parens + 1
-					]
-					value
+					unless resumed? [eval as red-block! item no]	;-- eval paren content
+					resumed?: no
+					stack/top - 1
 				]
 				default [item]
 			]
@@ -704,6 +803,47 @@ interpreter: context [
 		stack/top: saved
 		either sub? [stack/push parent][stack/push-last parent]
 		pc
+	]
+
+	eval-path-paren: func [								;-- compiled path with parens: walk it up to its next paren
+		path	[red-value!]
+		set?	[logic!]
+		get?	[logic!]
+		start?	[logic!]
+		return: [logic!]								;-- yes: stopped at a paren, push its value and call again
+		/local
+			walk head item value [cell!]
+	][
+		walk: stack/arguments + 1						;-- 3 state cells, after the frame's result slot
+		if start? [
+			unless set? [unset/push]					;-- result slot (a set path's value is already there)
+			either walk + 3 < stack/a-end [				;-- reserve them (see suspend-walk)
+				walk/header: TYPE_UNSET
+				item: walk + 1
+				item/header: TYPE_UNSET
+				item: walk + 2
+				item/header: TYPE_UNSET
+				stack/top: walk + 3
+			][
+				loop 3 [unset/push]						;-- stack overflow error
+			]
+			walk/data1: 0
+			head: block/rs-head as red-block! path
+			item: head + 1
+			if all [not tracing? TYPE_OF(head) = TYPE_WORD TYPE_OF(item) = TYPE_PAREN][
+				value: _context/get as red-word! head
+				switch TYPE_OF(value) [
+					TYPE_ANY_FUNCTION TYPE_UNSET [0]	;-- a call or an error: left to eval-path
+					default [							;-- what eval-path does up to the first paren
+						walk/data1: 1
+						walk/data2: WALK_HEAD
+						return yes
+					]
+				]
+			]
+		]
+		eval-path path null null null set? get? no no walk
+		walk/data1 <> 0
 	]
 
 	eval-arguments: func [
