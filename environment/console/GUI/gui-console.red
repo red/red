@@ -291,7 +291,8 @@ gui-console-ctx: context [
 		setup-faces
 		win/visible?: no					;-- hide it first to avoid flicker
 		load-cfg
-
+		apply-cfg-position					;-- position it BEFORE creation: fonts and text metrics
+											;-- must be derived from its final monitor's DPI
 		view/flags/no-wait win [resize]		;-- create window instance
 		console/init
 

@@ -173,14 +173,17 @@ show-cfg-dialog: function [][
 	view/flags lay [modal]
 ]
 
-apply-cfg: function [][
-	screen: get-current-screen
-	win/size: cfg/win-size
-	either within? cfg/win-pos screen/offset screen/size [
+apply-cfg-position: function [][					;-- BEFORE realizing the window: it must be created
+	screen: get-current-screen						;-- on its final monitor, so that all the DPI-derived
+	win/size: cfg/win-size							;-- resources (fonts, text metrics) use that
+	either within? cfg/win-pos screen/offset screen/size [	;-- monitor's scale
 		win/offset: cfg/win-pos
 	][
 		center-face/with win screen
 	]
+]
+
+apply-cfg: function [][
 	font: make font! [
 		name:  cfg/font-name
 		size:  cfg/font-size
