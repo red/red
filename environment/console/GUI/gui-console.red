@@ -297,6 +297,9 @@ gui-console-ctx: context [
 		console/init
 
 		apply-cfg
+		console/size: win/size				;-- created at its final size, the window may get no
+		terminal/resize win/size			;-- resize event (none on macOS) to lay its content out
+		terminal/adjust-console-size win/size
 		system/view/auto-sync?: yes
 		win/selected: console
 		if empty? system/script/args [win/visible?: yes]
