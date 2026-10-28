@@ -7,9 +7,7 @@ REBOL [
 ]
 
 ;; should we run non-interactively?
-each-mode: yes 
-
-batch-mode: ci-each: debug-mode: no
+each-mode: batch-mode: ci-each: debug-mode: no
 
 if args: any [system/script/args system/options/args][
 	batch-mode: find args "--batch"
