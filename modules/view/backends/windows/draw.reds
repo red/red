@@ -201,6 +201,9 @@ draw-begin: func [
 ][
 	time-meter/start _time_meter
 	zero-memory as byte-ptr! ctx size? draw-ctx!
+	ctx/dpi-binding: bind-window-dpi hWnd		;-- paint with the DPI of the window being drawn: the
+												;-- process-wide one follows the last activated or
+												;-- DPI-changed window, maybe on another monitor (#5764)
 	ctx/pen-width:	as float32! 1.0
 	ctx/pen-join:	D2D1_LINE_JOIN_MITER
 	ctx/pen-cap:	D2D1_CAP_STYLE_FLAT
@@ -284,8 +287,10 @@ draw-begin: func [
 		if TYPE_OF(red-img) = TYPE_IMAGE [
 			pos2: as red-pair! values + FACE_OBJ_SIZE
 			if 0 <> OS-draw-image ctx red-img null pos2 null no null null [
+				unbind-window-dpi ctx/dpi-binding		;-- not left to draw-end: it might not be
+				ctx/dpi-binding: -1						;-- called (-1: done, a DPI is never negative)
 				report TO_ERROR(internal no-memory) null null null
-				throw RED_THROWN_ERROR 
+				throw RED_THROWN_ERROR
 			]
 		]
 		type: as red-word! values + FACE_OBJ_TYPE
@@ -341,6 +346,7 @@ draw-end: func [
 		flags	[integer!]
 		hWnd?	[logic!]
 ][
+	if ctx/dpi-binding <> -1 [unbind-window-dpi ctx/dpi-binding]
 	loop ctx/clip-cnt [OS-clip-end ctx]
 	ctx/clip-cnt: 0
 	hWnd?: all [hWnd <> null ctx/image = null]

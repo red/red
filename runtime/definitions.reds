@@ -287,6 +287,7 @@ Red/System [
 						draw-shape?		[logic!]
 						sub				[sub-path! value]
 						shadows			[shadow! value]
+						dpi-binding		[integer!]			;-- bind-window-dpi result, undone by draw-end
 					]
 				][
 					draw-ctx!: alias struct! [

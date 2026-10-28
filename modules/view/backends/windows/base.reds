@@ -872,7 +872,6 @@ update-base: func [
 		text	[red-string!]
 		font	[red-object!]
 		para	[red-object!]
-		sz		[red-pair!]
 		pt		[red-point2D!]
 		hBitmap [handle!]
 		hBackDC [handle!]
@@ -883,7 +882,6 @@ update-base: func [
 		ctx		[draw-ctx! value]
 		bf		[tagBLENDFUNCTION value]
 		ptSrc	[tagPOINT value]
-		x y 	[float32!]
 		height	[integer!]
 		width	[integer!]
 		graphic [integer!]
@@ -923,10 +921,9 @@ update-base: func [
 	]
 
 	cmds: as red-block! values + FACE_OBJ_DRAW
-	sz:	  as red-pair!  values + FACE_OBJ_SIZE
-	GET_PAIR_XY(sz x y)
-	width: dpi-scale x
-	height: dpi-scale y
+	GetClientRect hWnd :rc							;-- push exactly the client-sized buffer the face is
+	width: rc/right									;-- drawn into: the scale its size facet was applied
+	height: rc/bottom								;-- with may differ from the current one (#5764)
 	ptSrc/x: 0
 	ptSrc/y: 0
 	size: as tagSIZE :width

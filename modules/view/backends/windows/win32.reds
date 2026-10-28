@@ -1168,6 +1168,11 @@ BITMAPINFO32: alias struct! [					;-- BITMAPINFOHEADER, no color table (BI_RGB 3
 			flags		[integer!]
 			return:		[handle!]
 		]
+		MonitorFromRect: "MonitorFromRect" [
+			rc			[RECT_STRUCT]
+			flags		[integer!]
+			return:		[handle!]
+		]
 		MonitorFromWindow: "MonitorFromWindow" [
 			hWnd		[handle!]
 			dwFlags		[integer!]
@@ -3043,6 +3048,10 @@ BITMAPINFO32: alias struct! [					;-- BITMAPINFOHEADER, no color table (BI_RGB 3
 					winini		[integer!]
 					dpi			[integer!]
 					return:		[logic!]
+				]
+				GetDpiForWindow: "GetDpiForWindow" [
+					hWnd		[handle!]
+					return:		[integer!]
 				]
 			]
 		]
