@@ -96,6 +96,7 @@ dpi-factor:		as float32! 1.0
 current-dpi:	as float32! 96.0
 log-pixels-x:	0
 log-pixels-y:	0
+dpi-bindings:	0										;-- nesting level of bind-window-dpi calls (#5764)
 screen-size-x:	0
 screen-size-y:	0
 default-font-name: as c-string! 0
@@ -844,12 +845,69 @@ enable-visual-styles: func [
 	InitCommonControlsEx ctrls
 ]
 
+set-dpi-globals: func [									;-- the ambient scale: the one of the window being
+	dpi		[integer!]									;-- worked on, or else of the active window (#5764)
+][
+	log-pixels-x: dpi
+	log-pixels-y: dpi
+	current-dpi: as float32! dpi
+	dpi-factor: current-dpi / as float32! 96.0
+]
+
+window-dpi: func [										;-- DPI Windows gives the window hWnd belongs to: the
+	hWnd	[handle!]									;-- one WM_DPICHANGED reports. Not MonitorFromWindow's:
+	return: [integer!]									;-- a moved window keeps its DPI until, rescaled, it
+	/local												;-- would mostly lie on the other monitor (#5764)
+		dpi	[integer!]
+][
+	#case [
+		any [not legacy not find legacy 'no-multi-monitor][
+			dpi: GetDpiForWindow GetAncestor hWnd 2		;-- GA_ROOT
+			either zero? dpi [log-pixels-x][dpi]		;-- zero: not a window
+		]
+		true [log-pixels-x]
+	]
+]
+
+bind-window-dpi: func [									;-- switch the DPI globals to the window hWnd belongs
+	hWnd	[handle!]									;-- to, for some work on it; returns the DPI to pass
+	return: [integer!]									;-- to unbind-window-dpi when the work is done
+	/local
+		dpi	[integer!]
+][
+	dpi-bindings: dpi-bindings + 1
+	dpi: log-pixels-x
+	if hWnd <> null [set-dpi-globals window-dpi hWnd]
+	dpi
+]
+
+unbind-window-dpi: func [								;-- after some work: if it changed the DPI globals,
+	dpi		[integer!]									;-- give an enclosing work its DPI back; after the
+	/local												;-- outermost one, give them to the active window,
+		win	[handle!]									;-- or back to dpi when it is hidden (#5764)
+][
+	dpi-bindings: dpi-bindings - 1
+	if log-pixels-x <> dpi [
+		win: null
+		if zero? dpi-bindings [win: GetActiveWindow]
+		either all [win <> null IsWindowVisible win][
+			set-dpi-globals window-dpi win
+		][
+			set-dpi-globals dpi
+		]
+	]
+]
+
 update-dpi-factor: func [
 	hWnd	[handle!]
 	/local
 		win	screen [red-object!]
 		fl [red-float!]
 ][
+	#case [any [not legacy not find legacy 'no-multi-monitor][
+		set-dpi-globals window-dpi hWnd					;-- the window's own DPI, not the one of the screen
+		exit											;-- it was parented to: the cursor's (#5764)
+	]]
 	win: as red-object! get-face-obj hWnd
 	assert TYPE_OF(win) = TYPE_OBJECT
 	screen: as red-object! (object/get-values win) + FACE_OBJ_PARENT		;-- screen: win/parent
@@ -880,6 +938,36 @@ get-dpi: func [
 	]
 	current-dpi: as float32! log-pixels-x
 	dpi-factor: current-dpi / as float32! 96.0
+]
+
+get-window-dpi: func [									;-- set the DPI globals for a window placed at the
+	offset	[red-point2D!]								;-- logical offset, of logical size w x h, to the DPI
+	w		[float32!]									;-- Windows will give it: the one of the monitor holding
+	h		[float32!]									;-- most of it once scaled with that very DPI (#5764)
+	/local
+		rc		[RECT_STRUCT value]
+		dpi		[integer!]
+		n		[integer!]
+][
+	#case [
+		any [not legacy not find legacy 'no-multi-monitor][
+			n: 0
+			until [
+				dpi: log-pixels-x
+				rc/left:   dpi-scale offset/x
+				rc/top:    dpi-scale offset/y
+				rc/right:  dpi-scale offset/x + w
+				rc/bottom: dpi-scale offset/y + h
+				GetDpiForMonitor MonitorFromRect rc 2 0 :log-pixels-x :log-pixels-y	;-- 2: MONITOR_DEFAULTTONEAREST
+				current-dpi: as float32! log-pixels-x
+				dpi-factor: current-dpi / as float32! 96.0
+				n: n + 1
+				any [log-pixels-x = dpi n = 4]
+			]
+			if log-pixels-x <> dpi [get-dpi]			;-- no consistent DPI: the cursor's monitor one
+		]
+		true [get-dpi]
+	]
 ]
 
 get-metrics: func [
@@ -1568,9 +1656,27 @@ OS-show-window: func [
 
 	SetForegroundWindow as handle! hWnd
 	set-selected-focus as handle! hWnd
+	set-dpi-globals window-dpi as handle! hWnd			;-- the shown window gets the input (#5764)
 ]
 
-OS-make-view: func [
+OS-make-view: func [									;-- a face is created with the DPI of its window,
+	face	[red-object!]								;-- not the one of the last activated window (#5764)
+	parent	[integer!]
+	return: [integer!]
+	/local
+		dpi		[integer!]
+		handle	[integer!]
+][
+	dpi: bind-window-dpi as handle! parent				;-- no parent: window, sets its own DPI
+	handle: 0
+	system/thrown: 0
+	catch RED_THROWN_ERROR [handle: make-face-view face parent]
+	unbind-window-dpi dpi								;-- error exits too
+	if system/thrown <> 0 [re-throw]
+	handle
+]
+
+make-face-view: func [
 	face	[red-object!]
 	parent	[integer!]
 	return: [integer!]
@@ -1613,6 +1719,7 @@ OS-make-view: func [
 		ratio	  [float!]
 		sx sy f32 [float32!]
 		ex-flags  [integer!]
+		dpi		  [integer!]
 ][
 	stack/mark-native words/_body
 
@@ -1805,10 +1912,9 @@ OS-make-view: func [
 				n: either alpha? [WS_EX_LAYERED][set-layered-option options win8+?]
 				ws-flags: ws-flags or n
 			]
-			get-dpi
-
 			if sx < as float32! 0.0 [sx: as float32! 200.0]
 			if sy < as float32! 0.0 [sy: as float32! 200.0]
+			get-window-dpi offset sx sy					;-- the DPI Windows will give the window (#5764)
 			rc/left: 0
 			rc/top: 0
 			rc/right:  dpi-scale sx
@@ -1872,6 +1978,21 @@ OS-make-view: func [
 		as int-ptr! face
 
 	if null? handle [print-line "*** View Error: CreateWindowEx failed!"]
+
+	if all [sym = window handle <> null][
+		dpi: window-dpi handle							;-- Windows gave the window another DPI than the
+		if dpi <> log-pixels-x [						;-- predicted one (no placement is consistent with
+			set-dpi-globals dpi							;-- a single monitor's DPI): adopt it, as a
+			rc/left: 0									;-- WM_DPICHANGED would (#5764)
+			rc/top: 0
+			rc/right:  dpi-scale sx
+			rc/bottom: dpi-scale sy
+			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
+			rc/right: rc/right - rc/left
+			rc/bottom: rc/bottom - rc/top
+			SetWindowPos handle null 0 0 rc/right rc/bottom SWP_NOMOVE or SWP_NOZORDER or SWP_NOACTIVATE
+		]
+	]
 
 	SetWindowLong handle wc-offset - 12 ex-flags
 	if any [win8+? not alpha?][BringWindowToTop handle]
@@ -2136,6 +2257,7 @@ change-offset: func [
 		layer?	[logic!]
 		pos-x	[integer!]
 		pos-y	[integer!]
+		rc		[RECT_STRUCT value]
 ][
 	flags: SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
 	header: 0
@@ -2144,6 +2266,13 @@ change-offset: func [
 
 	if TYPE_OF(pos) = TYPE_PAIR [as-point2D as red-pair! pos]
 
+	if type = window [									;-- scale for the monitor the window moves TO: with
+		GetWindowRect hWnd :rc							;-- its current DPI, a move to another monitor can
+		get-window-dpi									;-- land it off-screen (#5764)
+			pos
+			(as float32! rc/right - rc/left) / dpi-factor
+			(as float32! rc/bottom - rc/top) / dpi-factor
+	]
 	pos-x: dpi-scale pos/x
 	pos-y: dpi-scale pos/y
 	if all [					;-- caret widget
@@ -2196,6 +2325,7 @@ change-offset: func [
 		pos-x pos-y
 		0 0
 		flags
+	if type = window [set-dpi-globals window-dpi hWnd]	;-- the DPI Windows actually gave it
 	if type = tab-panel [update-tab-contents hWnd FACE_OBJ_OFFSET]
 ]
 
@@ -2763,7 +2893,19 @@ unlink-sub-obj: func [
 	]
 ]
 
-OS-update-view: func [
+OS-update-view: func [									;-- apply facets with the DPI of the face's window,
+	face [red-object!]									;-- not the one of the last activated window (#5764)
+	/local
+		dpi	[integer!]
+][
+	dpi: bind-window-dpi face-handle? face
+	system/thrown: 0
+	catch RED_THROWN_ERROR [update-facets face]
+	unbind-window-dpi dpi								;-- error exits too
+	if system/thrown <> 0 [re-throw]
+]
+
+update-facets: func [
 	face [red-object!]
 	/local
 		ctx		[red-context!]

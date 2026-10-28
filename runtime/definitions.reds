@@ -288,6 +288,7 @@ Red/System [
 						clip-axis		[integer!]			;-- bit N-1 set: clip N is an axis-aligned clip, not a layer
 						sub				[sub-path! value]
 						shadows			[shadow! value]
+						dpi-binding		[integer!]			;-- bind-window-dpi result, undone by draw-end
 					]
 				][
 					draw-ctx!: alias struct! [

@@ -163,7 +163,30 @@ draw-geometry: func [
 	gpath/Release path
 ]
 
-draw-begin: func [
+draw-begin: func [										;-- paint with the DPI of the window being drawn: the
+	ctx			[draw-ctx!]								;-- process-wide one follows the last activated or
+	hWnd		[handle!]								;-- DPI-changed window, maybe on another monitor (#5764)
+	img			[red-image!]
+	on-graphic? [logic!]
+	paint?		[logic!]
+	return: 	[draw-ctx!]
+	/local
+		dpi		[integer!]
+][
+	dpi: bind-window-dpi hWnd
+	system/thrown: 0
+	catch RED_THROWN_ERROR [start-draw ctx hWnd img on-graphic? paint?]
+	either zero? system/thrown [
+		ctx/dpi-binding: dpi							;-- undone by draw-end
+	][
+		unbind-window-dpi dpi							;-- no draw-end follows an error
+		ctx/dpi-binding: -1								;-- -1: done (a DPI is never negative)
+		re-throw
+	]
+	ctx
+]
+
+start-draw: func [
 	ctx			[draw-ctx!]
 	hWnd		[handle!]
 	img			[red-image!]
@@ -285,7 +308,7 @@ draw-begin: func [
 			pos2: as red-pair! values + FACE_OBJ_SIZE
 			if 0 <> OS-draw-image ctx red-img null pos2 null no null null [
 				report TO_ERROR(internal no-memory) null null null
-				throw RED_THROWN_ERROR 
+				throw RED_THROWN_ERROR
 			]
 		]
 		type: as red-word! values + FACE_OBJ_TYPE
@@ -341,6 +364,7 @@ draw-end: func [
 		flags	[integer!]
 		hWnd?	[logic!]
 ][
+	if ctx/dpi-binding <> -1 [unbind-window-dpi ctx/dpi-binding]
 	loop ctx/clip-cnt [OS-clip-end ctx]
 	ctx/clip-cnt: 0
 	hWnd?: all [hWnd <> null ctx/image = null]

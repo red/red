@@ -872,7 +872,6 @@ update-base: func [
 		text	[red-string!]
 		font	[red-object!]
 		para	[red-object!]
-		sz		[red-pair!]
 		pt		[red-point2D!]
 		hBitmap [handle!]
 		hBackDC [handle!]
@@ -883,7 +882,6 @@ update-base: func [
 		ctx		[draw-ctx! value]
 		bf		[tagBLENDFUNCTION value]
 		ptSrc	[tagPOINT value]
-		x y 	[float32!]
 		height	[integer!]
 		width	[integer!]
 		graphic [integer!]
@@ -923,10 +921,9 @@ update-base: func [
 	]
 
 	cmds: as red-block! values + FACE_OBJ_DRAW
-	sz:	  as red-pair!  values + FACE_OBJ_SIZE
-	GET_PAIR_XY(sz x y)
-	width: dpi-scale x
-	height: dpi-scale y
+	GetClientRect hWnd :rc							;-- push exactly the client-sized buffer the face is
+	width: rc/right									;-- drawn into: the scale its size facet was applied
+	height: rc/bottom								;-- with may differ from the current one (#5764)
 	ptSrc/x: 0
 	ptSrc/y: 0
 	size: as tagSIZE :width
@@ -948,13 +945,10 @@ update-base: func [
 		]
 	]
 
-	this: get-surface hWnd
-	surf: as IDXGISurface1 this/vtbl
-	surf/GetDC this 0 :hdc
-	UpdateLayeredWindow hWnd null ptDst size hdc/value :ptSrc 0 :bf flags
-	rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
-	surf/ReleaseDC this :rc
-	surf/Release this
+	hBackDC: get-layered-dc hWnd					;-- staging-texture readback, see #5764
+	if hBackDC <> null [
+		UpdateLayeredWindow hWnd null ptDst size hBackDC :ptSrc 0 :bf flags
+	]
 ]]
 
 ;-- blends the image of every encountered visible layered window into the DC
@@ -976,10 +970,7 @@ imprint-layers-deep: func [
 	cofs 		[red-point2D!]	;-- "child" offset - it's position inside the parent
 	chwnd 		[handle!]
 	cvalues		[red-value!]
-	this		[this!]
-	surf		[IDXGISurface1]
-	hdc			[ptr-value!]
-	rc			[RECT_STRUCT value]
+	mdc			[handle!]
 ][
 	if null = values [values: get-face-values hwnd]
 
@@ -998,13 +989,10 @@ imprint-layers-deep: func [
 		]
 ][	;-- Direct2D backend
 		do-draw hwnd null draw yes no no yes
-		this: get-surface hwnd
-		surf: as IDXGISurface1 this/vtbl
-		surf/GetDC this 0 :hdc
-		bitblt-memory-dc hwnd yes dc bx by hdc/value	;-- blend back
-		rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
-		surf/ReleaseDC this :rc
-		surf/Release this
+		mdc: get-layered-dc hwnd						;-- staging-texture readback, see #5764
+		if mdc <> null [
+			bitblt-memory-dc hwnd yes dc bx by mdc		;-- blend back
+		]
 ]
 	]
 
