@@ -840,6 +840,7 @@ OS-image: context [
 
 	to-gpbitmap: func [
 		image		[red-image!]
+		ilock		[com-ptr!]						;-- unused: same arguments as the WIC version
 		return:		[integer!]
 	][
 		get-bitmap image/node
@@ -847,5 +848,6 @@ OS-image: context [
 
 	release-gpbitmap: func [
 		bitmap		[integer!]
+		ilock		[com-ptr!]						;-- unused: same arguments as the WIC version
 	][]
 ]
