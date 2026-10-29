@@ -364,15 +364,11 @@ alloc-context: func [
 	ctx/other/path-last-point:			ALLOC_REENTRANT(tagPOINT)
 	ctx/other/prev-shape:				ALLOC_REENTRANT(curve-info!)
 	ctx/other/prev-shape/control:		ALLOC_REENTRANT(tagPOINT)
-	ctx/other/pattern-image-fill:		ALLOC_REENTRANT_ELEMS(integer! red-image! 1)
-	ctx/other/pattern-image-pen:		ALLOC_REENTRANT_ELEMS(integer! red-image! 1)
 ]
 
 free-context: func [
 	ctx [draw-ctx!]
 ][
-	FREE_REENTRANT(ctx/other/pattern-image-pen)
-	FREE_REENTRANT(ctx/other/pattern-image-fill)
 	FREE_REENTRANT(ctx/other/prev-shape/control)
 	FREE_REENTRANT(ctx/other/prev-shape)
 	FREE_REENTRANT(ctx/other/path-last-point)
@@ -558,7 +554,6 @@ draw-begin: func [
 		hBitmap  [handle!]
 		hBackDC  [handle!]
 		graphics [integer!]
-		ptrn	 [red-image!]
 		ratio	 [float32!]
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
@@ -599,10 +594,6 @@ draw-begin: func [
 	ctx/other/matrix-order:					GDIPLUS_MATRIX_PREPEND
 	ctx/other/connect-subpath:				0
 	ctx/other/anti-alias?:					no
-	ptrn:									as red-image! ctx/other/pattern-image-fill
-	ptrn/node:								null
-	ptrn:									as red-image! ctx/other/pattern-image-pen
-	ptrn/node:								null
 
 	either null? hWnd [
 		ctx/on-image?: yes
@@ -610,7 +601,7 @@ draw-begin: func [
 			graphics: as-integer img
 		][
 			graphics: 0
-			OS-image/GdipGetImageGraphicsContext as-integer img/node :graphics
+			OS-image/GdipGetImageGraphicsContext OS-image/get-bitmap img/node :graphics
 		]
 		dc: CreateCompatibleDC hScreen
 		SelectObject dc default-font
@@ -691,7 +682,6 @@ draw-end: func [
 		bitmap	[integer!]
 		old-dc	[integer!]
 		dc		[handle!]
-		ptrn	[red-image!]
 ][
 	if ctx/other/D2D? [
 		draw-end-d2d ctx hWnd
@@ -721,14 +711,6 @@ draw-end: func [
 	unless zero? ctx/brush			[DeleteObject as handle! ctx/brush]
 	unless zero? ctx/other/gradient-pen/matrix		[ GdipDeleteMatrix ctx/other/gradient-pen/matrix ]
 	unless zero? ctx/other/gradient-fill/matrix		[ GdipDeleteMatrix ctx/other/gradient-fill/matrix ]
-	ptrn: as red-image! ctx/other/pattern-image-fill
-	unless null? ptrn/node [
-		OS-image/delete ptrn/node
-	]
-	ptrn: as red-image! ctx/other/pattern-image-pen
-	unless null? ptrn/node [
-		OS-image/delete ptrn/node
-	]
 
 	if ctx/bitmap <> null [DeleteObject ctx/bitmap]
 	either cache? [
@@ -2239,7 +2221,7 @@ OS-draw-image: func [
 		x: 0 y: 0 w: 0 h: 0
 		image/any-resize src dst crop1 start end :x :y :w :h
 		if dst/header = TYPE_NONE [return 0]
-		GdipDrawImageRectI ctx/graphics as-integer dst/node x y w h
+		GdipDrawImageRectI ctx/graphics OS-image/get-bitmap dst/node x y w h
 		OS-image/delete dst/node
 	][
 		src.w: IMAGE_WIDTH(src/size)
@@ -2274,10 +2256,10 @@ OS-draw-image: func [
 			true [return 0]
 		]
 		either null? crop1 [
-			GdipDrawImageRectI ctx/graphics as-integer src/node x y w h
+			GdipDrawImageRectI ctx/graphics OS-image/get-bitmap src/node x y w h
 		][
 			GdipDrawImageRectRectI
-				ctx/graphics as-integer src/node
+				ctx/graphics OS-image/get-bitmap src/node
 				x y w h
 				crop.x crop.y crop.w crop.h
 				GDIPLUS_UNIT_PIXEL 0 0 0
@@ -2512,7 +2494,7 @@ OS-draw-brush-bitmap: func [
 		]
 	]
 	texture: 0
-	result: GdipCreateTexture2I as-integer img/node wrap x y width height :texture
+	result: GdipCreateTexture2I OS-image/get-bitmap img/node wrap x y width height :texture
 	either brush? [
 		ctx/brush?:         yes
 		ctx/gp-brush:       texture
@@ -2540,15 +2522,11 @@ OS-draw-brush-pattern: func [
 		p			[byte-ptr!]
 		len			[integer!]
 ][
-	pat-image: either brush?
-		[ as red-image! ctx/other/pattern-image-fill ]
-		[ as red-image! ctx/other/pattern-image-pen ]
-	unless null? pat-image/node [
-		OS-image/delete pat-image/node
-	]
+	pat-image: as red-image! stack/push*				;-- on the Red stack: the GC keeps it while it is drawn
 	pat-image/header: TYPE_IMAGE
 	pat-image/head:   0
 	pat-image/size:   size/y << 16 or size/x
+	pat-image/node:   null
 	bkg-alpha:        as byte! 0
 	len:              size/x * size/y
 	p-alpha/node:	  null								;-- avoid garbage during GC stack pointers scanning
@@ -2560,6 +2538,8 @@ OS-draw-brush-pattern: func [
 	pat-image/node: OS-image/make-image size/x size/y null bin null
 	do-draw null pat-image block no no no no
 	OS-draw-brush-bitmap ctx pat-image crop-1 crop-2 mode brush?
+	OS-image/delete pat-image/node						;-- the texture brush has its own copy
+	stack/top: as red-value! pat-image
 ]
 
 get-shape-center: func [

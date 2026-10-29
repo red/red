@@ -330,4 +330,27 @@ img: make image! 2x2
 	]
 ===end-group===
 
+===start-group=== "image GC"
+	--test-- "owned image survives a recycle"			;-- its node is an ownership table key
+		img-owner: make object! [
+			img: make image! [2x2 255.0.0]
+			on-deep-change*: func [owner word target action new index part][]
+		]
+		recycle
+		--assert img-owner/img/size = 2x2
+		--assert img-owner/img/1 = 255.0.0.0
+
+	#if all [config/OS = 'Windows not interpreted?] [
+	--test-- "images are freed by the GC"
+		img: none
+		recycle
+		img-mem: img-private-bytes
+		loop 40 [img: make image! 512x512]
+		img: none
+		recycle
+		;-- a leak keeps 40 images of 1 MB
+		--assert (img-private-bytes - img-mem) < (10 * 512 * 512 * 4)
+	]
+===end-group===
+
 ~~~end-file~~~
