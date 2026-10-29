@@ -155,6 +155,7 @@ RedGrabberCB: alias struct! [
 	vtbl					[int-ptr!]
 	width					[integer!]
 	height					[integer!]
+	hWnd					[handle!]					;-- camera window, notified of each copied frame
 	frame					[byte-ptr!]					;-- copy of the requested frame
 	state					[integer!]					;-- 0: idle, 1: frame requested, 2: frame copied, 3: copying
 ]
@@ -173,6 +174,7 @@ ISampleGrabber: alias struct! [
 ]
 
 #define CAM_DEV_OFFSET 7
+#define WM_CAMERA_FRAME 0401h							;-- WM_USER + 1: a requested frame was copied
 
 camera!: alias struct! [
 	builder		[this!]
@@ -247,8 +249,20 @@ grabber-cb-buffer: func [								;-- capture thread: must not touch Red memory
 		if lBufferSize < size [size: lBufferSize]
 		copy-memory obj/frame pBuffer size
 		system/atomic/store :obj/state 2
+		PostMessage obj/hWnd WM_CAMERA_FRAME 0 0
 	]
 	0
+]
+
+frame-to-image: func [									;-- GUI thread only
+	obj		[RedGrabberCB]
+	img		[red-image!]
+	/local
+		bmp	[integer!]
+][
+	bmp: 0
+	OS-image/create-bitmap-from-scan0 obj/width obj/height 0 OS-image/fixed-format obj/frame :bmp
+	image/init-image img OS-image/flip as node! bmp
 ]
 
 camera-wait-image: func [								;-- the image is made here, on the GUI thread
@@ -257,7 +271,6 @@ camera-wait-image: func [								;-- the image is made here, on the GUI thread
 	/local
 		cam		[camera!]
 		obj		[RedGrabberCB]
-		bmp		[integer!]
 		timeout	[float32!]
 ][
 	img/header: TYPE_NONE
@@ -274,12 +287,27 @@ camera-wait-image: func [								;-- the image is made here, on the GUI thread
 	unless system/atomic/cas :obj/state 1 0 [		;-- too late to cancel: wait for the copy
 		while [3 = system/atomic/load :obj/state][platform/wait 0.001]
 	]
-	if 2 = system/atomic/load :obj/state [
-		bmp: 0
-		OS-image/create-bitmap-from-scan0 obj/width obj/height 0 OS-image/fixed-format obj/frame :bmp
-		image/init-image img OS-image/flip as node! bmp
-	]
+	if 2 = system/atomic/load :obj/state [frame-to-image obj img]
 	system/atomic/store :obj/state 0
+]
+
+camera-frame-ready: func [								;-- WM_CAMERA_FRAME: the frame requested when the preview
+	hWnd	[handle!]									;-- started becomes the face's image, if it has none
+	/local
+		cam		[camera!]
+		obj		[RedGrabberCB]
+		values	[red-value!]
+		img		[red-image!]
+][
+	cam: as camera! GetWindowLong hWnd wc-offset - 4
+	if any [null? cam  null? cam/grabber-cb][exit]
+	obj: as RedGrabberCB cam/grabber-cb
+	if 2 = system/atomic/load :obj/state [				;-- else not copied yet, or taken by camera-wait-image
+		values: get-face-values hWnd
+		img: as red-image! values + FACE_OBJ_IMAGE
+		if TYPE_OF(img) = TYPE_NONE [frame-to-image obj img]
+		system/atomic/store :obj/state 0
+	]
 ]
 
 set-camera-viewport: func [
@@ -496,8 +524,9 @@ build-preview-graph: func [
 	grabber-cb: as RedGrabberCB allocate size? RedGrabberCB
 	grabber-cb/width: bmp/biWidth
 	grabber-cb/height: bmp/biHeight
+	grabber-cb/hWnd: hWnd
 	grabber-cb/frame: allocate bmp/biWidth * bmp/biHeight * 4
-	grabber-cb/state: 0
+	grabber-cb/state: 1									;-- request the first frame: the face's initial image
 	grabber-cb/vtbl: as int-ptr! SampleGrabberCB
 	cam/grabber-cb: as int-ptr! grabber-cb
 
@@ -698,6 +727,7 @@ CameraWndProc: func [
 		cam [camera!]
 ][
 	if msg = WM_DESTROY [destroy-camera hWnd]
+	if msg = WM_CAMERA_FRAME [camera-frame-ready hWnd]
 	;if msg = WM_ERASEBKGND [return 1]
 	DefWindowProc hWnd msg wParam lParam
 ]
