@@ -114,8 +114,11 @@ image: context [
 		width	[integer!]
 		height	[integer!]
 		return: [red-image!]
+		/local
+			node [node!]
 	][
-		init-image as red-image! stack/push* as node! OS-image/resize img width height
+		node: as node! OS-image/resize img width height	;-- can run the GC: before the push
+		init-image as red-image! stack/push* node
 	]
 
 	any-resize: func [
@@ -290,6 +293,7 @@ image: context [
 			img   [red-image!]
 			hr    [int-ptr!]
 	][
+		slot/header: TYPE_UNSET							;-- the GC can run in load-image
 		hr: OS-image/load-image src
 		if null? hr [fire [TO_ERROR(access cannot-open) src]]
 		img: as red-image! slot
@@ -551,6 +555,7 @@ image: context [
 		img: as red-image! stack/push*
 		img/header: TYPE_IMAGE
 		img/head: 0
+		img/node: null									;-- the GC can run before it is set
 
 		if all [
 			TYPE_OF(spec) = TYPE_BLOCK
