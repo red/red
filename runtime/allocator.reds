@@ -187,7 +187,7 @@ allocate-virtual: func [
 	catch OS_ERROR_VMEM_ALL [
 		ptr: platform/allocate-virtual size exec?
 	]
-	if system/thrown > OS_ERROR_VMEM [
+	if all [system/thrown > OS_ERROR_VMEM system/thrown <= OS_ERROR_VMEM_ALL][ ;-- ignore any pending exception
 		system/thrown: 0
 		fire [TO_ERROR(internal no-memory)]
 	]
@@ -206,7 +206,7 @@ free-virtual: func [
 	catch OS_ERROR_VMEM_ALL [
 		platform/free-virtual ptr
 	]
-	if system/thrown > OS_ERROR_VMEM [
+	if all [system/thrown > OS_ERROR_VMEM system/thrown <= OS_ERROR_VMEM_ALL][ ;-- ignore any pending exception
 		system/thrown: 0
 		fire [TO_ERROR(internal wrong-mem)]
 	]

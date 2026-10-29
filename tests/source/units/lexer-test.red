@@ -1571,6 +1571,23 @@ Red [
 
 ===end-group===
 
+===start-group=== "load errors"
+
+	--test-- "load-err-1"									;-- partial values stored while the error is pending
+		lxe-src: append/dup make string! 400010 "1 " 200000	;-- > 2MB of values: needs a new memory frame
+		append lxe-src ":x:"
+		lxe-err: try [transcode lxe-src]
+		--assert error? lxe-err
+		--assert lxe-err/id = 'invalid
+
+	--test-- "load-err-2"
+		lxe-res: load/trap lxe-src
+		--assert 200000 = length? lxe-res/1
+		--assert lxe-res/3/id = 'invalid
+		unset [lxe-src lxe-err lxe-res]
+
+===end-group===
+
 ===start-group=== "issues"
 
 	--test-- "#4562"
