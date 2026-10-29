@@ -2116,11 +2116,15 @@ OS-draw-brush-bitmap: func [
 		bmp		[ptr-value!]
 		unk		[IUnknown]
 ][
+	ithis: OS-image/get-handle img yes
+	if null? ithis [							;-- empty image: paints nothing
+		either brush? [OS-draw-fill-pen ctx 0 yes no][OS-draw-pen ctx 0 yes]
+		exit
+	]
 	width: as float32! OS-image/width? img/node
 	height: as float32! OS-image/height? img/node
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	ithis: OS-image/get-handle img yes
 	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
 	_OS-draw-brush-bitmap ctx as this! bmp/value width height crop-1 crop-2 mode brush?
 	ithis: as this! bmp/value

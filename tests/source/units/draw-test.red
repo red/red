@@ -54,6 +54,12 @@ do [if all [system/view value? 'image! datatype? get 'image!] [
 
 ===end-group===
 
+===start-group=== "draw empty images"
+	e: make image! 0x0
+	--test-- "empty4" --assert image? draw copy i [fill-pen bitmap e box 0x0 2x2]
+	--test-- "empty5" --assert image? draw copy i [pen bitmap e box 0x0 2x2]
+===end-group===
+
 ;-- TODO: test more commands once the coordinate system mess is dealt with
 
 ]]
