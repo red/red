@@ -2546,7 +2546,7 @@ change-image: func [
 		type = camera [
 			img: as red-image! values + FACE_OBJ_IMAGE
 			if TYPE_OF(img) = TYPE_NONE [
-				camera-wait-image img
+				camera-wait-image hWnd img
 			]
 		]
 		true [0]
@@ -3146,7 +3146,7 @@ OS-to-image: func [
 		hWnd: face-handle? face
 		either null? hWnd [ret: as red-image! none-value][
 			ret: as red-image! (object/get-values face) + FACE_OBJ_IMAGE
-			camera-wait-image ret
+			camera-wait-image hWnd ret
 		]
 		return ret
 	]
