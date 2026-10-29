@@ -121,6 +121,8 @@ render-base: func [
 		graphic	[integer!]
 		type	[integer!]
 		res		[logic!]
+		bitmap	[integer!]
+		lock	[com-ptr! value]
 ][
 	graphic: 0
 	res: paint-background hWnd hDC
@@ -130,14 +132,16 @@ render-base: func [
 	img: as red-image! values + FACE_OBJ_IMAGE
 
 	GetClientRect hWnd :rc
-	if TYPE_OF(img) = TYPE_IMAGE [
+	if all [TYPE_OF(img) = TYPE_IMAGE  img/node <> null][
+		bitmap: OS-image/to-gpbitmap img :lock
 		GdipCreateFromHDC hDC :graphic
 		if zero? GdipDrawImageRectI
 			graphic
-			as-integer img/node
+			bitmap
 			0 0
 			rc/right - rc/left rc/bottom - rc/top [res: true]
 		GdipDeleteGraphics graphic
+		OS-image/release-gpbitmap bitmap :lock
 	]
 
 	type: symbol/resolve w/symbol
