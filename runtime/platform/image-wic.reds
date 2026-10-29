@@ -1156,6 +1156,7 @@ OS-image: context [
 			IB		[IWICBitmap]
 			w		[integer!]
 			h		[integer!]
+			node	[node!]
 	][
 		IFAC: as IWICImagingFactory wic-factory/vtbl
 		either zero? IFAC/CreateBitmapFromHBITMAP wic-factory as int-ptr! hBitmap null alpha :bitmap [
@@ -1166,9 +1167,8 @@ OS-image: context [
 		IB/GetSize this :w :h
 		handle: to-bgra this no
 		IB/Release this
-		image/init-image
-			as red-image! stack/push*
-			make-node handle null 0 w h
+		node: make-node handle null 0 w h				;-- before the push: make-node can trigger a GC
+		image/init-image as red-image! stack/push* node
 	]
 
 	to-gpbitmap: func [

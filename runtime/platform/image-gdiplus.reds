@@ -68,6 +68,11 @@ OS-image: context [
 		reserved	[integer!]
 	]
 
+	img-node!: alias struct! [						;-- buffer of an image! node
+		bitmap		[integer!]						;-- GDI+ bitmap, 0 once deleted
+		extID		[integer!]						;-- external resources table ID
+	]
+
 	#import [
 		"kernel32.dll" stdcall [
 			GlobalAlloc: "GlobalAlloc" [
@@ -161,6 +166,11 @@ OS-image: context [
 				bitmap		[int-ptr!]
 				return:		[integer!]
 			]
+			GdipImageRotateFlip: "GdipImageRotateFlip" [
+				image		[integer!]
+				type		[integer!]
+				return:		[integer!]
+			]
 			GdipCreateBitmapFromStream: "GdipCreateBitmapFromStream" [
 				stream		[integer!]
 				bitmap		[int-ptr!]
@@ -239,6 +249,31 @@ OS-image: context [
 		]
 	]
 
+	make-node: func [
+		bitmap		[integer!]
+		return:		[node!]
+		/local
+			node	[node!]
+			inode	[img-node!]
+	][
+		node: alloc-bytes size? img-node!
+		inode: as img-node! (as series! node/value) + 1
+		inode/bitmap: bitmap
+		inode/extID: externals/store node image/ext-type
+		node
+	]
+
+	get-bitmap: func [
+		node		[node!]
+		return:		[integer!]
+		/local
+			inode	[img-node!]
+	][
+		if null? node [return 0]						;-- empty image
+		inode: as img-node! (as series! node/value) + 1
+		inode/bitmap
+	]
+
 	get-pixel-format: func [
 		image		[integer!]
 		format		[int-ptr!]
@@ -260,16 +295,45 @@ OS-image: context [
 		PixelFormat32bppARGB
 	]
 
-	create-bitmap-from-scan0: func [
-		width		[integer!]
+	create-bitmap-from-scan0: func [					;-- copies the pixels, as the WIC version: scan0 is
+		width		[integer!]							;-- memory owned by the caller (clipboard, camera)
 		height		[integer!]
 		stride		[integer!]
-		format		[integer!]
+		format		[integer!]							;-- only 32-bit formats for now (as WIC)
 		scan0		[byte-ptr!]
 		bitmap		[int-ptr!]
 		return:		[integer!]
+		/local
+			data	[BitmapData!]
+			dst		[byte-ptr!]
+			bmp		[integer!]
+			res		[integer!]
 	][
-		GdipCreateBitmapFromScan0 width height stride format scan0 bitmap
+		if stride = 0 [stride: width * 4]
+		bmp: 0
+		res: GdipCreateBitmapFromScan0 width height 0 format null :bmp
+		if zero? res [
+			data: as BitmapData! lock-bitmap-fmt bmp format yes
+			if data <> null [
+				dst: data/scan0
+				loop height [
+					copy-memory dst scan0 width * 4
+					dst: dst + data/stride
+					scan0: scan0 + stride
+				]
+				unlock-bitmap-fmt bmp as-integer data
+			]
+			bitmap/value: as-integer make-node bmp
+		]
+		res
+	]
+
+	flip: func [										;-- vertically, in place
+		bmp			[node!]
+		return:		[node!]
+	][
+		GdipImageRotateFlip get-bitmap bmp 6			;-- RotateNoneFlipY
+		bmp
 	]
 
 	create-bitmap-from-gdidib: func [
@@ -277,8 +341,14 @@ OS-image: context [
 		data		[byte-ptr!]
 		bitmap		[int-ptr!]
 		return:		[integer!]
+		/local
+			bmp		[integer!]
+			res		[integer!]
 	][
-		GdipCreateBitmapFromGdiDib bmi data bitmap
+		bmp: 0
+		res: GdipCreateBitmapFromGdiDib bmi data :bmp
+		if zero? res [bitmap/value: as-integer make-node bmp]
+		res
 	]
 
 	width?: func [
@@ -288,7 +358,7 @@ OS-image: context [
 			width	[integer!]
 	][
 		width: 0
-		GdipGetImageWidth as-integer handle :width
+		GdipGetImageWidth get-bitmap handle :width
 		width
 	]
 
@@ -299,7 +369,7 @@ OS-image: context [
 			height	[integer!]
 	][
 		height: 0
-		GdipGetImageHeight as-integer handle :height
+		GdipGetImageHeight get-bitmap handle :height
 		height
 	]
 
@@ -332,14 +402,14 @@ OS-image: context [
 		write?		[logic!]
 		return:		[integer!]
 	][
-		lock-bitmap-fmt as-integer img/node PixelFormat32bppARGB write?
+		lock-bitmap-fmt get-bitmap img/node PixelFormat32bppARGB write?
 	]	
 
 	unlock-bitmap: func [
 		img			[red-image!]
 		data		[integer!]
 	][
-		GdipBitmapUnlockBits as-integer img/node as BitmapData! data
+		GdipBitmapUnlockBits get-bitmap img/node as BitmapData! data
 		free as byte-ptr! data
 	]
 
@@ -377,7 +447,7 @@ OS-image: context [
 	][
 		width: width? bitmap
 		arbg: 0
-		GdipBitmapGetPixel as-integer bitmap index % width index / width :arbg
+		GdipBitmapGetPixel get-bitmap bitmap index % width index / width :arbg
 		arbg
 	]
 
@@ -390,11 +460,21 @@ OS-image: context [
 			width	[integer!]
 	][
 		width: width? bitmap
-		GdipBitmapSetPixel as-integer bitmap index % width index / width color
+		GdipBitmapSetPixel get-bitmap bitmap index % width index / width color
 	]
 
-	delete: func [node [node!]][
-		GdipDisposeImage as-integer node
+	mark: func [node [node!] /local inode [img-node!]][
+		inode: as img-node! (as series! node/value) + 1
+		externals/mark inode/extID node					;-- node may have been relocated by node compaction
+	]
+
+	delete: func [node [node!] /local inode [img-node!]][
+		if null? node [exit]							;-- empty image
+		inode: as img-node! (as series! node/value) + 1
+		unless zero? inode/bitmap [
+			GdipDisposeImage inode/bitmap
+			inode/bitmap: 0
+		]
 	]
 
 	resize: func [
@@ -415,18 +495,18 @@ OS-image: context [
 		graphic: 0
 		format: 0
 		bitmap: 0
-		GdipGetImagePixelFormat as-integer img/node :format
+		GdipGetImagePixelFormat get-bitmap img/node :format
 		GdipCreateBitmapFromScan0 width height 0 format null :bitmap
 		GdipGetImageGraphicsContext bitmap :graphic
 		GdipDrawImageRectRectI
 			graphic
-			as-integer img/node
+			get-bitmap img/node
 			0 0 width height
 			0 0 old-w old-h
 			2
 			0 0 0
 		GdipDeleteGraphics graphic
-		bitmap
+		as-integer make-node bitmap
 	]
 
 	copy-rect: func [
@@ -513,14 +593,16 @@ OS-image: context [
 
 		format: 0
 		bitmap: 0
+		w: 0
+		h: 0
 		GdipGetImagePixelFormat handle :format
-		w: width? as int-ptr! handle
-		h: height? as int-ptr! handle
+		GdipGetImageWidth handle :w
+		GdipGetImageHeight handle :h
 		GdipCreateBitmapFromScan0 w h 0 format null :bitmap
 		copy-lines bitmap handle h 0 0 format
 
 		GdipDisposeImage handle
-		as int-ptr! bitmap
+		make-node bitmap
 	]
 
 	make-image: func [
@@ -591,7 +673,7 @@ OS-image: context [
 		]
 
 		unlock-bitmap-fmt bitmap as-integer data
-		as int-ptr! bitmap
+		make-node bitmap
 	]
 
 	load-binary: func [
@@ -618,7 +700,8 @@ OS-image: context [
 		sthis: as this! s
 		stream: as IStream sthis/vtbl
 		stream/Release sthis				;-- the hMem will also be released
-		as node! bmp
+		if zero? bmp [return null]
+		make-node bmp
 	]
 
 	encode: func [
@@ -663,7 +746,7 @@ OS-image: context [
 			0
 			0
 			IStm
-		hr: GdipSaveImageToStream as-integer image/node IStm/ptr clsid 0
+		hr: GdipSaveImageToStream get-bitmap image/node IStm/ptr clsid 0
 
 		stream: as IStream IStm/ptr/vtbl
 		stream/Stat IStm/ptr stat 1
@@ -694,12 +777,12 @@ OS-image: context [
 			bmp		[integer!]
 	][
 		bmp: 0
-		handle: as-integer src/node
+		handle: get-bitmap src/node
 		GdipCloneImage handle :bmp
+		dst/node: make-node bmp							;-- before the header: make-node can trigger a GC
 		dst/size: src/size
 		dst/header: TYPE_IMAGE
 		dst/head: 0
-		dst/node: as node! bmp
 		return dst
 	]
 
@@ -718,14 +801,14 @@ OS-image: context [
 	][
 		bmp: 0
 		format: 0
-		handle: as-integer src/node
+		handle: get-bitmap src/node
 		GdipGetImagePixelFormat handle :format
 		GdipCloneBitmapAreaI x y w h format handle :bmp
 
+		dst/node: make-node bmp							;-- before the header: make-node can trigger a GC
 		dst/size: h << 16 or w
 		dst/header: TYPE_IMAGE
 		dst/head: 0
-		dst/node: as node! bmp
 		dst
 	]
 
@@ -736,7 +819,7 @@ OS-image: context [
 			bitmap	[integer!]
 	][
 		bitmap: 0
-		GdipCreateHBITMAPFromBitmap as-integer image/node :bitmap 0
+		GdipCreateHBITMAPFromBitmap get-bitmap image/node :bitmap 0
 		bitmap
 	]
 
@@ -745,22 +828,26 @@ OS-image: context [
 		return:		[red-image!]
 		/local
 			bitmap	[integer!]
+			node	[node!]
 	][
 		bitmap: 0
 		GdipCreateBitmapFromHBITMAP as handle! hBitmap 0 :bitmap
 		if zero? bitmap [return as red-image! none-value]
 
-		image/init-image as red-image! stack/push* as int-ptr! bitmap
+		node: make-node bitmap							;-- before the push: make-node can trigger a GC
+		image/init-image as red-image! stack/push* node
 	]
 
 	to-gpbitmap: func [
 		image		[red-image!]
+		ilock		[com-ptr!]						;-- unused: same arguments as the WIC version
 		return:		[integer!]
 	][
-		as integer! image/node
+		get-bitmap image/node
 	]
 
 	release-gpbitmap: func [
 		bitmap		[integer!]
+		ilock		[com-ptr!]						;-- unused: same arguments as the WIC version
 	][]
 ]

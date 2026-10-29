@@ -499,11 +499,9 @@ collector: context [
 				TYPE_IMAGE [
 					#if debug? = yes [if verbose > 1 [print "image"]]
 					img: as red-image! value
-					#if draw-engine <> 'GDI+ [
-						if img/node <> null [
-							keep :img/node
-							image/mark img/node
-						]
+					if img/node <> null [
+						keep :img/node
+						image/mark img/node
 					]
 				]]
 				TYPE_HANDLE [
