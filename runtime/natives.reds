@@ -3057,6 +3057,7 @@ natives: context [
 		all?:  all [one < 0 load?]
 		next?: next >= 0
 		slot: stack/push*
+		slot/header: TYPE_UNSET							;-- the GC sees this slot while the lexer runs
 		if all [next? any [one < 0 not load?]][
 			blk: block/preallocate as red-block! slot 2 no
 			s: GET_BUFFER(blk)

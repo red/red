@@ -1569,6 +1569,30 @@ Red [
 			error string! datatype! 1 1x5
 		]
 
+	--test-- "tt-33"
+		tt33-n: 0
+		tt33-cb: func [event input type line token][
+			if tt33-n = 0 [
+				tt33-n: 1
+				recycle
+			]
+			true
+		]
+		tt33-load: function [src [string!]][
+			out: make block! 10
+			set/any 'out transcode/trace src :tt33-cb
+			set/any 'out out/1
+			:out
+		]
+		tt33-src: mold [[1 "a" [2 "b"]] [3 "c"]]
+		loop 20 [
+			tt33-n: 0
+			tt33-r: tt33-load tt33-src
+			recycle
+		]
+		--assert tt33-r = [[1 "a" [2 "b"]] [3 "c"]]
+		--assert tt33-n = 1
+
 ===end-group===
 
 ===start-group=== "load errors"
