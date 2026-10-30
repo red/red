@@ -894,23 +894,38 @@ update-base: func [
 		rt		[integer!]
 		handle	[red-handle!]
 		blk		[red-block!]
-		face	[red-object!]
+		face	[red-object! value]
+		type	[red-word!]
+		sym		[integer!]
+		alpha?	[logic!]
 		rc		[RECT_STRUCT value]
 ][
 	if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
-		either transparent-base?
-					as red-tuple! values + FACE_OBJ_COLOR
-					as red-image! values + FACE_OBJ_IMAGE [
+		type: as red-word! values + FACE_OBJ_TYPE
+		sym: symbol/resolve type/symbol
+		alpha?: no										;-- would OS-make-view create it layered?
+		if any [sym = base sym = rich-text][
+			alpha?: transparent-base?
+				as red-tuple! values + FACE_OBJ_COLOR
+				as red-image! values + FACE_OBJ_IMAGE
+		]
+		if all [
+			sym = window
+			(get-face-flags hWnd) and FACET_FLAGS_NO_BORDER <> 0
+		][
+			alpha?: transparent-win? as red-tuple! values + FACE_OBJ_COLOR
+		]
+		either alpha? [
 			h-above: GetWindow hWnd 3 ;-- GW_HWNDPREV get the window above hWnd
 			parent: GetParent hWnd
-			face: get-face-obj hWnd
+			copy-cell as red-value! get-face-obj hWnd as red-value! :face	;-- free-faces recycles the face's reference slot
 
 			;-- destroy the base face
-			free-faces face no
+			free-faces :face no
 			DestroyWindow hWnd
 
 			;-- recreate a layered window
-			hWnd: as handle! OS-make-view face as-integer parent
+			hWnd: as handle! OS-make-view :face as-integer parent
 			blk: as red-block! values + FACE_OBJ_STATE
 			blk/header: TYPE_BLOCK
 			handle: as red-handle! block/rs-head blk
