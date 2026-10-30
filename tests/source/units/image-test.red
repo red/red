@@ -328,6 +328,36 @@ img: make image! 2x2
 		;-- a leak keeps 40 copies of the PNG data
 		--assert (img-private-bytes - img-mem) < (10 * length? img-png)
 	]
+	--test-- "load from binary decodes TIFF data, in both byte orders"
+		img-tiff: #{
+			49492A00080000000A0000010300010000000200000001010300010000000200000002010300030000008600000003010300
+			010000000100000006010300010000000200000011010400010000008C0000001501030001000000030000001601030001000000
+			0200000017010400010000000C0000001C010300010000000100000000000000080008000800FF000000FF000000FFFFFFFF
+		}
+		img: load/as img-tiff 'tiff
+		--assert to logic! all [image? img img/size = 2x2 img/rgb = #{FF000000FF000000FFFFFFFF}]
+		img-tiff: #{
+			4D4D002A00000008000A01000003000000010002000001010003000000010002000001020003000000030000008601030003
+			000000010001000001060003000000010002000001110004000000010000008C0115000300000001000300000116000300000001
+			0002000001170004000000010000000C011C0003000000010001000000000000000800080008FF000000FF000000FFFFFFFF
+		}
+		img: load/as img-tiff 'tiff
+		--assert to logic! all [image? img img/size = 2x2 img/rgb = #{FF000000FF000000FFFFFFFF}]
+
+	--test-- "TIFF codec saves and loads .tif and .tiff files"
+		img: make image! reduce [2x2 #{FF000000FF000000FFFFFFFF}]
+		test-tif: qt-tmp-dir/test-codec.tif
+		save test-tif img
+		img2: load test-tif
+		img3: load/as read/binary test-tif 'tiff
+		--assert to logic! all [image? img2 img2/size = 2x2 img2/rgb = img/rgb]
+		--assert to logic! all [image? img3 img3/size = 2x2 img3/rgb = img/rgb]
+		delete test-tif
+		test-tif: qt-tmp-dir/test-codec.tiff
+		save test-tif img
+		img2: load test-tif
+		--assert to logic! all [image? img2 img2/size = 2x2 img2/rgb = img/rgb]
+		delete test-tif
 ===end-group===
 
 ===start-group=== "image GC"
