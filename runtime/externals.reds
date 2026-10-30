@@ -172,15 +172,36 @@ externals: context [
 	mark: func [										;-- mark an alive record
 		idx		[integer!]								;-- record index
 		handle	[int-ptr!]								;-- new resource handle if it moved (relocated node), else null
+		return: [logic!]								;-- yes: first mark of the record in this GC cycle
 		/local
 			rec [record!]
+			first? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line ["externals/mark: " idx]]]
 		assert idx < size
 		rec: as record! list + idx
 		assert rec/header and flag-free = 0
+		first?: rec/header and flag-mark = 0
 		rec/header: rec/header or flag-mark
 		if handle <> null [rec/handle: as-integer handle]
+		first?
+	]
+	
+	walk: func [										;-- call FUN on the handle of every live record of TYPE
+		type	[integer!]								;-- a valid type ID (previously registered)
+		fun		[integer!]								;-- pointer to a function with a destructor's spec
+		/local
+			rec  [record!]
+			next [integer!]
+			cb   [destructor!]
+	][
+		cb: as destructor! fun
+		next: used
+		while [next <> tail-record][
+			rec: list + next
+			next: rec/next
+			if rec/header and ext-type-mask = type [cb as int-ptr! rec/handle]
+		]
 	]
 	
 	sweep: func [										;-- collect unreachable records (called by GC)

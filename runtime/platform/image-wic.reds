@@ -26,6 +26,7 @@ Red/System [
 #define IMG_NODE_WICBITMAP		8
 #define IMG_NODE_PREMULTIPLIED	16
 #define IMG_NODE_UPDATE_BUFFER	32
+#define IMG_NODE_PAINTED		64
 
 OS-image: context [
 
@@ -56,6 +57,7 @@ OS-image: context [
 		buffer	[this!]
 		size	[integer!]
 		extID	[integer!]								;-- external resources table ID
+		bitmap	[this!]									;-- D2D bitmap of handle, kept for window paints
 	]
 
 	#import [
@@ -296,14 +298,53 @@ OS-image: context [
 			node	[node!]
 			inode	[img-node!]
 	][
-		node: alloc-bytes 20
+		node: alloc-bytes size? img-node!
 		inode: as img-node! (as series! node/value) + 1
 		inode/flags: flags
 		inode/handle: handle
 		inode/buffer: buffer
 		inode/size: height << 16 or width
+		inode/bitmap: null
 		inode/extID: externals/store node image/ext-type
 		node
+	]
+
+	drop-bitmap: func [
+		"Forget the D2D bitmap kept for the image of NODE (also called by externals/walk)"
+		node	[node!]
+		/local
+			inode	[img-node!]
+			unk		[IUnknown]
+	][
+		inode: as img-node! (as series! node/value) + 1
+		COM_SAFE_RELEASE(unk inode/bitmap)
+	]
+
+	cached-bitmap: func [
+		"D2D bitmap kept from earlier window paints of IMG, or null"
+		img		[red-image!]
+		return: [this!]
+		/local
+			inode	[img-node!]
+			unk		[IUnknown]
+	][
+		inode: as img-node! (as series! img/node/value) + 1
+		inode/flags: inode/flags or IMG_NODE_PAINTED			;-- keeps its bitmap through the next GC
+		COM_ADD_REF(unk inode/bitmap)
+		inode/bitmap
+	]
+
+	keep-bitmap: func [
+		"Keep BMP, made for a window paint of IMG, until IMG changes"
+		img		[red-image!]
+		bmp		[this!]
+		/local
+			inode	[img-node!]
+			unk		[IUnknown]
+	][
+		inode: as img-node! (as series! img/node/value) + 1
+		COM_ADD_REF(unk bmp)
+		inode/bitmap: bmp
 	]
 
 	to-bgra: func [
@@ -359,7 +400,8 @@ OS-image: context [
 			if h <> null [COM_SAFE_RELEASE(unk h)]
 			h: new-h
 			inode/handle: new-h
-			inode/flags: inode/flags and (not IMG_NODE_WICBITMAP)
+			drop-bitmap img/node
+			inode/flags: inode/flags and (not (IMG_NODE_WICBITMAP or IMG_NODE_MODIFIED))	;-- the handle shows the buffer now
 			inode/flags: either premul? [
 				inode/flags or IMG_NODE_PREMULTIPLIED
 			][
@@ -603,6 +645,7 @@ OS-image: context [
 	][
 		inode: as img-node! (as series! img/node/value) + 1
 		inode/flags: inode/flags or IMG_NODE_UPDATE_BUFFER
+		drop-bitmap img/node
 	]
 
 	get-data: func [
@@ -718,9 +761,15 @@ OS-image: context [
 		0
 	]
 
-	mark: func [node [node!] /local inode [img-node!]][
+	mark: func [node [node!] /local inode [img-node!] unk [IUnknown]][
 		inode: as img-node! (as series! node/value) + 1
-		externals/mark inode/extID node					;-- node may have been relocated by node compaction
+		if externals/mark inode/extID node [				;-- node may have been relocated by node compaction
+			either inode/flags and IMG_NODE_PAINTED <> 0 [	;-- first reference marked in this GC
+				inode/flags: inode/flags and (not IMG_NODE_PAINTED)
+			][
+				COM_SAFE_RELEASE(unk inode/bitmap)		;-- not painted on a window since the last GC
+			]
+		]
 	]
 
 	delete: func [
@@ -732,6 +781,7 @@ OS-image: context [
 		inode: as img-node! (as series! node/value) + 1
 		COM_SAFE_RELEASE(unk inode/handle)
 		COM_SAFE_RELEASE(unk inode/buffer)
+		drop-bitmap node
 	]
 
 	resize: func [

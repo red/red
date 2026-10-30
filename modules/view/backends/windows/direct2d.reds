@@ -1872,6 +1872,7 @@ DX-release-dev: func [
 	/local
 		unk		[IUnknown]
 ][
+	#if draw-engine <> 'GDI+ [externals/walk image/ext-type as-integer :OS-image/drop-bitmap]	;-- images keep D2D bitmaps of this device
 	COM_SAFE_RELEASE(unk d2d-ctx)
 	COM_SAFE_RELEASE(unk d3d-ctx)
 	COM_SAFE_RELEASE(unk d3d-device)

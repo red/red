@@ -349,6 +349,59 @@ release-ctx: func [
 	free-shadow ctx
 ]
 
+release-hwnd-target: func [					;-- releases the render target of hWnd, asking for a repaint
+	hWnd		[handle!]
+	/local
+		target	[render-target!]
+][
+	target: as render-target! GetWindowLong hWnd wc-offset - 36
+	if target <> null [
+		d2d-release-target target
+		SetWindowLong hWnd wc-offset - 36 0
+		InvalidateRect hWnd null 0
+	]
+]
+
+release-pane-targets: func [					;-- releases the render targets of the faces in PANE, and of their panes
+	pane		[red-block!]
+	/local
+		face	[red-object!]
+		tail	[red-object!]
+		hWnd	[handle!]
+		sub		[red-block!]
+][
+	face: as red-object! block/rs-head pane
+	tail: as red-object! block/rs-tail pane
+	while [face < tail][
+		hWnd: face-handle? face
+		if hWnd <> null [release-hwnd-target hWnd]
+		sub: as red-block! (object/get-values face) + FACE_OBJ_PANE
+		if TYPE_OF(sub) = TYPE_BLOCK [release-pane-targets sub]
+		face: face + 1
+	]
+]
+
+release-all-targets: func [					;-- after a device loss: every render target is on the lost device
+	/local
+		screen	[red-object!]
+		tail	[red-object!]
+		pane	[red-block!]
+		d3d		[ID3D11DeviceContext]
+][
+	pane: as red-block! #get system/view/screens
+	screen: as red-object! block/rs-head pane
+	tail: as red-object! block/rs-tail pane
+	while [screen < tail][
+		pane: as red-block! (object/get-values screen) + FACE_OBJ_PANE
+		if TYPE_OF(pane) = TYPE_BLOCK [release-pane-targets pane]
+		screen: screen + 1
+	]
+	if hidden-hwnd <> null [release-hwnd-target hidden-hwnd]
+	d3d: as ID3D11DeviceContext d3d-ctx/vtbl			;-- a released swapchain is only destroyed, freeing its window, on a flush
+	d3d/ClearState d3d-ctx
+	d3d/Flush d3d-ctx
+]
+
 draw-end: func [
 	ctx			[draw-ctx!]
 	hWnd		[handle!]
@@ -393,6 +446,7 @@ draw-end: func [
 				d2d-release-target rt
 				ctx/dc: null
 				SetWindowLong hWnd wc-offset - 36 0
+				release-all-targets
 				DX-create-dev
 				InvalidateRect hWnd null 0
 			]
@@ -1911,6 +1965,7 @@ OS-draw-image: func [
 		crop2	[red-pair!]
 		same-img? [logic!]
 		pt		[red-point2D!]
+		window?	[logic!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1919,11 +1974,17 @@ OS-draw-image: func [
 	ithis: OS-image/get-handle image yes
 	if null? ithis [return 0]
 
-	if 0 <> dc/CreateBitmapFromWicBitmap2 this ithis null :bmp [
-		return DRAW_OUT_OF_MEMORY
+	window?: null? ctx/image					;-- window targets all draw on d2d-ctx: their bitmaps can be kept
+	bthis: null
+	if window? [bthis: OS-image/cached-bitmap image]
+	if null? bthis [
+		if 0 <> dc/CreateBitmapFromWicBitmap2 this ithis null :bmp [
+			return DRAW_OUT_OF_MEMORY
+		]
+		bthis: as this! bmp/value
+		if window? [OS-image/keep-bitmap image bthis]
 	]
 	if same-img? [dc/BeginDraw this]
-	bthis: as this! bmp/value
 	d2db: as IUnknown bthis/vtbl
 	either null? start [x: F32_0 y: F32_0][GET_PAIR_XY(start x y)]
 	width: as float32! IMAGE_WIDTH(image/size)
@@ -1949,7 +2010,10 @@ OS-draw-image: func [
 			src/top: src/bottom
 			src/bottom: fval
 		]
-		if any [src/right <= F32_0 src/bottom <= F32_0][return 0]
+		if any [src/right <= F32_0 src/bottom <= F32_0][
+			d2db/Release bthis
+			return 0
+		]
 		if src/left <= F32_0 [
 			x: x - src/left
 			src/left: F32_0
