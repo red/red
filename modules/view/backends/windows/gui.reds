@@ -703,6 +703,7 @@ free-faces: func [
 		sym		[integer!]
 		dc		[integer!]
 		flags	[integer!]
+		id		[integer!]
 		cam		[camera!]
 		handle	[handle!]
 		hFont	[handle!]
@@ -740,6 +741,8 @@ free-faces: func [
 		]
 	]
 
+	id: GetWindowLong handle wc-offset					;-- read these before a panel is destroyed
+	flags: GetWindowLong handle OFFSET_CURSOR_ICON		;-- release an owned image cursor HICON
 	case [
 		sym = group-box [
 			;-- destroy the extra frame window
@@ -761,10 +764,9 @@ free-faces: func [
 		SetWindowLong handle wc-offset - 4 -1
 	]
 
-	flags: GetWindowLong handle OFFSET_CURSOR_ICON		;-- release an owned image cursor HICON
 	if flags <> 0 [DestroyIcon flags]
 
-	references/remove GetWindowLong handle wc-offset
+	references/remove id
 	SetWindowLong handle wc-offset 0
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
