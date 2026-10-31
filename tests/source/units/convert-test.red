@@ -150,6 +150,13 @@ Red [
 			float! == type? to float! 23:59:59.999999
 			86399.999999 = to float! 23:59:59.999999
 		]
+	--test-- "to-float!-11"			--assert 1000.5 == to float! "1'000.5"
+	--test-- "to-float!-12"			--assert 1000000.5 == to float! "1'000'000.5"
+	--test-- "to-float!-13"			--assert 1000.0 == to float! "1'000"
+	--test-- "to-float!-14"			--assert -1000.25 == to float! "-1'000.25"
+	--test-- "to-float!-15"			--assert 1000000.5 == to float! "1'000'000.5000000000000000000000000"	;-- over 31 chars
+	--test-- "to-float!-16"			--assert error? try [to float! "'"]
+	--test-- "to-float!-17"			--assert error? try [to float! "'''"]
 	
 ===end-group===
 
