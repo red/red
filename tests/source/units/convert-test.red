@@ -490,6 +490,12 @@ Red [
 	--test-- "issue #4272"
 		--assert #{DEADBEEF} = to binary! quote (222 173 190 239)
 		--assert #{BADCAFEE} = to binary! make hash! [186 220 175 238]
+	--test-- "to-binary!-issue!-not-hex"				;-- a GC pass while the error is raised must not crash
+		cvt-bin-errors: 0
+		loop 10000 [
+			if error? try [to binary! #xyz] [cvt-bin-errors: cvt-bin-errors + 1]
+		]
+		--assert cvt-bin-errors = 10000
 ===end-group===
 ===start-group=== "to-block!"
 	--test-- "to-block!-char!"

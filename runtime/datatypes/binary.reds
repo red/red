@@ -255,9 +255,9 @@ binary: context [
 		bin/head: 0
 		bin/header: TYPE_UNSET
 		bin/node: decode-16 p len unit
-		bin/header: TYPE_BINARY
 		stack/pop 1
 		if null? bin/node [fire [TO_ERROR(script invalid-data) issue]]
+		bin/header: TYPE_BINARY					;-- only once the node is valid (fire can trigger a GC)
 		len
 	]
 
