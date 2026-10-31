@@ -366,8 +366,10 @@ stack: context [										;-- call stack
 			type [integer!]
 			node [node!]
 			ctx	 [red-context!]
+			base [call-frame!]
 	][
 		assert cbottom < ctop
+		base: ctop
 		until [
 			ctop: ctop - 1
 			type: CALL_STACK_MASK and ctop/header
@@ -385,7 +387,11 @@ stack: context [										;-- call stack
 			]
 		]
 		if inner? [ctop: ctop + 1]
-		STACK_SET_FRAME
+		either ctop = base [							;-- already in the target frame: keep its arguments
+			top: arguments + 1
+		][
+			STACK_SET_FRAME
+		]
 		unless inner? [ctop: ctop + 1]					;-- ctop points past the current call frame
 	]
 

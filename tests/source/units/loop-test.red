@@ -180,6 +180,19 @@ Red [
 	--test-- "ex8"
 	foo-ex2: does [parse "1" [(return 124)]]
 	--assert foo-ex2 = 124
+	
+	--test-- "ex9"
+	ex9-deep: func [n][either n > 0 [ex9-deep n - 1][n]]
+	ex9-cont: func [/local i n][i: 0 n: 0 while [i < 10][i: i + 1 if i < 5 [continue] n: n + 1] n]
+	ex9-brk: func [/local i n][i: 0 n: 0 while [i < 10][i: i + 1 if i > 6 [break] n: n + 1] n]
+	ex9-r: copy []
+	ex9-deep 50
+	loop 3 [
+		append ex9-r ex9-cont
+		append ex9-r ex9-brk
+		ex9-deep 20
+	]
+	--assert ex9-r = [6 6 6 6 6 6]
 
 ===end-group===
 
