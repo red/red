@@ -2641,4 +2641,20 @@ Red [
 
 ===end-group===
 
+===start-group=== "self in comparisons"
+
+	--test-- "self-cmp-1"
+		scmp-o: make object! [
+			is?: func [x][self = x]
+			isnt?: func [x][self <> x]
+			chk: func [][either self = scmp-o ["ok"]["wrong"]]
+		]
+		--assert scmp-o/is? scmp-o
+		--assert not scmp-o/isnt? scmp-o
+		--assert not scmp-o/is? 1
+		--assert "ok" = scmp-o/chk
+		unset 'scmp-o
+
+===end-group===
+
 ~~~end-file~~~

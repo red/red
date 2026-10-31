@@ -824,4 +824,21 @@ if system/state/interpreted? [                      ;-- not yet supported by com
 		
 ===end-group===
 
+===start-group=== "nested function setting an outer local"
+
+	--test-- "outer-local-set-1"
+		ols-f: func [/local a][
+			a: 0
+			ols-g: func [][a: 42]
+			ols-g
+			a
+		]
+		--assert 42 = ols-f
+		ols-e: try [do [ols-g]]
+		--assert error? ols-e
+		--assert 'not-defined = ols-e/id
+		unset [ols-f ols-g ols-e]
+
+===end-group===
+
 ~~~end-file~~~

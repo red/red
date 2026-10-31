@@ -299,5 +299,55 @@ Red [
 			--assert out4967 == [1 3]
 
 ===end-group===
+
+===start-group=== "loop values"
+
+	lval-cnt: 0
+	lval-mk: func [/local s][s: make string! 10 append s "stale"]
+	lval-while: func [n /local i][i: 0 while [i < n][i: i + 1]]
+	lval-while0: func [][while [lval-cnt < 0][lval-cnt: lval-cnt + 1]]
+	lval-until: func [n /local i][i: 0 until [i: i + 1 i >= n]]
+	lval-until0: func [][until [lval-cnt >= 0]]
+
+	--test-- "loop-value-1"
+		set/any 'lval-v lval-while 3
+		--assert unset? :lval-v
+
+	--test-- "loop-value-2"
+		lval-mk
+		set/any 'lval-v lval-while0
+		--assert unset? :lval-v
+
+	--test-- "loop-value-3"
+		--assert true = lval-until 3
+
+	--test-- "loop-value-4"
+		lval-mk
+		set/any 'lval-v lval-until0
+		--assert true = :lval-v
+
+	--test-- "loop-value-5"
+		lval-cnt: 0
+		set/any 'lval-v while [all [lval-cnt < 0]][lval-cnt: lval-cnt + 1]
+		--assert unset? :lval-v
+
+	--test-- "loop-value-6"
+		set/any 'lval-v while [true][break]
+		--assert unset? :lval-v
+
+	--test-- "loop-value-7"
+		lval-deep: func [n][either n > 0 [lval-deep n - 1][n]]
+		lval-brk: func [/local v][set/any 'v while [true][break] unset? :v]
+		lval-r: copy []
+		lval-deep 50
+		loop 3 [
+			append lval-r lval-brk
+			lval-deep 20
+		]
+		--assert lval-r = reduce [true true true]
+
+	unset [lval-cnt lval-mk lval-while lval-while0 lval-until lval-until0 lval-v lval-deep lval-brk lval-r]
+
+===end-group===
     
 ~~~end-file~~~

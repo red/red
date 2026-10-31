@@ -844,6 +844,96 @@ actions: context [
 		res <> not?
 	]
 
+	cmp2bl*: func [										;-- fused loop test: the result also fills the loop's value slot
+		op		[integer!]								;-- comparison-op!
+		sym		[red-word!]
+		left	[red-value!]
+		right	[red-value!]
+		return: [logic!]
+		/local
+			l	 [red-integer!]
+			r	 [red-integer!]
+			cell [red-logic!]
+			i1	 [integer!]
+			i2	 [integer!]
+			res	 [logic!]
+	][
+		either all [
+			TYPE_OF(left)  = TYPE_INTEGER
+			TYPE_OF(right) = TYPE_INTEGER
+		][
+			l: as red-integer! left
+			r: as red-integer! right
+			i1: l/value
+			i2: r/value
+			res: false
+			switch op [
+				COMP_EQUAL			[res: i1 = i2]
+				COMP_NOT_EQUAL		[res: i1 <> i2]
+				COMP_STRICT_EQUAL	[res: i1 = i2]
+				COMP_LESSER			[res: i1 < i2]
+				COMP_LESSER_EQUAL	[res: i1 <= i2]
+				COMP_GREATER		[res: i1 > i2]
+				COMP_GREATER_EQUAL	[res: i1 >= i2]
+			]
+		][
+			stack/mark-native sym						;-- generic path, same as non-fused code
+			stack/push left
+			stack/push right
+			cell: compare* op
+			res: cell/value
+			stack/unwind
+			stack/top: stack/top - 1					;-- drop the test value
+		]
+		cell: as red-logic! stack/arguments				;-- loop frame's value slot
+		cell/header: TYPE_LOGIC
+		cell/value: res
+		res
+	]
+
+	cmp2ibl*: func [									;-- fused loop test, right operand is an integer literal
+		op		[integer!]								;-- comparison-op!
+		sym		[red-word!]
+		left	[red-value!]
+		i2		[integer!]
+		return: [logic!]
+		/local
+			l	 [red-integer!]
+			cell [red-logic!]
+			val	 [red-integer!]
+			i1	 [integer!]
+			res	 [logic!]
+	][
+		either TYPE_OF(left) = TYPE_INTEGER [
+			l: as red-integer! left
+			i1: l/value
+			res: false
+			switch op [
+				COMP_EQUAL			[res: i1 = i2]
+				COMP_NOT_EQUAL		[res: i1 <> i2]
+				COMP_STRICT_EQUAL	[res: i1 = i2]
+				COMP_LESSER			[res: i1 < i2]
+				COMP_LESSER_EQUAL	[res: i1 <= i2]
+				COMP_GREATER		[res: i1 > i2]
+				COMP_GREATER_EQUAL	[res: i1 >= i2]
+			]
+		][
+			stack/mark-native sym						;-- generic path, same as non-fused code
+			stack/push left
+			val: as red-integer! stack/push*
+			val/header: TYPE_INTEGER
+			val/value: i2
+			cell: compare* op
+			res: cell/value
+			stack/unwind
+			stack/top: stack/top - 1					;-- drop the test value
+		]
+		cell: as red-logic! stack/arguments				;-- loop frame's value slot
+		cell/header: TYPE_LOGIC
+		cell/value: res
+		res
+	]
+
 	op2-top*: func [									;-- chained math op: left operand is the accumulator (stack top)
 		op		[integer!]								;-- math-op!
 		sym		[red-word!]

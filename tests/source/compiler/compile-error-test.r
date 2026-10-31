@@ -43,5 +43,25 @@ REBOL [
 		--assert-msg? "*** Compilation Error: BREAK used with no loop"
 
 ===end-group===	
+
+===start-group=== "undefined word as an operator operand"
+
+	--test-- "ce-3a"
+		--compile-this-red {a: 1 print a + ce3-undefined}
+		--assert-msg? "*** Compilation Error: undefined word ce3-undefined"
+
+	--test-- "ce-3b"
+		--compile-this-red {a: 1 if a < ce3-undefined [print a]}
+		--assert-msg? "*** Compilation Error: undefined word ce3-undefined"
+
+	--test-- "ce-3c"
+		--compile-this-red {a: 1 print a + 1 - ce3-undefined}
+		--assert-msg? "*** Compilation Error: undefined word ce3-undefined"
+
+	--test-- "ce-3d"
+		--compile-this-red {a: 1 while [a < ce3-undefined][a: a + 1]}
+		--assert-msg? "*** Compilation Error: undefined word ce3-undefined"
+
+===end-group===
   
 ~~~end-file~~~ 

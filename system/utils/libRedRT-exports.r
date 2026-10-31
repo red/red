@@ -62,6 +62,7 @@
 	red/lexer/scan-alt
 
 	red/none/push-last
+	red/unset/push-last
 
 	red/logic/false?
 	red/logic/true?
@@ -243,6 +244,8 @@
 	red/actions/cmp2i*
 	red/actions/cmp2b*
 	red/actions/cmp2ib*
+	red/actions/cmp2bl*
+	red/actions/cmp2ibl*
 	red/actions/op2-top*
 	red/actions/op2-topi*
 	red/actions/cmp2-top*

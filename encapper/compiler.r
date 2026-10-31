@@ -482,10 +482,17 @@ red: context [
 			ctx: select shadow-funcs obj
 			name <> 'self
 		][
-			emit 'set-top-in*							;-- fused set-word for function locals
-			emit ctx
-			emit get-word-index name
-			insert-lf -3
+			either all [not empty? ctx-stack ctx <> last ctx-stack][
+				emit [set-top* word/from]				;-- outer function's local: context may be inactive
+				emit ctx
+				emit get-word-index name
+				insert-lf -4
+			][
+				emit 'set-top-in*						;-- fused set-word for function locals
+				emit ctx
+				emit get-word-index name
+				insert-lf -3
+			]
 		][
 			either all [
 				ctx: all [
@@ -775,7 +782,7 @@ red: context [
 		insert-lf -3
 	]
 	
-	emit-deep-check: func [path [series!] fpath [path!] /local obj-stk list check check2 obj top? parent-ctx][
+	emit-deep-check: func [path [series!] fpath [path!] /sealed /local obj-stk list check check2 obj top? parent-ctx][
 		check:  [
 			'object/unchanged?
 				prefix-exec path/1						;-- word (object! value)
@@ -797,20 +804,31 @@ red: context [
 			list: make block! 3 * length? path
 			while [not tail? next path][
 				append obj-stk path/1
-				repend list get pick [check check2] head? path
+				either all [sealed head? path][			;-- sealed root object: no guard
+					obj: find objects do obj-stk
+				][
+					repend list get pick [check check2] head? path
+				]
 				parent-ctx: obj/2
 				path: next path
 			]
-			new-line list on
-			new-line skip list 3 on
-			new-line/all/skip skip list 3 on 4
-			reduce ['all list]
+			either sealed [
+				either 4 = length? list [list][			;-- a single guard needs no ALL
+					new-line/all/skip list on 4
+					reduce ['all list]
+				]
+			][
+				new-line list on
+				new-line skip list 3 on
+				new-line/all/skip skip list 3 on 4
+				reduce ['all list]
+			]
 		]
 	]
 	
-	sealed-objects: [system]							;-- shape-frozen objects: compiled code may assume their
-														;-- layout never changes (Red language policy), so path
-														;-- reads skip the object/unchanged? guard + eval-path fallback
+	sealed-objects: [system]							;-- shape-frozen objects: compiled path reads skip their own
+														;-- object/unchanged? guard (Red language policy); objects held
+														;-- in their fields can be replaced, so those keep their guards
 	sealed-path?: func [path [series! path!] /local w][
 		all [
 			word? w: path/1
@@ -2699,6 +2717,10 @@ red: context [
 			comp-sub-block 'while-body					;-- compile body
 		]
 		pop-call
+		unless dead? [
+			emit 'unset/push-last						;-- WHILE returns unset, as the interpreter
+			insert-lf -1
+		]
 		emit-close-frame
 	]
 	
@@ -2889,15 +2911,17 @@ red: context [
 		emit-close-frame/last
 	]
 	
-	comp-break: has [inner?][
+	comp-break: has [inner? loop][
 		if empty? intersect iterators expr-stack [
 			pc: back pc
 			throw-error "BREAK used with no loop"
 		]
-		if inner?: 'forall = last intersect expr-stack iterators [
+		foreach name expr-stack [if find iterators name [loop: name]] ;-- innermost loop
+		if inner?: 'forall = loop [
 			emit 'natives/forall-end-adjust
 			insert-lf -1
 		]
+		if loop = 'while [inner?: yes]					;-- WHILE sets its value after the loop: stay in its frame
 		emit compose [stack/unroll-loop (to word! form inner?) break]
 		insert-lf -3
 	]
@@ -3530,7 +3554,7 @@ red: context [
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj? new t? p
-			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks sealed? base call marks cnt
+			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks sealed? sealed-root? base call marks cnt
 			start frame framed?
 	][
 		path:  copy pc/1
@@ -3743,7 +3767,8 @@ red: context [
 			] set?
 			
 			mark: none
-			sealed?: all [not set? not self? sealed-path? path] ;-- sealed object read: no guard, no fallback
+			sealed-root?: all [not set? not self? sealed-path? path]
+			sealed?: all [sealed-root? 2 = length? path]	;-- sealed object field read: no guard, no fallback
 			case [
 				self? [
 				if all [not empty? locals-stack	container-obj?][
@@ -3758,7 +3783,7 @@ red: context [
 				]
 				'else [
 				emit compose [
-					either (emit-deep-check path fpath) (true-blk)
+					either (either sealed-root? [emit-deep-check/sealed path fpath][emit-deep-check path fpath]) (true-blk)
 				]
 			]
 			]
@@ -4362,6 +4387,7 @@ red: context [
 				not find functions get-prefix-func to word! token ;-- a function or an object method: would be a call
 				not find intrinsics token
 				not find [true false yes no on off none] token
+				token <> 'self							;-- compiled by comp-self
 			][
 				either all [
 					rebol-gctx <> obj: bind? token
@@ -4385,11 +4411,21 @@ red: context [
 						]
 					][
 						name: to word! token
-						either all [new: select-ssa name not find-function new new][
-							none						;-- SSA-renamed: not fusable
-						][
-							add-symbol name
-							reduce ['get-ptr* prefix-exec name] ;-- global slot pointer
+						case [
+							all [new: select-ssa name not find-function new new][
+								none					;-- SSA-renamed: not fusable
+							]
+							all [
+								job/red-strict-check?
+								not find globals name
+								not find-contexts name
+							][
+								none					;-- undefined word: let comp-word report it
+							]
+							'else [
+								add-symbol name
+								reduce ['get-ptr* prefix-exec name] ;-- global slot pointer
+							]
 						]
 					]
 				]
@@ -4560,8 +4596,8 @@ red: context [
 				either cond-arg? t [no][return no]				;-- skip over argument tokens only
 			]
 		]
-		change/only p either t = 'actions/cmp2* ['actions/cmp2b*]['actions/cmp2ib*]
-		change pos 'no									;-- not? flag replaces the trailing reset
+		change/only p either t = 'actions/cmp2* ['actions/cmp2bl*]['actions/cmp2ibl*] ;-- also fills the loop's value slot
+		remove pos										;-- the trailing reset is not needed anymore
 		if all ['stack/reset = blk/1 2 = index? p][remove blk]	;-- head reset is dead if test is alone
 		yes
 	]
