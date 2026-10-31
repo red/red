@@ -491,6 +491,16 @@ word: context [
 					res: as-integer any [type <> TYPE_OF(arg1) arg1/symbol <> arg2/symbol]
 				]
 			]
+			COMP_EQUAL_WORD [
+				either any [
+					all [TYPE_OF(arg1) = TYPE_WORD type = TYPE_LIT_WORD]
+					all [TYPE_OF(arg1) = TYPE_LIT_WORD type = TYPE_WORD]
+				][
+					res: as-integer not EQUAL_WORDS?(arg1 arg2)
+				][
+					res: as-integer any [type <> TYPE_OF(arg1) not EQUAL_WORDS?(arg1 arg2)]
+				]
+			]
 			default [
 				s: GET_BUFFER(symbols)
 				str1: as red-string! s/offset + arg1/symbol - 1

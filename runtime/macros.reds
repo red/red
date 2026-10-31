@@ -289,6 +289,7 @@ Red/System [
 	COMP_CASE_SORT
 	COMP_SAME
 	COMP_STRICT_EQUAL_WORD							;-- same as STRICT_EQUAL, but relaxed type matching for words
+	COMP_EQUAL_WORD									;-- same as STRICT_EQUAL_WORD, but case-insensitive
 	COMP_FIND
 ]
 

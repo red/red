@@ -522,6 +522,7 @@ actions: context [
 			op <> COMP_SAME
 			op <> COMP_STRICT_EQUAL
 			op <> COMP_STRICT_EQUAL_WORD
+			op <> COMP_EQUAL_WORD
 			op <> COMP_NOT_EQUAL
 			op <> COMP_FIND
 		][
@@ -532,7 +533,8 @@ actions: context [
 			COMP_FIND
 			COMP_SAME
 			COMP_STRICT_EQUAL
-			COMP_STRICT_EQUAL_WORD	[res: value =  0]
+			COMP_STRICT_EQUAL_WORD
+			COMP_EQUAL_WORD			[res: value =  0]
 			COMP_NOT_EQUAL 			[res: value <> 0]
 			COMP_LESSER				[res: value <  0]
 			COMP_LESSER_EQUAL		[res: value <= 0]

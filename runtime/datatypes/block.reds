@@ -643,6 +643,7 @@ block: context [
 				op = COMP_NOT_EQUAL
 				op = COMP_STRICT_EQUAL
 				op = COMP_STRICT_EQUAL_WORD
+				op = COMP_EQUAL_WORD
 			][return 1]
 		]
 
@@ -834,7 +835,7 @@ block: context [
 		
 		if TYPE_OF(blk2) <> TYPE_OF(blk1) [
 			unless all [
-				op = COMP_STRICT_EQUAL_WORD
+				any [op = COMP_STRICT_EQUAL_WORD op = COMP_EQUAL_WORD]
 				any [
 					all [TYPE_OF(blk1) = TYPE_PATH TYPE_OF(blk2) = TYPE_LIT_PATH]
 					all [TYPE_OF(blk2) = TYPE_PATH TYPE_OF(blk1) = TYPE_LIT_PATH]

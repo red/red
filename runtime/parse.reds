@@ -238,7 +238,7 @@ parser: context [
 	][
 		type: TYPE_OF(value)
 		if any [type = TYPE_LIT_WORD type = TYPE_LIT_PATH][
-			comp-op: COMP_STRICT_EQUAL_WORD
+			comp-op: either comp-op = COMP_STRICT_EQUAL [COMP_STRICT_EQUAL_WORD][COMP_EQUAL_WORD]
 		]
 		actions/compare value2 value comp-op
 	]

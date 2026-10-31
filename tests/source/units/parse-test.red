@@ -2838,6 +2838,18 @@ Red [
 		--assert parse "abc" [to [s: () "bc"] 2 skip]
 		--assert parse "abc" [to [s: (123) "bc"] 2 skip]
 		
+	--test-- "#3029"
+		--assert parse/case [a]['a]
+		--assert parse/case [a][quote a]
+		--assert parse/case [a A]['a 'A]
+		--assert parse/case [a A][quote a quote A]
+		--assert parse [a]['a]
+		--assert parse [a]['A]
+		--assert parse [a][quote a]
+		--assert parse [a][quote A]
+		--assert parse [a/b] ['a/b]
+		--assert parse [a/B] ['a/b]
+
 	--test-- "#3108"
 		--assert parse [1][some [to end]]
 		--assert parse [1][some [to [end]]]
@@ -3028,6 +3040,11 @@ Red [
 		--assert parse to-binary "hello 123 world" [word! integer! word!]
 		--assert parse to-binary "hello 123 world" [word! space integer! space word!]
 
+	--test-- "#4996"
+		--assert parse [a]['A]
+		--assert not parse/case [a]['A]
+		--assert parse [10:00 PM] [time! ['am | 'pm]]
+
 	--test-- "#5232"
 		parse/case [a b c @ d e f] [collect set   x any [@ keep pick ('-) | keep skip]]
 		--assert x = [a b c - d e f]
@@ -3144,6 +3161,38 @@ Red [
 	--test-- "iter-char-ucs4-part"
 		--assert parse/part pu4-s4 [some #"a"] 3
 		--assert not parse/part pu4-s4 [3 #"a"] 2
+
+===end-group===
+
+===start-group=== "lit-word! and lit-path! rules"
+
+	--test-- "lw-case-1"	--assert parse [A] ['a]
+	--test-- "lw-case-2"	--assert parse [a] ['A]
+	--test-- "lw-case-3"	--assert parse [Foo BAR] ['foo 'bar]
+	--test-- "lw-case-4"	--assert parse [A b B a] [some ['a | 'b]]
+	--test-- "lw-case-5"	--assert parse [x A y] [thru 'a 'y]
+	--test-- "lw-case-6"	--assert parse [x A y] [to 'a 2 skip]
+	--test-- "lw-case-7"	--assert parse ['A] ['a]
+	--test-- "lw-case-8"	--assert parse load "IF Sin" ['if 'sin]
+	--test-- "lw-case-9"	--assert parse/case [a] ['a]
+	--test-- "lw-case-10"	--assert not parse/case [A] ['a]
+	--test-- "lw-case-11"	--assert not parse/case [x A y] [thru 'a 'y]
+	--test-- "lw-case-12"	--assert parse/case [A] [case off 'a]
+	--test-- "lw-case-13"	--assert not parse [A] [case on 'a]
+
+	--test-- "lw-type-1"	--assert not parse [:a] ['a]
+	--test-- "lw-type-2"	--assert not parse [a:] ['a]
+	--test-- "lw-type-3"	--assert not parse [:A] ['a]
+	--test-- "lw-type-4"	--assert not parse [/a] ['a]
+	--test-- "lw-type-5"	--assert not parse [#a] ['a]
+
+	--test-- "lp-case-1"	--assert parse [A/B] ['a/b]
+	--test-- "lp-case-2"	--assert parse [a/b c/D] [some ['c/d | 'a/b]]
+	--test-- "lp-case-3"	--assert not parse/case [A/B] ['a/b]
+
+	--test-- "lp-type-1"	--assert not parse [a/:b] ['a/b]
+	--test-- "lp-type-2"	--assert not parse [:a/b] ['a/b]
+	--test-- "lp-type-3"	--assert not parse [a/b:] ['a/b]
 
 ===end-group===
 
