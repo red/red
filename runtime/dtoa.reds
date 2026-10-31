@@ -1415,10 +1415,10 @@ dtoa: context [
 			s: s + 1
 		]
 
-		while [												;-- skip leading zero
+		while [												;-- skip leading zero and #"'"
 			c: s/1
 			all [
-				c = #"0"
+				any [c = #"0" c = #"'"]
 				s < end
 			]
 		][s: s + 1]
@@ -1444,9 +1444,10 @@ dtoa: context [
 				]
 			]
 			if zero? ndigits [
-				s1: s
-				while [c: s/1 all [s < end c = #"0"]][s: s + 1]
-				fraclen: fraclen + (s - s1)
+				while [c: s/1 all [s < end any [c = #"0" c = #"'"]]][
+					if c = #"0" [fraclen: fraclen + 1]
+					s: s + 1
+				]
 				s0: s
 			]
 			prescan

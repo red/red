@@ -157,6 +157,19 @@ Red [
 	--test-- "to-float!-15"			--assert 1000000.5 == to float! "1'000'000.5000000000000000000000000"	;-- over 31 chars
 	--test-- "to-float!-16"			--assert error? try [to float! "'"]
 	--test-- "to-float!-17"			--assert error? try [to float! "'''"]
+	--test-- "to-float!-18"			--assert 1.25 == to float! "1.2'5"
+	--test-- "to-float!-19"			--assert error? try [to float! "1''2"]
+	--test-- "to-float!-20"			--assert error? try [to float! "'1.5"]
+	--test-- "to-float!-21"			--assert error? try [to float! "1'.5"]
+	--test-- "to-float!-22"			--assert error? try [to float! "1.'5"]
+	--test-- "to-float!-23"			--assert error? try [to float! "1'e5"]
+	--test-- "to-float!-24"			--assert error? try [to float! "1e'5"]
+	--test-- "to-float!-25"			--assert error? try [to float! "1'''''''''"]
+	--test-- "to-float!-26"			--assert 0.0 == to float! "0'0"
+	--test-- "to-float!-27"			--assert 0.0 == to float! "0.0'0"
+	--test-- "to-float!-28"			--assert 0.0 == to float! "0'0.0"
+	--test-- "to-float!-29"			--assert 0.0 == to float! "0'0e5"
+	--test-- "to-float!-30"			--assert 0.5 == to float! "0'0.5"
 	
 ===end-group===
 

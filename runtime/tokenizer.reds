@@ -81,18 +81,15 @@ tokenizer: context [
 
 		until [											;-- convert to ascii string
 			cp: string/get-char p unit
-			if cp <> as-integer #"'" [					;-- skip #"'"
-				if cp = as-integer #"," [cp: as-integer #"."]
-				cur/1: as-byte cp
-				cur: cur + 1
-			]
+			if cp = as-integer #"," [cp: as-integer #"."]
+			cur/1: as-byte cp							;-- #"'" kept for the lexer to validate
+			cur: cur + 1
 			p: p + unit
 			p = tail
 		]
 		cur/1: #"^@"									;-- replace the byte with null so to-float can use it as end of input
-		len: as-integer cur - s0						;-- length without the skipped #"'"
 
-		if any [zero? len not lexer/scan-float s0 cur][error/value: -1 return 1.#NaN]
+		unless lexer/scan-float s0 cur [error/value: -1 return 1.#NaN]
 		string/to-float s0 len error
 	]
 

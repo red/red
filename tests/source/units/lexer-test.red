@@ -698,6 +698,11 @@ Red [
 	--test-- "tro-203" --assert "(1.#NaN, 1.#NaN)" == mold transcode/one "(1.#nan, 1.#nan)"	; NaN values can't be compared with themselves
 	--test-- "tro-204" --assert error? try [transcode/one "(0, 0, 0]"]
 
+	--test-- "tro-205" --assert 0.0 == transcode/one "0.0'0"
+	--test-- "tro-206" --assert 0.0 == transcode/one "0'0.0"
+	--test-- "tro-207" --assert 0.0 == transcode/one "0.00'0e5"
+	--test-- "tro-208" --assert 0% == transcode/one "0.0'0%"
+
 
 ===end-group===
 ===start-group=== "transcode/next"
