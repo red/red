@@ -27,5 +27,16 @@ Red [
 		
 ===end-group===
 
+===start-group=== "replaced system sub-objects"
+
+	--test-- "rss1"
+		rss-saved: system/script/header
+		do [system/script/header: make system/standard/header [Title: "rss"]]
+		--assert "rss" = system/script/header/title
+		system/script/header: rss-saved
+		unset 'rss-saved
+
+===end-group===
+
 ~~~end-file~~~
 

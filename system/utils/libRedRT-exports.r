@@ -6,12 +6,20 @@
 	red/get-root-node2
 	red/type-check-alt
 	red/type-check
+	red/unset-check*
 	red/eval-path*
 	red/select-key*
 	red/alloc-bytes
 	red/alloc-cells
 	red/get-cmdline-args
 	red/set-opt-refinement*
+	red/set-top*
+	red/set-top-in*
+	red/set-top-flush*
+	red/set-top-in-flush*
+	red/set-in-ctx-flush*
+	red/get-ptr*
+	red/get-local-ptr*
 	red/call-with-array*
 	red/get-libRedRT-bitarray
 
@@ -34,6 +42,10 @@
 	red/stack/mark-func-body
 	red/stack/unwind
 	red/stack/unwind-last
+	red/stack/unwind-flush
+	red/stack/unwind-func
+	red/stack/unwind-func-flush
+	red/stack/unwind-func-last
 	red/stack/reset
 	red/stack/keep
 	red/stack/push
@@ -50,6 +62,7 @@
 	red/lexer/scan-alt
 
 	red/none/push-last
+	red/unset/push-last
 
 	red/logic/false?
 	red/logic/true?
@@ -225,6 +238,18 @@
 	red/actions/mold*
 	red/actions/eval-path*
 	red/actions/compare
+	red/actions/op2*
+	red/actions/op2i*
+	red/actions/cmp2*
+	red/actions/cmp2i*
+	red/actions/cmp2b*
+	red/actions/cmp2ib*
+	red/actions/cmp2bl*
+	red/actions/cmp2ibl*
+	red/actions/op2-top*
+	red/actions/op2-topi*
+	red/actions/cmp2-top*
+	red/actions/cmp2-topi*
 	red/actions/absolute*
 	red/actions/add*
 	red/actions/divide*
@@ -255,6 +280,8 @@
 	red/actions/length?*
 	red/actions/next*
 	red/actions/pick*
+	red/actions/pick-int*
+	red/actions/read1*
 	red/actions/poke*
 	red/actions/put*
 	red/actions/remove*
