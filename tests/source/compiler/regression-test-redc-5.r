@@ -564,6 +564,20 @@ recycle/off
 		--assert compiled?
 		--assert not crashed?
 		--assert found? find qt/output "1"
+		
+	--test-- "folded-typeset-assignment-order"
+		;-- A constant `make typeset!` folded at compile time was bound at boot,
+		;-- so an earlier assignment of the same word overwrote it at run time
+
+		--compile-and-run-this {
+			Red []
+			t: none
+			t: make typeset! [integer!]
+			probe typeset? t
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "true"
 
 ===end-group===
 

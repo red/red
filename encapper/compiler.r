@@ -4085,7 +4085,7 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-set-make: has [entry name ts][
+	comp-set-make: has [entry name ts idx][
 		name: pc/-1
 		switch/default pc/2 [
 			datatype! [
@@ -4100,8 +4100,12 @@ red: context [
 			]
 			typeset! [									;-- fold constant `make typeset! [base-datatypes]`
 				either all [block? pc/3 ts: const-typeset-bits pc/3][
-					redbin/emit-word/root/set? name none none
-					redbin/emit-typeset ts/1 ts/2 ts/3
+					idx: redbin/emit-typeset/root ts/1 ts/2 ts/3 ;-- built at compile time, but assigned
+					emit compose [							;-- where the source assigns it
+						stack/push as red-value! get-root (idx)
+					]
+					insert-lf -5
+					emit-set-top name name
 					pc: skip pc 3
 					yes
 				][
