@@ -150,6 +150,17 @@ Red/System [
 		--assert p/1 = #"s"
 	]
 	use10-test
+
+  --test-- "use-11"
+	use11-test: func [x [integer!] return: [integer!] /local s p][	;-- arguments and a return type before untyped locals
+		s: "use"
+		use [n [integer!]][
+			n: x
+			p: s + n
+		]
+		as-integer p/1
+	]
+	--assert 115 = use11-test 1
  
 ~~~end-file~~~
 
