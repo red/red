@@ -16,6 +16,7 @@ Red/System [
 ]
 
 #define GET_BLOCK_TYPE(p) (p/y and FFFFh)
+#define MAX_FLOAT_SIZE	312								;-- DBL_MAX written in full: sign, 309 digits, ".0"
 
 lexer: context [
 	verbose: 0
@@ -1447,6 +1448,7 @@ lexer: context [
 			state index class [integer!]
 			p [byte-ptr!]
 	][
+		if (as-integer e - s) > MAX_FLOAT_SIZE [return false]
 		p: s
 		state: 0										;-- S_FL_START
 		until [	
@@ -1826,6 +1828,23 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip }
 	]
 	
+	quoted-float: func [s e [byte-ptr!] exp10 [integer!] err [int-ptr!] return: [float!]
+		/local
+			buf p [byte-ptr!]
+	][
+		buf: as byte-ptr! system/stack/allocate (as-integer e - s) >> 2 + 1
+		p: buf
+		while [s < e][									;-- dtoa takes only digits, convert a copy without the #"'"
+			if s/1 <> #"'" [
+				p/1: s/1
+				p: p + 1
+			]
+			s: s + 1
+		]
+		p/1: e/1										;-- dtoa can read the byte at end
+		dtoa/to-float buf p exp10 err
+	]
+
 	load-percent: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
 			fl  [red-float!]
@@ -1837,7 +1856,11 @@ lexer: context [
 			err: 0
 			fl: as red-float! alloc-slot lex
 			set-type as cell! fl TYPE_PERCENT
-			fl/value: dtoa/to-float s e -2 :err			;-- fold the /100 into one correctly-rounded conversion (#5753)
+			either flags and C_FLAG_QUOTE = 0 [
+				fl/value: dtoa/to-float s e -2 :err		;-- fold the /100 into one correctly-rounded conversion (#5753)
+			][
+				fl/value: quoted-float s e -2 :err
+			]
 			if err <> 0 [throw-error lex s e TYPE_FLOAT]
 		]
 		lex/in-pos: e + 1								;-- skip ending delimiter
@@ -1853,7 +1876,11 @@ lexer: context [
 		
 		if load? [
 			err: 0
-			f: dtoa/to-float s e 0 :err
+			either flags and C_FLAG_QUOTE = 0 [
+				f: dtoa/to-float s e 0 :err
+			][
+				f: quoted-float s e 0 :err
+			]
 			if err <> 0 [throw-error lex s e TYPE_FLOAT]
 			fl: as red-float! alloc-slot lex
 			set-type as cell! fl TYPE_FLOAT
@@ -2158,6 +2185,7 @@ lexer: context [
 				f: grab-float-special lex s p flags no
 			][
 				either load? [
+					if (as-integer p - s) > MAX_FLOAT_SIZE [throw-error lex s p TYPE_FLOAT]	;-- same limit as scan-float
 					err: 0
 					f: dtoa/to-float s p 0 :err
 					if err <> 0 [throw-error lex s p TYPE_FLOAT]

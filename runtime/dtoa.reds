@@ -1392,19 +1392,10 @@ dtoa: context [
 		
 		prescan: [
 			s1: s
-			c: s/1
-			while [s < end][
-				case [
-					all [c >= #"0" c <= #"9"][s: s + 1]
-					c = #"'" [
-						if s/2 = #"'" [ret/value: 999999 return rv]
-						move-memory s s + 1 as-integer end - s
-						end: end - 1
-					]
-					true [break]
-				]
+			while [
 				c: s/1
-			]
+				all [s < end c >= #"0" c <= #"9"]
+			][s: s + 1]
 		]
 
 		if any [
@@ -1415,10 +1406,10 @@ dtoa: context [
 			s: s + 1
 		]
 
-		while [												;-- skip leading zero and #"'"
+		while [												;-- skip leading zero
 			c: s/1
 			all [
-				any [c = #"0" c = #"'"]
+				c = #"0"
 				s < end
 			]
 		][s: s + 1]
@@ -1444,10 +1435,9 @@ dtoa: context [
 				]
 			]
 			if zero? ndigits [
-				while [c: s/1 all [s < end any [c = #"0" c = #"'"]]][
-					if c = #"0" [fraclen: fraclen + 1]
-					s: s + 1
-				]
+				s1: s
+				while [c: s/1 all [s < end c = #"0"]][s: s + 1]
+				fraclen: fraclen + (s - s1)
 				s0: s
 			]
 			prescan

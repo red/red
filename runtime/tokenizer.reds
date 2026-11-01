@@ -74,6 +74,7 @@ tokenizer: context [
 	][
 		cur: as byte-ptr! "0000000000000000000000000000000"	;-- 32 bytes including NUL
 		assert unit <= 4
+		if len > MAX_FLOAT_SIZE [error/value: -1 return 1.#NaN]	;-- same limit as lexer/scan-float
 		tail: p + (len << (unit >> 1))
 
 		if len > 31 [cur: as byte-ptr! system/stack/allocate (len + 1) >> 2 + 1]
@@ -90,7 +91,20 @@ tokenizer: context [
 		cur/1: #"^@"									;-- replace the byte with null so to-float can use it as end of input
 
 		unless lexer/scan-float s0 cur [error/value: -1 return 1.#NaN]
-		string/to-float s0 len error
+
+		tail: cur										;-- remove the validated #"'" in one pass
+		p: s0
+		cur: s0
+		until [
+			if p/1 <> #"'" [
+				cur/1: p/1
+				cur: cur + 1
+			]
+			p: p + 1
+			p = tail
+		]
+		cur/1: #"^@"
+		string/to-float s0 as-integer cur - s0 error
 	]
 
 	scan-tuple: func [

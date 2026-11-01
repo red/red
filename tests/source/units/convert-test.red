@@ -170,6 +170,18 @@ Red [
 	--test-- "to-float!-28"			--assert 0.0 == to float! "0'0.0"
 	--test-- "to-float!-29"			--assert 0.0 == to float! "0'0e5"
 	--test-- "to-float!-30"			--assert 0.5 == to float! "0'0.5"
+	--test-- "to-float!-31"
+		cvt-quoted: append/dup copy "1" "'0" 3
+		append cvt-quoted ".5"
+		append/dup cvt-quoted "'0" 100
+		--assert 1000.5 == to float! cvt-quoted
+	--test-- "to-float!-32"										;-- floats are limited to the size of DBL_MAX written in full
+		cvt-quoted: append/dup copy "1." #"0" 310
+		--assert 1.0 == to float! cvt-quoted
+		--assert error? try [to float! append cvt-quoted #"0"]
+	--test-- "to-float!-33"
+		cvt-quoted: append/dup copy "1.0" #"0" 10000000
+		--assert error? try [to float! append cvt-quoted "'0"]
 	
 ===end-group===
 

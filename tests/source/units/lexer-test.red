@@ -703,6 +703,27 @@ Red [
 	--test-- "tro-207" --assert 0.0 == transcode/one "0.00'0e5"
 	--test-- "tro-208" --assert 0% == transcode/one "0.0'0%"
 
+	--test-- "tro-209"									;-- ' separators are not removed from the input binary
+		tro-bin: to binary! "1'000.5 2'0.5%"
+		--assert [1000.5 20.5%] == transcode tro-bin
+		--assert tro-bin == to binary! "1'000.5 2'0.5%"
+
+	--test-- "tro-210"
+		tro-str: copy "1"
+		loop 150 [append tro-str "'0"]
+		--assert 1e150 == transcode/one append tro-str ".5"
+
+	--test-- "tro-211"									;-- floats are limited to the size of DBL_MAX written in full
+		tro-str: append/dup copy "-17976931348623157" #"0" 292
+		append tro-str ".0"
+		--assert 312 = length? tro-str
+		--assert -1.7976931348623157e308 == transcode/one tro-str
+		--assert error? try [transcode/one append tro-str #"0"]
+
+	--test-- "tro-212"
+		tro-str: append/dup copy "1.0" #"0" 10000000
+		--assert error? try [transcode/one append tro-str "'0"]
+
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -870,6 +891,14 @@ Red [
 	--test-- "scan-107" --assert error!	 = scan "(1,2,)"
 	--test-- "scan-108" --assert error!	 = scan "(1,2 3,)"
 	--test-- "scan-109" --assert error!	 = scan "(1, 2 3)"
+
+	--test-- "scan-110"									;-- point coordinates have the same size limit in SCAN and TRANSCODE
+		scan-pt: rejoin ["(1." append/dup copy "" #"0" 310 ", 2)"]
+		--assert point2D! = scan scan-pt
+		--assert (1, 2) == transcode/one scan-pt
+		insert at scan-pt 4 #"0"
+		--assert error! = scan scan-pt
+		--assert error? try [transcode/one scan-pt]
 
 ===end-group===
 ===start-group=== "scan/fast"
