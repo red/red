@@ -2724,7 +2724,7 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-repeat: has [name stmt-root-saved? tail-dead-saved?][
+	comp-repeat: has [name obj stmt-root-saved? tail-dead-saved?][
 		stmt-root-saved?: stmt-root?
 		tail-dead-saved?: tail-dead?
 		unless any-word? name: pc/1 [
@@ -2741,11 +2741,25 @@ red: context [
 		insert-lf -1
 		emit-argument-type-check 1 'repeat 'stack/arguments
 
-		emit [
-			integer/push 0								;-- initialize the counter word to 0
+		either all [									;-- object field counter: set it through its object
+			rebol-gctx <> obj: bind? name				;-- (on-change* and the dirty flag)
+			not find shadow-funcs obj
+			find objects obj
+		][
+			emit-open-frame 'set
+			emit-push-word name name					;-- push the word
+			emit [
+				integer/push 0
+				word/set								;-- initialize the counter word to 0
+			]
+			emit-close-frame
+		][
+			emit [
+				integer/push 0							;-- initialize the counter word to 0
+			]
+			insert-lf -2
+			emit-set-top name name
 		]
-		insert-lf -2
-		emit-set-top name name
 
 		emit [loop integer/get stack/arguments]
 		insert-lf -3

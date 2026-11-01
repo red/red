@@ -2657,4 +2657,19 @@ Red [
 
 ===end-group===
 
+===start-group=== "object field as a repeat counter"
+
+	--test-- "orc-1"
+		orc-o: make object! [
+			i: 0
+			seen: none
+			on-change*: func [w old new][if w = 'i [seen: new]]
+			run: does [repeat i 2 []]
+		]
+		orc-o/run
+		--assert 2 = orc-o/seen
+		unset 'orc-o
+
+===end-group===
+
 ~~~end-file~~~

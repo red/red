@@ -3783,11 +3783,15 @@ natives: context [
 	
 	coerce-counter*: does [coerce-counter stack/arguments]
 	
-	inc-counter: func [w [red-word!] /local int [red-integer!]][
+	inc-counter: func [w [red-word!] /local int [red-integer!] ctx [red-context!]][
 		assert TYPE_OF(w) = TYPE_WORD
 		int: as red-integer! _context/get w				;-- returns the live value slot
 		assert TYPE_INTEGER = TYPE_OF(int)
-		int/value: int/value + 1						;-- mutate the slot in place (no write-back needed)
+		int/value: int/value + 1						;-- mutate the slot in place
+		ctx: TO_CTX(w/ctx)
+		if GET_CTX_TYPE(ctx) = CONTEXT_OBJECT [			;-- object field: set it again for on-change* and the dirty flag
+			_context/set w as red-value! int
+		]
 	]
 	
 	init: does [

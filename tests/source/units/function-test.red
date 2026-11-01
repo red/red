@@ -841,4 +841,14 @@ if system/state/interpreted? [                      ;-- not yet supported by com
 
 ===end-group===
 
+===start-group=== "recursive call evaluating its argument"
+
+	--test-- "rec-arg-1"
+		rca-f: func [n [integer!]][either n > 0 [rca-f do [n - 1]][n]]
+		--assert 0 = try [rca-f 1]
+		--assert 0 = try [rca-f 3]
+		unset 'rca-f
+
+===end-group===
+
 ~~~end-file~~~
