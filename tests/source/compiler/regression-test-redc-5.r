@@ -578,6 +578,32 @@ recycle/off
 		--assert compiled?
 		--assert not crashed?
 		--assert found? find qt/output "true"
+		
+	--test-- "folded-typeset-local-word"
+		;-- A type word bound to a function argument is only known at run time
+
+		--compile-and-run-this {
+			Red []
+			f: func [integer!][ts: make typeset! [integer!] ts]
+			probe f string!
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "make typeset! [string!]"
+		
+	--test-- "folded-typeset-infix-spec"
+		;-- An infix operator after the block makes it part of a larger spec expression
+
+		--compile-and-run-this {
+			Red []
+			merge-types: func [a b][append copy a b]
+			with-types: make op! :merge-types
+			ts: make typeset! [integer!] with-types [string!]
+			probe ts
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "make typeset! [string! integer!]"
 
 ===end-group===
 

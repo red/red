@@ -717,7 +717,7 @@ red: context [
 		]
 		append/only body pick [
 			[re-throw]
-			[system/thrown: 0 exit]
+			[stack/unroll stack/FRAME_FUNCTION system/thrown: 0 exit]
 		] empty? locals-stack
 
 		append body [
@@ -907,6 +907,7 @@ red: context [
 		ts: copy [0 0 0]
 		foreach type spec [
 			if block? type [return none]			;-- not a flat datatype list
+			if all [any-word? type rebol-gctx <> bind? type][return none] ;-- locally bound word: its value is a runtime one
 			type: either word: in extracts/scalars type [get word][reduce [type]]
 			foreach word type [
 				bit: get-RS-type-ID word
@@ -2368,6 +2369,7 @@ red: context [
 		
 		emit 'stack/revert
 		insert-lf -1
+		take/last frame-kinds							;-- body frame closed by stack/revert
 		
 		defer
 	]
@@ -2432,6 +2434,7 @@ red: context [
 			append body [
 				stack/unwind
 			]
+			take/last frame-kinds						;-- TRY frame closed above, not by emit-close-frame
 			unless all? [
 				emit [switch system/thrown]
 				handlers: build-exception-handler
@@ -2869,6 +2872,8 @@ red: context [
 			natives/forall-end							;-- reset series
 			stack/unwind
 		]
+		take/last frame-kinds							;-- both FORALL frames closed above
+		take/last frame-kinds
 		convert-to-block mark
 	]
 	
@@ -4113,7 +4118,7 @@ red: context [
 				]
 			]
 			typeset! [									;-- fold constant `make typeset! [base-datatypes]`
-				either all [block? pc/3 ts: const-typeset-bits pc/3][
+				either all [block? pc/3 not infix? skip pc 3 ts: const-typeset-bits pc/3][ ;-- the block is the whole spec argument
 					idx: redbin/emit-typeset/root ts/1 ts/2 ts/3 ;-- built at compile time, but assigned
 					emit compose [							;-- where the source assigns it
 						stack/push as red-value! get-root (idx)

@@ -851,4 +851,37 @@ if system/state/interpreted? [                      ;-- not yet supported by com
 
 ===end-group===
 
+===start-group=== "calls with frames closed inside their arguments"
+
+	--test-- "frame-arg-1"
+		fa-t: func [n][if n > 0 [fa-t try [n - 1]] do [n]]
+		--assert 2 = fa-t 2
+
+	--test-- "frame-arg-2"
+		fa-c: func [n o][if n > 0 [fa-c n - 1 context [a: 1]] do [n]]
+		--assert 2 = fa-c 2 none
+
+	--test-- "frame-arg-3"
+		fa-s: [1 2]
+		fa-l: func [n x][if n > 0 [fa-l n - 1 forall fa-s [fa-s/1]] do [n]]
+		--assert 2 = fa-l 2 none
+		unset [fa-t fa-c fa-s fa-l]
+
+===end-group===
+
+===start-group=== "interpreted EXIT in a compiled function"
+
+	--test-- "interp-exit-1"
+		ie-keep: none
+		ie-h: func [n][ie-keep: 'n do [exit]]
+		ie-h 5
+		--assert error? try [get ie-keep]
+
+	--test-- "interp-exit-2"
+		ie-g: func [n][if n > 1 [ie-g n - 1] if n = 1 [do [exit]] do [n]]
+		--assert 2 = ie-g 2
+		unset [ie-keep ie-h ie-g]
+
+===end-group===
+
 ~~~end-file~~~
