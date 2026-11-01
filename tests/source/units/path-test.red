@@ -408,4 +408,18 @@ Red [
 
 ===end-group===
 
+===start-group=== "integer selectors past the end"
+
+	--test-- "ipe-1"
+		ipe-b: [123]
+		ipe-x: ipe-b/268435457
+		--assert none? ipe-x
+		ipe-x: ipe-b/268435456
+		--assert none? ipe-x
+		ipe-x: ipe-b/2
+		--assert none? ipe-x
+		unset [ipe-b ipe-x]
+
+===end-group===
+
 ~~~end-file~~~

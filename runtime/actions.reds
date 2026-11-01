@@ -2074,9 +2074,12 @@ actions: context [
 		either TYPE_OF(base) = TYPE_BLOCK [			;-- fast path: block + integer index (no frame, no dispatch, no alloc)
 			blk:  as red-block! base
 			s:    GET_BUFFER(blk)
-			pos:  blk/head + idx - 1
-			cell: s/offset + pos
-			either all [idx >= 1 cell < s/tail][	;-- 1 <= idx <= remaining length (pick semantics)
+			either all [							;-- 1 <= idx <= remaining length (pick semantics), checked
+				idx >= 1							;-- on the integers: a scaled pointer can wrap
+				idx <= ((as-integer (s/tail - s/offset)) >> 4 - blk/head)
+			][
+				pos:  blk/head + idx - 1
+				cell: s/offset + pos
 				stack/push cell						;-- in range: copy element cell to stack top
 			][
 				none/push							;-- out of range -> none
