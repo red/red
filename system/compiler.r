@@ -1849,8 +1849,8 @@ system-dialect: make-profilable context [
 			]
 			unless empty? locs [
 				either pos: find/tail spec /local [
-					insert pos locs						;-- insert first: untyped locals may follow (a trailing
-				][										;-- type block would retroactively type all of them)
+					insert any [find/tail/last pos block! pos] locs ;-- after the typed locals (stack slot order); first
+				][										;-- if all are untyped, as a type block would type them
 					append spec /local
 					append spec locs
 				]

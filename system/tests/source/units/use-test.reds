@@ -139,6 +139,17 @@ Red/System [
 	 	--assert a = 42
 	]
 	use9-test
+
+  --test-- "use-10"
+	use10-test: func [/local s p][			;-- untyped locals: USE ones must not type them
+		s: "use"
+		use [n [integer!]][
+			n: 1
+			p: s + n
+		]
+		--assert p/1 = #"s"
+	]
+	use10-test
  
 ~~~end-file~~~
 
