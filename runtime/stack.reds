@@ -142,8 +142,7 @@ stack: context [										;-- call stack
 		]
 		either null? ctx-name [values: null][			;-- null only happens in some libRedRT cases
 			ctx: TO_CTX(ctx-name)
-			values: ctx/values
-			ctx/values: as node! top					;-- caller-side swap: arguments base = top
+			values: ctx/values							;-- swapped by mark-func-body, once the arguments are evaluated
 		]
 
 		ctop/header: FRAME_FUNCTION or (fun/symbol << 8)
@@ -186,7 +185,17 @@ stack: context [										;-- call stack
 	mark-loop:	 		MARK_STACK(FRAME_LOOP)
 	mark-interp-native: MARK_STACK(FRAME_INT_NAT)
 	mark-interp-func:	MARK_STACK(FRAME_INT_FUNC)
-	mark-func-body:		MARK_STACK(FRAME_IN_CFUNC)
+
+	mark-func-body: func [								;-- compiled function body: all its arguments are evaluated
+		fun		 [red-word!]
+		ctx-name [node!]								;-- the function's context
+		/local
+			ctx	[red-context!]
+	][
+		ctx: TO_CTX(ctx-name)
+		ctx/values: as node! arguments					;-- the function's words now read its own frame
+		mark fun FRAME_IN_CFUNC
+	]
 	
 	set-in-func-flag: func [
 		state [logic!]
