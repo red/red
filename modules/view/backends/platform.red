@@ -851,13 +851,45 @@ system/view/platform: context [
 	]
 	
 	update-view: routine [
-		face [object!]
+		face [any-type!]								;-- a face, or a block of faces to update together
 		/local
-			word [red-word!]
+			faces [red-block!]
+			obj	  [red-object! value]
+			value [red-value!]
+			state [red-block!]
+			word  [red-word!]
+			i	  [integer!]
 	][
-		word: as red-word! (object/get-values face) + gui/FACE_OBJ_TYPE
-		if gui/screen-sym <> symbol/resolve word/symbol [ ;-- a screen face mirrors the OS state: it has
-			gui/OS-update-view face					;-- no widget handle to push facets to
+		switch TYPE_OF(face) [
+			TYPE_BLOCK [
+				faces: as red-block! face
+				i: 0
+				while [i < block/rs-length? faces][
+					value: block/rs-abs-at faces faces/head + i
+					if TYPE_OF(value) <> TYPE_OBJECT [fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value)]]
+					i: i + 1
+				]
+				#either all [GUI-engine = 'native OS = 'Windows][
+					gui/OS-update-views faces
+				][
+					i: 0								;-- the other backends draw a whole SHOW in one frame
+					while [i < block/rs-length? faces][	;-- by index: a nested SHOW can commit and clear the block
+						copy-cell block/rs-abs-at faces faces/head + i as red-value! :obj
+						if TYPE_OF(obj) = TYPE_OBJECT [		;-- an actor may have changed the block since
+							state: as red-block! (object/get-values :obj) + gui/FACE_OBJ_STATE
+							if TYPE_OF(state) = TYPE_BLOCK [gui/OS-update-view :obj]	;-- skip a face destroyed since
+						]
+						i: i + 1
+					]
+				]
+			]
+			TYPE_OBJECT [
+				word: as red-word! (object/get-values as red-object! face) + gui/FACE_OBJ_TYPE
+				if gui/screen-sym <> symbol/resolve word/symbol [ ;-- a screen face mirrors the OS state: it has
+					gui/OS-update-view as red-object! face		;-- no widget handle to push facets to
+				]
+			]
+			default [fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(face)]]
 		]
 		SET_RETURN(none-value)
 	]

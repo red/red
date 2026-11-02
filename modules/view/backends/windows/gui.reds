@@ -43,6 +43,8 @@ Red/System [
 	any [sym = base sym = rich-text sym = window sym = panel]
 ]
 
+#define FACET_FLAG_GEOMETRY [(FACET_FLAG_OFFSET or FACET_FLAG_SIZE or FACET_FLAG_VISIBLE?)]	;-- batched by OS-update-views
+
 #define AREA_BUFFER_LIMIT 32768
 
 #include %win32.reds
@@ -246,6 +248,7 @@ face-handle?: func [
 		state  [red-block!]
 		handle [red-handle!]
 ][
+	if TYPE_OF(face) <> TYPE_OBJECT [return null]		;-- e.g. an element an actor put in a group block
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
 		handle: as red-handle! block/rs-head state
@@ -608,7 +611,7 @@ update-caret: func [
 	GET_PAIR_XY_INT(size x y)
 	owner: as handle! GetWindowLong hWnd wc-offset - 24
 	CreateCaret owner null x y
-	change-offset hWnd as red-point2D! values + FACE_OBJ_OFFSET caret
+	change-offset hWnd as red-point2D! values + FACE_OBJ_OFFSET caret null
 ]
 
 update-selection: func [
@@ -2136,6 +2139,7 @@ change-size: func [
 	hWnd [handle!]
 	vals [red-value!]
 	type [integer!]
+	wp	 [tagWINDOWPOS]									;-- not null: the resize goes into this batch entry
 	/local
 		size	[red-pair!]
 		cx		[integer!]
@@ -2181,16 +2185,15 @@ change-size: func [
 
 	sz-x: dpi-scale sx
 	sz-y: dpi-scale sy
-	SetWindowPos 
-		hWnd
-		as handle! 0
-		0 0
-		sz-x + cx sz-y + cy
-		SWP_NOMOVE or SWP_NOZORDER or SWP_NOACTIVATE
+	either null? wp [SetWindowPos hWnd null 0 0 sz-x + cx sz-y + cy SWP_NOMOVE or SWP_NOZORDER or SWP_NOACTIVATE][
+		wp/cx: sz-x + cx
+		wp/cy: sz-y + cy
+		wp/flags: wp/flags and (not SWP_NOSIZE)
+	]
 
 	if layer? [
 		hWnd: as handle! GetWindowLong hWnd wc-offset - 20
-		if hWnd <> null [change-size hWnd vals -1]
+		if hWnd <> null [change-size hWnd vals -1 null]
 	]
 	case [
 		any [type = slider type = progress][
@@ -2243,6 +2246,7 @@ change-offset: func [
 	hWnd [handle!]
 	pos  [red-point2D!]
 	type [integer!]
+	wp	 [tagWINDOWPOS]									;-- not null: the move goes into this batch entry
 	/local
 		owner	[handle!]
 		child	[handle!]
@@ -2321,12 +2325,11 @@ change-offset: func [
 		]
 		SetWindowLong hWnd wc-offset - 8 WIN32_MAKE_LPARAM(pos-x pos-y)
 	]
-	SetWindowPos 
-		hWnd
-		as handle! 0
-		pos-x pos-y
-		0 0
-		flags
+	either null? wp [SetWindowPos hWnd null pos-x pos-y 0 0 flags][
+		wp/x: pos-x
+		wp/y: pos-y
+		wp/flags: wp/flags and (not SWP_NOMOVE)
+	]
 	if type = window [set-dpi-globals window-dpi hWnd]	;-- the DPI Windows actually gave it
 	if type = tab-panel [update-tab-contents hWnd FACE_OBJ_OFFSET]
 ]
@@ -2498,7 +2501,7 @@ change-enabled: func [
 		type = base
 		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
 	][
-		change-visible hWnd values bool/value base
+		change-visible hWnd values bool/value base null
 	]
 	EnableWindow hWnd bool/value
 ]
@@ -2508,6 +2511,7 @@ change-visible: func [
 	values	[red-value!]
 	show?	[logic!]
 	type	[integer!]
+	wp		[tagWINDOWPOS]								;-- not null: the show/hide goes into this batch entry
 	/local
 		value [integer!]
 ][
@@ -2525,7 +2529,11 @@ change-visible: func [
 		SetWindowLong hWnd OFFSET_REVEALED 1
 	]
 	value: either show? [either type = base [SW_SHOWNA][SW_SHOW]][SW_HIDE]
-	ShowWindow hWnd value
+	either null? wp [ShowWindow hWnd value][
+		value: SWP_HIDEWINDOW
+		if show? [value: SWP_SHOWWINDOW]
+		wp/flags: wp/flags or value
+	]
 	unless win8+? [update-layered-window hWnd null null null -1]
 
 	if type = group-box [
@@ -2784,7 +2792,7 @@ change-parent: func [
 	unless tab-panel? [bool/value: parent <> null]
 
 	either null? parent [
-		change-visible hWnd values no sym
+		change-visible hWnd values no sym null
 		SetParent hWnd null
 	][
 		if tab-panel? [exit]
@@ -2895,20 +2903,177 @@ unlink-sub-obj: func [
 	]
 ]
 
-OS-update-view: func [									;-- apply facets with the DPI of the face's window,
-	face [red-object!]									;-- not the one of the last activated window (#5764)
+face-changes: func [									;-- the face's change flags (state/2), null if it is destroyed
+	face	[red-object!]
+	return: [red-integer!]
 	/local
-		dpi	[integer!]
+		state [red-block!]
 ][
+	if TYPE_OF(face) <> TYPE_OBJECT [return null]		;-- e.g. an element an actor put in a group block
+	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
+	if TYPE_OF(state) <> TYPE_BLOCK [return null]
+	as red-integer! (block/rs-head state) + 1
+]
+
+batch-parent: func [									;-- the parent window of a face whose moves, resizes and
+	face	[red-object!]								;-- show/hide wait for its group's batch, else null
+	return: [handle!]
+	/local
+		changes [red-integer!]
+		word	[red-word!]
+		hWnd	[handle!]
+		type	[integer!]
+][
+	changes: face-changes face
+	if any [null? changes changes/value and FACET_FLAG_GEOMETRY = 0][return null]
+	hWnd: face-handle? face
+	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+	type: symbol/resolve word/symbol
+	if any [
+		not win8+?										;-- before Windows 8, transparent faces are top-level windows
+		type = window
+		type = tab-panel								;-- these change other windows after their own
+		type = group-box
+		type = area
+		type = camera
+		all [type = base (BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0]
+	][return null]
+	GetParent hWnd
+]
+
+reveal-face: func [										;-- draw a never-drawn face its batch moves into view
+	face	[red-object!]								;-- while still out of it, not after
+	/local
+		wp		[tagWINDOWPOS value]
+		rc		[RECT_STRUCT value]
+		word	[red-word!]
+		hWnd	[handle!]
+		type	[integer!]
+		w h		[integer!]
+][
+	hWnd: face-handle? face
+	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+	type: symbol/resolve word/symbol
+	unless all [
+		IS_D2D_FACE(type)
+		zero? GetWindowLong hWnd wc-offset - 36			;-- no render target: never drawn
+		IsWindowVisible hWnd
+	][exit]
+	apply-facets face 0 :wp
+	if any [wp/flags and SWP_NOMOVE <> 0 wp/flags and SWP_HIDEWINDOW <> 0][exit]
+	GetWindowRect hWnd :rc
+	w: rc/right - rc/left
+	h: rc/bottom - rc/top
+	GetClientRect GetParent hWnd :rc
+	if all [wp/x < rc/right wp/y < rc/bottom wp/x + w > 0 wp/y + h > 0][
+		SendMessage hWnd WM_PAINT 0 0
+	]
+]
+
+commit-run: func [										;-- commit a run's batch, or apply its faces one by one if
+	faces	[red-block!]								;-- Windows dropped it: their flags are kept until then
+	start	[integer!]
+	end		[integer!]
+	parent	[handle!]
+	hdwp	[handle!]
+	/local
+		face	[red-object! value]
+		wp		[tagWINDOWPOS value]
+		changes	[red-integer!]
+][
+	while [all [start < end start < block/rs-length? faces]][
+		copy-cell block/rs-abs-at faces faces/head + start as red-value! :face
+		if parent = batch-parent :face [
+			if null? hdwp [apply-facets :face 0 :wp]
+			changes: face-changes :face
+			changes/value: changes/value and (not FACET_FLAG_GEOMETRY)	;-- first: a nested SHOW must not redo it
+			if null? hdwp [SetWindowPos face-handle? :face null wp/x wp/y wp/cx wp/cy wp/flags]
+		]
+		start: start + 1
+	]
+	unless null? hdwp [EndDeferWindowPos hdwp]
+]
+
+OS-update-views: func [									;-- apply a group's changes together: moves, resizes and show/hide
+	faces	[red-block!]								;-- go in batches sent right after a DWM frame, all shown in the next
+	/local
+		face	[red-object! value]
+		wp		[tagWINDOWPOS value]
+		parent	[handle!]
+		prev	[handle!]
+		hdwp	[handle!]
+		keep	[integer!]
+		moved	[integer!]
+		start	[integer!]
+		i		[integer!]
+][
+	moved: 0
+	i: 0
+	while [i < block/rs-length? faces][					;-- by index: a nested SHOW can commit and clear the block
+		copy-cell block/rs-abs-at faces faces/head + i as red-value! :face
+		unless null? face-handle? :face [				;-- skip a face destroyed since
+			parent: batch-parent :face
+			keep: either null? parent [0][FACET_FLAG_GEOMETRY]
+			apply-facets :face keep null
+			if all [parent <> null IsWindowVisible parent][
+				moved: moved + 1
+				#either draw-engine = 'GDI+ [][reveal-face :face]	;-- GDI+ faces share their window's surface
+			]
+		]
+		i: i + 1
+	]
+	if moved > 1 [DwmFlush]								;-- a single window change cannot tear
+	hdwp: null
+	prev: null
+	start: 0
+	i: 0
+	while [i < block/rs-length? faces][
+		copy-cell block/rs-abs-at faces faces/head + i as red-value! :face
+		parent: batch-parent :face
+		if parent <> null [
+			if parent <> prev [							;-- a batch per run of siblings: Windows ignores
+				unless null? prev [commit-run faces start i prev hdwp]	;-- a batch mixing parents
+				hdwp: BeginDeferWindowPos 8
+				prev: parent
+				start: i
+			]
+			unless null? hdwp [
+				apply-facets :face 0 :wp
+				hdwp: DeferWindowPos hdwp face-handle? :face null wp/x wp/y wp/cx wp/cy wp/flags
+			]
+		]
+		i: i + 1
+	]
+	unless null? prev [commit-run faces start i prev hdwp]
+]
+
+OS-update-view: func [face [red-object!]][apply-facets face 0 null]
+
+apply-facets: func [									;-- update-facets with the DPI of the face's window, not the one
+	face [red-object!]									;-- of the last activated window (#5764); an error leaves all the
+	keep [integer!]										;-- face's changes pending
+	wp	 [tagWINDOWPOS]
+	/local
+		changes	[red-integer!]
+		pending	[integer!]
+		dpi		[integer!]
+][
+	changes: face-changes face
+	pending: either null? changes [0][changes/value]
 	dpi: bind-window-dpi face-handle? face
 	system/thrown: 0
-	catch RED_THROWN_ERROR [update-facets face]
+	catch RED_THROWN_ERROR [update-facets face keep wp]
 	unbind-window-dpi dpi								;-- error exits too
-	if system/thrown <> 0 [re-throw]
+	if system/thrown <> 0 [
+		unless null? changes [changes/value: changes/value or pending]	;-- the next SHOW applies them again
+		re-throw
+	]
 ]
 
 update-facets: func [
 	face [red-object!]
+	keep [integer!]										;-- change flags left for OS-update-views' batch
+	wp	 [tagWINDOWPOS]									;-- not null: only put the move, resize and show/hide in it
 	/local
 		ctx		[red-context!]
 		values	[red-value!]
@@ -2941,13 +3106,19 @@ update-facets: func [
 	int: as red-integer! s/offset
 	hWnd: as handle! int/value
 	int: int + 1
-	flags: int/value
+	either null? wp [
+		flags: int/value and (not keep)
+		int/value: int/value and keep					;-- first: a nested update must not apply them again
+	][
+		flags: int/value and FACET_FLAG_GEOMETRY		;-- ONE entry: two for a window overwrite each other's geometry
+		wp/flags: SWP_NOMOVE or SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
+	]
 
 	if flags and FACET_FLAG_OFFSET <> 0 [
-		change-offset hWnd as red-point2D! values + FACE_OBJ_OFFSET type
+		change-offset hWnd as red-point2D! values + FACE_OBJ_OFFSET type wp
 	]
 	if flags and FACET_FLAG_SIZE <> 0 [
-		change-size hWnd values type
+		change-size hWnd values type wp
 	]
 	if flags and FACET_FLAG_TEXT <> 0 [
 		change-text hWnd values type
@@ -2960,7 +3131,7 @@ update-facets: func [
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?
-		change-visible hWnd values bool/value type
+		change-visible hWnd values bool/value type wp
 	]
 	if flags and FACET_FLAG_SELECTED <> 0 [
 		int2: as red-integer! values + FACE_OBJ_SELECTED
@@ -3034,8 +3205,6 @@ update-facets: func [
 	if flags and FACET_FLAG_OPTIONS <> 0 [				;-- e.g. cursor: changed at runtime
 		parse-common-opts hWnd as red-block! values + FACE_OBJ_OPTIONS
 	]
-	
-	int/value: 0										;-- reset flags
 ]
 
 OS-destroy-view: func [

@@ -334,7 +334,7 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 									if all [owner/type = 'window face/type = 'window][
 										cause-error 'script 'bad-window []
 									]
-									show/with face owner
+									either forced? [show/with/nested face owner][show/with face owner]	;-- SHOW's replay: join its group
 									faces: next faces
 								]
 							]
@@ -368,7 +368,9 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 							system/view/platform/on-change-facet owner word target action new index part
 						]	
 					][
-						system/view/platform/on-change-facet owner word target action new index part
+						if any [not forced? word = 'data][	;-- SHOW's replay: its group update applies the facet
+							system/view/platform/on-change-facet owner word target action new index part
+						]
 					]
 				]
 			]
@@ -849,8 +851,10 @@ show: function [
 	/with				  "Link the face to a parent face"
 		parent [object!]  "Parent face to link to"
 	/force				  "For internal use only!"
+	/nested				  "For internal use only!"
 	return: [logic!]	  "true if success"
 ][
+	changed: []											;-- faces to update, applied together by the outermost SHOW
 	show?: yes
 	if block? face [
 		foreach f face [
@@ -858,6 +862,11 @@ show: function [
 			either object? :f [show?: show f][cause-error 'script 'face-type [:f]]
 		]
 		return show?
+	]
+	group?: any [nested face/pane]
+	if all [group? not nested][
+		unless empty? changed [system/view/platform/update-view changed]	;-- left by an aborted or a running SHOW
+		clear changed
 	]
 	if debug-info? face [print ["show:" face/type " with?:" with]]
 	
@@ -872,7 +881,9 @@ show: function [
 			]
 			clear pending
 		]
-		if face/state/2 <> 0 [system/view/platform/update-view face]
+		if face/state/2 <> 0 [
+			either all [group? face/type <> 'screen][append changed face][system/view/platform/update-view face]
+		]
 		handle: face/state/1
 	][
 		new?: yes
@@ -928,10 +939,14 @@ show: function [
 	if face/pane [
 		foreach f face/pane [
 			unless face? :f [cause-error 'script 'face-type [:f]]
-			show/with f face
+			show/with/nested f face
 			unless face/state [return false]			;-- unviewed in child event handler
 		]
-		if face/type <> 'screen [system/view/platform/refresh-window face/state/1]
+		unless nested [									;-- the whole group at once
+			unless empty? changed [system/view/platform/update-view changed]
+			clear changed
+			if face/type <> 'screen [system/view/platform/refresh-window face/state/1]
+		]
 	]
 	if all [new? object? face/actors in face/actors 'on-created][
 		do-safe [face/actors/on-created face none]		;@@ only called once

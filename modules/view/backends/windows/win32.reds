@@ -2990,6 +2990,9 @@ BITMAPINFO32: alias struct! [					;-- BITMAPINFOHEADER, no color table (BI_RGB 3
 		]
 	]
 	"Dwmapi.dll" stdcall [
+		DwmFlush: "DwmFlush" [
+			return:		[integer!]
+		]
 		DwmSetWindowAttribute: "DwmSetWindowAttribute" [
 			hwnd		[handle!]
 			dwAttribute	[integer!]
