@@ -485,7 +485,7 @@ OS-image: context [
 		]
 
 		rect: make-rect 0 0 width height
-		buf: allocate height * bytes-row * n
+		buf: zero-alloc height * bytes-row * n		;-- drawing leaves transparent pixels untouched
 		ctx: CGBitmapContextCreate buf width height 8 * n bytes-row * n color-space info
 		CGContextDrawImage ctx rect/x rect/y rect/w rect/h image
 

@@ -358,6 +358,19 @@ img: make image! 2x2
 		img2: load test-tif
 		--assert to logic! all [image? img2 img2/size = 2x2 img2/rgb = img/rgb]
 		delete test-tif
+
+	--test-- "load from binary decodes fully transparent pixels as transparent"
+		img: make image! reduce [2x2 #{FF000000FF000000FFFFFFFF} #{FFFFFF00}]
+		img-alpha-file: qt-tmp-dir/test-alpha.png
+		save img-alpha-file img
+		img-alpha-png: read/binary img-alpha-file
+		delete img-alpha-file
+		img-alpha-bad: 0
+		loop 300 [										;-- uncleared pixels come out right in most loads
+			img2: load/as img-alpha-png 'png
+			unless img2/alpha = img/alpha [img-alpha-bad: img-alpha-bad + 1]
+		]
+		--assert img-alpha-bad = 0
 ===end-group===
 
 ===start-group=== "image GC"
