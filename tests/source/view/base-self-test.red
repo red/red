@@ -1413,6 +1413,18 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 		--assert test-match?/tol bst-im bst-cs/4 5%   0 4.5%
 
 	four-ways [
+	--test-- "crc-14 - base, image under text"
+		;-- checks if the image is drawn over the background color and under the text
+		bst-img: make image! compose [100x100 (magenta)]	;-- R = 255 as in the text color: sub-bgnd can unblend it
+		bst-cs: colorset? bst-im: shoot [base' "CAT" bst-img]
+		--assert test-dual-chrome? bst-im bst-cs
+		--assert test-color-match?     bst-im bst-cs/1 magenta
+		--assert test-color-match?/tol bst-im bst-cs/3 bst-colors/fg 0 20
+		--assert test-match?/tol bst-im bst-cs/2 95%  0 4.5%
+		--assert test-match?/tol bst-im bst-cs/4 5%   0 4.5%
+	]
+
+	four-ways [
 	--test-- "crc-21 - text, preset colors"
 		;-- checks if text is 1) indeed rendered 2) colors are as requested
 		bst-cs: colorset? bst-im: shoot [text' "CAT"]

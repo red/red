@@ -329,7 +329,7 @@ start-draw: func [
 			unless font-clr? [		;-- use system's setting
 				ctx/font-color: GetSysColor COLOR_WINDOWTEXT
 			]
-			OS-draw-text ctx :pos as red-string! get-face-obj hWnd yes
+			draw-text ctx :pos as red-string! get-face-obj hWnd no	;-- over the background and image above
 			ctx/font-color: 0
 		]
 	]
@@ -535,11 +535,11 @@ OS-draw-pen: func [
 	]
 ]
 
-OS-draw-text: func [
+draw-text: func [									;-- BG?: paint a text-box face's color behind its text
 	ctx		[draw-ctx!]
 	pos		[red-pair!]
 	text	[red-string!]
-	catch?	[logic!]
+	bg?		[logic!]
 	return:	[logic!]
 	/local
 		this	[this!]
@@ -585,7 +585,7 @@ OS-draw-text: func [
 		color?: yes
 	]
 	GET_PAIR_XY(pos x y)
-	if TYPE_OF(text) = TYPE_OBJECT [
+	if all [bg? TYPE_OF(text) = TYPE_OBJECT][
 		obj: as red-object! text
 		values: object/get-values obj
 		size: as red-pair! values + FACE_OBJ_SIZE
@@ -614,6 +614,16 @@ OS-draw-text: func [
 	]
 	if release? [COM_SAFE_RELEASE(unk layout)]
 	true
+]
+
+OS-draw-text: func [
+	ctx		[draw-ctx!]
+	pos		[red-pair!]
+	text	[red-string!]
+	catch?	[logic!]
+	return:	[logic!]
+][
+	draw-text ctx pos text yes
 ]
 
 OS-draw-shape-beginpath: func [

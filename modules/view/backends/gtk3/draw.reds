@@ -2587,6 +2587,7 @@ draw-text-box: func [
 	size: as red-pair! values + FACE_OBJ_SIZE
 	color: as red-tuple! values + FACE_OBJ_COLOR
 	if all [
+		force?									;-- no: the face paints itself, its background is done
 		TYPE_OF(color) = TYPE_TUPLE
 		ANY_COORD?(size)
 	][
