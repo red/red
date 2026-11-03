@@ -19,6 +19,7 @@ OS-image: context [
 		handle	[int-ptr!]
 		buffer	[int-ptr!]
 		size	[integer!]
+		extID	[integer!]
 	]
 
 	width?: func [
@@ -53,7 +54,7 @@ OS-image: context [
 		stride		[int-ptr!]
 		return:		[int-ptr!]
 	][
-		0
+		null
 	]
 
 	get-pixel: func [
@@ -72,8 +73,6 @@ OS-image: context [
 	][
 		color
 	]
-
-	delete: func [node [node!]][]
 
 	resize: func [
 		img		[red-image!]
@@ -186,12 +185,22 @@ OS-image: context [
 		null
 	]
 
-	encode: func [
+	encode: func [									;-- no encoder on this backend
 		image	[red-image!]
 		slot	[red-value!]
 		format	[integer!]
 		return: [red-value!]
+		/local
+			name	[c-string!]
 	][
+		switch format [
+			IMAGE_BMP  [name: "bmp"]
+			IMAGE_PNG  [name: "png"]
+			IMAGE_GIF  [name: "gif"]
+			IMAGE_JPEG [name: "jpeg"]
+			default    [name: "tiff"]
+		]
+		fire [TO_ERROR(access no-codec) word/load name]
 		slot
 	]
 
