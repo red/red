@@ -344,6 +344,16 @@ img: make image! 2x2
 		img: load/as img-tiff 'tiff
 		--assert to logic! all [image? img img/size = 2x2 img/rgb = #{FF000000FF000000FFFFFFFF}]
 
+	--test-- "load from binary decodes GIF87a and GIF89a data"
+		img-gif: #{
+			47494638376102000200810000FFFFFF00FF00FF00000000FF2C000000000200020000080700050418002020003B
+		}
+		img: load/as img-gif 'gif
+		--assert to logic! all [image? img img/size = 2x2 img/rgb = #{FF000000FF000000FFFFFFFF}]
+		img-gif/5: #"9"										;-- same image, as GIF89a
+		img: load/as img-gif 'gif
+		--assert to logic! all [image? img img/size = 2x2 img/rgb = #{FF000000FF000000FFFFFFFF}]
+
 	--test-- "TIFF codec saves and loads .tif and .tiff files"
 		img: make image! reduce [2x2 #{FF000000FF000000FFFFFFFF}]
 		test-tif: qt-tmp-dir/test-codec.tif

@@ -92,7 +92,7 @@ image: context [
 			all [p/1 = #"B" p/2 = #"M"]					;-- BMP
 			all [										;-- GIF
 				p/1 = #"G" p/2 = #"I" p/3 = #"F"
-				p/4 = #"8" p/5 = #"9" p/6 = #"a"
+				p/4 = #"8" any [p/5 = #"7" p/5 = #"9"] p/6 = #"a"
 			]
 			all [p/1 = #"I" p/2 = #"I" p/3 = #"^(2A)" p/4 = #"^(00)"]	;-- TIFF, little-endian
 			all [p/1 = #"M" p/2 = #"M" p/3 = #"^(00)" p/4 = #"^(2A)"]	;-- TIFF, big-endian
