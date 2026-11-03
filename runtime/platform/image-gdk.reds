@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#include %gif-encoder.reds
+
 #define IMG_NODE_HAS_BUFFER		1
 #define IMG_NODE_MODIFIED		2
 
@@ -496,11 +498,24 @@ OS-image: context [
 			pixbuf		[handle!]
 			err 		[GError!]
 			perr		[ptr-value!]
+			bitmap		[integer!]
+			stride		[integer!]
+			bin			[red-binary!]
 	][
+		if format = IMAGE_GIF [							;-- gdk-pixbuf has no GIF encoder
+			bitmap: lock-bitmap image no
+			stride: 0
+			bin: gif-encoder/encode
+				get-data bitmap :stride
+				IMAGE_WIDTH(image/size)
+				IMAGE_HEIGHT(image/size)
+				slot
+			unlock-bitmap image bitmap
+			return as red-value! bin
+		]
 		switch format [
 			IMAGE_BMP  [type: "bmp"]
 			IMAGE_PNG  [type: "png"]
-			;IMAGE_GIF  [type: "gif"]
 			IMAGE_JPEG [type: "jpeg"]
 			IMAGE_TIFF [type: "tiff"]
 			default    [probe "Cannot find image encoder" return null]

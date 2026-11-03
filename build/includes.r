@@ -185,6 +185,7 @@ write %build/bin/sources.r set-cache [
 			%image-gdk.reds
 			%image-quartz.reds
 			%image-stub.reds
+			%gif-encoder.reds
 			%win32-ansi.reds
 			%win32-print.reds
 		]

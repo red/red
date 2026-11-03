@@ -402,6 +402,55 @@ img: make image! 2x2
 			unless img2/alpha = img/alpha [img-alpha-bad: img-alpha-bad + 1]
 		]
 		--assert img-alpha-bad = 0
+
+	--test-- "GIF codec saves and loads .gif files"
+		img: make image! reduce [2x2 #{FF000000FF000000FFFFFFFF}]
+		test-gif: qt-tmp-dir/test-codec.gif
+		save test-gif img
+		img2: load test-gif
+		img3: load/as read/binary test-gif 'gif
+		--assert to logic! all [image? img2 img2/size = 2x2 img2/rgb = img/rgb]
+		--assert to logic! all [image? img3 img3/size = 2x2 img3/rgb = img/rgb]
+		delete test-gif
+
+	--test-- "GIF codec saves an image with a transparent pixel"
+		img: make image! reduce [2x2 #{FF000000FF000000FFFFFFFF}]
+		img/2: 0.255.0.255
+		save test-gif img
+		img2: load test-gif
+		--assert to logic! all [image? img2 img2/size = 2x2]
+		--assert to logic! all [img2/1 = 255.0.0.0 img2/3 = 0.0.255.0 img2/4 = 255.255.255.0]
+		delete test-gif
+
+	--test-- "GIF codec saves an image which fills the LZW table"
+		random/seed 1555
+		img-colors: [255.0.0 0.255.0 0.0.255 255.255.255]
+		img: make image! 256x256
+		repeat i 256 * 256 [img/:i: img-colors/(random 4)]
+		save test-gif img
+		img2: load test-gif
+		--assert to logic! all [image? img2 img2/size = 256x256 img2/rgb = img/rgb]
+		delete test-gif
+
+	--test-- "GIF codec saves more than 256 colors"
+		img: make image! 64x64
+		repeat i 64 * 64 [img/:i: as-color i // 256 i // 251 i * 7 // 256]
+		save test-gif img
+		img2: load test-gif
+		--assert to logic! all [image? img2 img2/size = 64x64]
+		delete test-gif
+
+	--test-- "GIF codec saves a part of a loaded image"
+		img: make image! reduce [2x2 #{FF000000FF000000FFFFFFFF}]
+		img-crop-file: qt-tmp-dir/test-crop.png
+		save img-crop-file img
+		img-crop-png: read/binary img-crop-file
+		delete img-crop-file
+		img2: copy/part load/as img-crop-png 'png 1x2
+		save test-gif img2
+		img3: load test-gif
+		--assert to logic! all [image? img3 img3/size = 1x2 img3/rgb = #{FF00000000FF}]
+		delete test-gif
 ===end-group===
 
 ===start-group=== "image GC"
