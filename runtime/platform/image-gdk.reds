@@ -287,26 +287,34 @@ OS-image: context [
 	;-- ARGB(image! buffer) <-> ABGR(gtk)
 	revert: func [
 		src		[byte-ptr!]
+		ss		[integer!]								;-- bytes per row: gdk-pixbuf pads rows
 		dst		[byte-ptr!]
+		ds		[integer!]
 		w		[integer!]
 		h		[integer!]
 		chs		[integer!]
 		/local
-			count	[integer!]
+			s	[byte-ptr!]
+			d	[byte-ptr!]
 	][
-		count: w * h
-		loop count [
-			dst/1: src/3
-			dst/2: src/2
-			dst/3: src/1
-			either chs = 3 [
-				dst/4: #"^(FF)"
-				src: src + 3
-			][
-				dst/4: src/4
-				src: src + 4
+		loop h [
+			s: src
+			d: dst
+			loop w [
+				d/1: s/3
+				d/2: s/2
+				d/3: s/1
+				either chs = 3 [
+					d/4: #"^(FF)"
+					s: s + 3
+				][
+					d/4: s/4
+					s: s + 4
+				]
+				d: d + 4
 			]
-			dst: dst + 4
+			src: src + ss
+			dst: dst + ds
 		]
 	]
 
@@ -325,7 +333,7 @@ OS-image: context [
 		channels: gdk_pixbuf_get_n_channels pixbuf
 		buff: allocate width * height * 4
 		p: gdk_pixbuf_get_pixels pixbuf
-		revert p buff width height channels
+		revert p gdk_pixbuf_get_rowstride pixbuf buff width * 4 width height channels
 		as int-ptr! buff
 	]
 
@@ -454,7 +462,7 @@ OS-image: context [
 		h: IMAGE_HEIGHT(image/size)
 		pixbuf: gdk_pixbuf_new 0 yes 8 w h
 		buf: gdk_pixbuf_get_pixels pixbuf
-		revert as byte-ptr! node/buffer buf w h 4
+		revert as byte-ptr! node/buffer w * 4 buf gdk_pixbuf_get_rowstride pixbuf w h 4
 		pixbuf
 	]
 

@@ -273,6 +273,27 @@ img: make image! 2x2
 ===end-group===
 
 ===start-group=== "image load from binary"
+	--test-- "load from binary decodes rows of 3-byte pixels"
+		;-- 2x2 24-bit BMP: rows of 6 bytes, padded to 8
+		img-bmp: #{
+			424D460000000000000036000000280000000200000002000000010018000000000010000000000000000000000000000000
+			00000000FF0000FFFFFF00000000FF00FF000000
+		}
+		img: load/as img-bmp 'bmp
+		img2: copy/part skip img 1x0 1x2
+		--assert img/rgb = #{FF000000FF000000FFFFFFFF}
+		--assert img2/rgb = #{00FF00FFFFFF}
+
+	--test-- "copy/part of an image loaded from binary"
+		;-- the same 2x2 image as a 32-bit PNG
+		img-png-rgba: #{
+			89504E470D0A1A0A0000000D494844520000000200000002080600000072B60D24000000124944415478DA63F8CFC0F01F0C
+			813418000049C809F703D964F10000000049454E44AE426082
+		}
+		img: load/as img-png-rgba 'png
+		img2: copy/part skip img 1x0 1x2
+		--assert img2/rgb = #{00FF00FFFFFF}
+
 	#do [ if not value? 'interpreted? [
 			interpreted?: attempt [ system/state/interpreted? ]
 		]
