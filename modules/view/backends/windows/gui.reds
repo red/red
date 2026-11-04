@@ -2941,24 +2941,25 @@ batch-parent: func [									;-- the parent window of a face whose moves, resize
 	GetParent hWnd
 ]
 
-reveal-face: func [										;-- draw a never-drawn face its batch moves into view
-	face	[red-object!]								;-- while still out of it, not after
-	/local
+reveal-face: func [										;-- draw a face its batch moves into view from out of it,
+	face	[red-object!]								;-- while still out of it: a change made out of view was
+	/local												;-- not drawn, and its move is not (quiet-move)
 		wp		[tagWINDOWPOS value]
 		rc		[RECT_STRUCT value]
 		word	[red-word!]
 		hWnd	[handle!]
+		dc		[handle!]
 		type	[integer!]
 		w h		[integer!]
 ][
 	hWnd: face-handle? face
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
-	unless all [
-		IS_D2D_FACE(type)
-		zero? GetWindowLong hWnd wc-offset - 36			;-- no render target: never drawn
-		IsWindowVisible hWnd
-	][exit]
+	unless all [IS_D2D_FACE(type) IsWindowVisible hWnd][exit]
+	dc: GetDC hWnd
+	w: GetClipBox dc :rc
+	ReleaseDC hWnd dc
+	if w <> 1 [exit]									;-- not NULLREGION: in view, its changes are pending
 	apply-facets face 0 :wp
 	if any [wp/flags and SWP_NOMOVE <> 0 wp/flags and SWP_HIDEWINDOW <> 0][exit]
 	GetWindowRect hWnd :rc
@@ -2970,12 +2971,48 @@ reveal-face: func [										;-- draw a never-drawn face its batch moves into vi
 	]
 ]
 
+add-rect: func [rgn [handle!] left [integer!] top [integer!] right [integer!] bottom [integer!] /local r [handle!]][
+	r: CreateRectRgn left top right bottom
+	CombineRgn rgn rgn r RGN_OR
+	DeleteObject r
+]
+
+quiet-move: func [										;-- a move only, of a drawn D2D base: its surface goes with
+	face	[red-object!]								;-- it, up to date (reveal-face), so no repaint; the parts
+	wp		[tagWINDOWPOS]								;-- of PARENT it uncovers are repainted after the commit
+	parent	[handle!]
+	old-rgn	[handle!]									;-- the rectangles the run's quiet moves leave
+	new-rgn	[handle!]									;-- the rectangles they take
+	/local
+		rc		[RECT_STRUCT value]
+		word	[red-word!]
+		hWnd	[handle!]
+		type	[integer!]
+][
+	hWnd: face-handle? face
+	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+	type: symbol/resolve word/symbol
+	unless all [
+		any [type = base type = rich-text]
+		wp/flags and (SWP_NOSIZE or SWP_SHOWWINDOW or SWP_HIDEWINDOW) = SWP_NOSIZE
+		(GetWindowLong hWnd wc-offset - 36) <> 0		;-- drawn
+		(GetWindowLong hWnd GWL_EXSTYLE) and WS_EX_LAYERED = 0
+	][exit]
+	GetWindowRect hWnd :rc
+	MapWindowPoints null parent as tagPOINT :rc 2
+	add-rect old-rgn rc/left rc/top rc/right rc/bottom
+	add-rect new-rgn wp/x wp/y wp/x + rc/right - rc/left wp/y + rc/bottom - rc/top
+	wp/flags: wp/flags or SWP_NOREDRAW
+]
+
 commit-run: func [										;-- commit a run's batch, or apply its faces one by one if
 	faces	[red-block!]								;-- Windows dropped it: their flags are kept until then
 	start	[integer!]
 	end		[integer!]
 	parent	[handle!]
 	hdwp	[handle!]
+	old-rgn	[handle!]									;-- see quiet-move
+	new-rgn	[handle!]
 	/local
 		face	[red-object! value]
 		wp		[tagWINDOWPOS value]
@@ -2992,6 +3029,11 @@ commit-run: func [										;-- commit a run's batch, or apply its faces one by 
 		start: start + 1
 	]
 	unless null? hdwp [EndDeferWindowPos hdwp]
+	if (CombineRgn old-rgn old-rgn new-rgn RGN_DIFF) > 1 [	;-- what the quiet moves uncovered, if any
+		RedrawWindow parent null old-rgn 85h			;-- RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN
+	]
+	DeleteObject old-rgn
+	DeleteObject new-rgn
 ]
 
 OS-update-views: func [									;-- apply a group's changes together: moves, resizes and show/hide
@@ -3002,6 +3044,8 @@ OS-update-views: func [									;-- apply a group's changes together: moves, res
 		parent	[handle!]
 		prev	[handle!]
 		hdwp	[handle!]
+		old-rgn	[handle!]
+		new-rgn	[handle!]
 		keep	[integer!]
 		moved	[integer!]
 		start	[integer!]
@@ -3025,6 +3069,8 @@ OS-update-views: func [									;-- apply a group's changes together: moves, res
 	if moved > 1 [DwmFlush]								;-- a single window change cannot tear
 	hdwp: null
 	prev: null
+	old-rgn: null
+	new-rgn: null
 	start: 0
 	i: 0
 	while [i < block/rs-length? faces][
@@ -3032,19 +3078,22 @@ OS-update-views: func [									;-- apply a group's changes together: moves, res
 		parent: batch-parent :face
 		if parent <> null [
 			if parent <> prev [							;-- a batch per run of siblings: Windows ignores
-				unless null? prev [commit-run faces start i prev hdwp]	;-- a batch mixing parents
+				unless null? prev [commit-run faces start i prev hdwp old-rgn new-rgn]	;-- a batch mixing parents
 				hdwp: BeginDeferWindowPos 8
+				old-rgn: CreateRectRgn 0 0 0 0
+				new-rgn: CreateRectRgn 0 0 0 0
 				prev: parent
 				start: i
 			]
 			unless null? hdwp [
 				apply-facets :face 0 :wp
+				#either draw-engine = 'GDI+ [][quiet-move :face :wp parent old-rgn new-rgn]
 				hdwp: DeferWindowPos hdwp face-handle? :face null wp/x wp/y wp/cx wp/cy wp/flags
 			]
 		]
 		i: i + 1
 	]
-	unless null? prev [commit-run faces start i prev hdwp]
+	unless null? prev [commit-run faces start i prev hdwp old-rgn new-rgn]
 ]
 
 OS-update-view: func [face [red-object!]][apply-facets face 0 null]

@@ -454,6 +454,7 @@ Red/System [
 
 #define SWP_NOSIZE			0001h
 #define SWP_NOMOVE			0002h
+#define SWP_NOREDRAW		0008h
 #define SWP_NOZORDER		0004h
 #define SWP_NOACTIVATE		0010h
 #define SWP_SHOWWINDOW		0040h
@@ -1768,6 +1769,18 @@ BITMAPINFO32: alias struct! [					;-- BITMAPINFOHEADER, no color table (BI_RGB 3
 			right		[integer!]
 			bottom		[integer!]
 			return:		[handle!]
+		]
+		CombineRgn: "CombineRgn" [
+			hrgnDst		[handle!]
+			hrgnSrc1	[handle!]
+			hrgnSrc2	[handle!]
+			iMode		[integer!]
+			return:		[integer!]
+		]
+		GetClipBox: "GetClipBox" [
+			hdc			[handle!]
+			lprect		[RECT_STRUCT]
+			return:		[integer!]
 		]
 		ExtTextOut: "ExtTextOutW" [
 			hdc			[handle!]
