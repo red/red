@@ -604,6 +604,134 @@ recycle/off
 		--assert compiled?
 		--assert not crashed?
 		--assert found? find qt/output "make typeset! [string! integer!]"
+		
+	--test-- "local-proto-other-function"
+		;-- A function's local word was compiled as the object made for the same word
+		;-- in another function, so MAKE derived from that object
+
+		--compile-and-run-this {
+			Red []
+			maker: function [][
+				proto: context [name: "maker"]
+				proto/name
+			]
+			namer: function [spec [object!]][
+				proto: spec
+				f: make proto []
+				f/name: "namer"
+				f
+			]
+			print maker
+			probe namer object [name: none size: 10]
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output {name: "namer"}
+		--assert found? find qt/output "size: 10"
+		
+	--test-- "local-alias-other-function"
+		;-- An alias of a local object was registered as another function's object
+
+		--compile-and-run-this {
+			Red []
+			first-fn: function [][
+				f: context [x: 1]
+				f/x
+			]
+			second-fn: function [][
+				f: context [name: "second"]
+				g: f
+				g/name
+			]
+			print first-fn
+			print second-fn
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "second"
+		
+	--test-- "local-proto-global-object"
+		;-- A function's local word was compiled as the global object of the same name
+
+		--compile-and-run-this {
+			Red []
+			proto: context [a: 1]
+			namer: function [spec [object!]][
+				proto: spec
+				f: make proto []
+				f/name: "namer"
+				f/name
+			]
+			print proto/a
+			print namer object [name: none]
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "namer"
+		
+	--test-- "global-word-other-function-local"
+		;-- A global word was compiled as the object made for a local word of the same
+		;-- name in another function
+
+		--compile-and-run-this {
+			Red []
+			first-fn: function [][
+				g: context [x: 1]
+				g/x
+			]
+			second-fn: func [][g/name]
+			g: first reduce [object [name: "global"]]
+			print first-fn
+			print second-fn
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "global"
+		
+	--test-- "field-path-alias-local-spelling"
+		;-- A path alias in an object spec, headed by a field spelled like a local word
+		;-- of the enclosing function, crashed the compiler
+
+		--compile-and-run-this {
+			Red []
+			foo: function [][
+				p: 1
+				o: context [
+					p: context [sub: context [a: 1]]
+					q: p/sub
+				]
+				o/q/a
+			]
+			print foo
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "1"
+		
+	--test-- "outer-local-object-in-nested-function"
+		;-- A nested function sees the objects of its enclosing function's local words,
+		;-- the other functions do not
+
+		--compile-and-run-this {
+			Red []
+			outer: func [/local t!][
+				t!: context [x: 1]
+				set 'inner func [o [t!]][o/x]
+				inner t!
+			]
+			other: function [spec [object!]][
+				t!: spec
+				f: make t! []
+				f/name: "other"
+				f/name
+			]
+			print outer
+			print other object [name: none]
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "1"
+		--assert found? find qt/output "other"
 
 ===end-group===
 

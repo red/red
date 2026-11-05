@@ -1156,7 +1156,7 @@ red: context [
 	
 	find-object: func [spec [word! object!] /by-name][
 		case [
-			by-name [find/skip objects spec 6]
+			by-name [find/skip get-obj-base spec spec 6]
 			'else	[back find/skip next objects spec 6]
 		]
 	]
@@ -1223,7 +1223,7 @@ red: context [
 		unless find [word! get-word! path!] type?/word expr [return none]
 		any [
 			attempt [do join-obj-stack expr]
-			all [path? expr attempt [do head insert copy expr 'objects]]
+			all [path? expr attempt [do head insert copy expr get-obj-base-word expr/1]]
 			all [
 				find [object! word!] type?/word expr
 				pos: find-object/by-name expr
@@ -5228,7 +5228,7 @@ red: context [
 	
 	register-object: func [obj [word! path!] name /store /local pos prev entry o][
 		if pos: any [
-			all [path? obj object? o: do head insert copy obj 'objects find-object o]
+			all [path? obj object? o: attempt [do head insert copy obj get-obj-base-word obj/1] find-object o]
 			all [not path? obj find-object/by-name obj]
 		][
 			;if prev: find get-obj-base name name [prev/1: none] ;-- unbind word with previous object
@@ -5305,7 +5305,7 @@ red: context [
 		reduce [prolog code]
 	]
 	
-	comp-bodies: has [pos][
+	comp-bodies: has [pos entry nested][
 		obj-stack: to path! 'func-objs
 		pos: tail objects
 		
@@ -5316,9 +5316,13 @@ red: context [
 			container-obj?: obj?
 			func-objs: tail objects
 			depth: max-depth
+			nested: tail bodies
 			preprocess-types name spec
 
 			comp-func-body name spec body copy symbols locals-nb ;-- copy avoids symbols corruption by decoration
+			
+			entry: func-objs
+			if tail? nested [forskip entry 6 [if find symbols entry/1 [entry/1: none]]] ;-- no nested function: hide the local words' objects from next bodies
 		]
 		clear pos
 		clear locals-stack
