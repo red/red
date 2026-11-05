@@ -2995,6 +2995,8 @@ quiet-move: func [										;-- a move only, of a drawn D2D base: its surface go
 	unless all [
 		any [type = base type = rich-text]
 		wp/flags and (SWP_NOSIZE or SWP_SHOWWINDOW or SWP_HIDEWINDOW) = SWP_NOSIZE
+		IsWindowVisible hWnd							;-- hidden: covers nothing where it goes
+		null? GetWindow hWnd GW_CHILD					;-- a container: its children need the repaint
 		(GetWindowLong hWnd wc-offset - 36) <> 0		;-- drawn
 		(GetWindowLong hWnd GWL_EXSTYLE) and WS_EX_LAYERED = 0
 	][exit]

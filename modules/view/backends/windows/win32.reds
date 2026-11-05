@@ -45,6 +45,7 @@ Red/System [
 #define CDIS_DISABLED			4
 
 #define GW_OWNER				4
+#define GW_CHILD				5
 
 #define CWP_SKIPINVISIBLE		1
 #define CWP_SKIPTRANSPARENT		4
