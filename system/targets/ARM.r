@@ -765,7 +765,7 @@ make-profilable make target-class [
 		if object? name [name: compiler/unbox name]
 
 		either offset: emitter/local-offset? name [	;-- local variable case
-			emit-load-local/float lcode offset
+				emit-load-local/float lcode offset
 		][											;-- global variable case
 			pools/collect/spec/with 0 name #{e59f3000}	;-- LDR r3, [pc, #offset]
 			if PIC? [emit-i32 #{e0833009}]				;-- ADD r3, sb
@@ -1901,7 +1901,7 @@ make-profilable make target-class [
 		size: emitter/size-of? compiler/get-type value
 													;-- @@ separate 64/32-bit conventions, too messy...
 		either value = <last> [
-			if 'value = last compiler/last-type [
+			either 'value = last compiler/last-type [
 				slots: emitter/struct-slots? compiler/last-type
 				if slots > 2  [exit]				;-- big struct by value do not need post-processing
 				emit-i32 #{e1a02000}				;-- MOV r2, r0
@@ -1930,6 +1930,8 @@ make-profilable make target-class [
 				]
 				set-width/type type/2/2
 				emit-poly #{e5802000}				;-- STR r2, [r0]		; r1 = 1st struct member
+			][
+				if all [parent size = 8][emit-swap-regs/alt] ;-- r2 = address, r0:r1 = value
 			]
 		][
 			if parent [emit-i32 #{e1a02000}]		;-- MOV r2, r0		; save value/address

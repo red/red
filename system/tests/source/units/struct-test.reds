@@ -130,6 +130,39 @@ Red/System [
 	struct3-byte: struct3/sub/f/2
 	--assert struct3-byte = #"e"
 
+	--test-- "s-nested-10"
+	s-nested-vec!: alias struct! [x [float!] y [float!]]
+	s-nested-box!: alias struct! [n [integer!] lo [s-nested-vec! value] hi [s-nested-vec! value]]
+	s-nested-pair!: alias struct! [n [integer!] a [s-nested-box! value] b [s-nested-box! value]]
+	s-nested-half: func [v [float!] return: [float!]][v / 2.0]
+	nested-src: declare s-nested-box!
+	nested-src/n: 42
+	nested-src/lo/x: 0.5
+	nested-src/lo/y: 0.75
+	nested-dst: declare s-nested-pair!
+	nested-dst/a/hi/x: nested-src/lo/x
+	--assert nested-dst/a/hi/x = 0.5
+
+	--test-- "s-nested-11"
+	nested-src/hi/y: nested-src/lo/y
+	--assert nested-src/hi/y = 0.75
+
+	--test-- "s-nested-12"
+	nested-dst/b/lo/y: s-nested-half nested-src/lo/y
+	--assert nested-dst/b/lo/y = 0.375
+
+	--test-- "s-nested-13"
+	s-nested-local: func [src [s-nested-box!] return: [float!] /local p [s-nested-pair! value]][
+		p/a/lo/x: src/lo/y
+		p/b/hi/y: s-nested-half src/lo/x
+		p/a/lo/x + p/b/hi/y
+	]
+	--assert 1.0 = s-nested-local nested-src
+
+	--test-- "s-nested-14"
+	nested-dst/a/n: nested-src/n
+	--assert nested-dst/a/n = 42
+
 ===end-group===
 
 ===start-group=== "Local struct variables read/write tests"
