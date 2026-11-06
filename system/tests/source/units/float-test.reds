@@ -1814,6 +1814,52 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "float locals far from the frame pointer"
+
+	ffar-block!: alias struct! [
+		a1 [float!] a2 [float!] a3 [float!] a4 [float!] a5 [float!] a6 [float!] a7 [float!] a8 [float!]
+		a9 [float!] a10 [float!] a11 [float!] a12 [float!] a13 [float!] a14 [float!] a15 [float!] a16 [float!]
+	]
+	ffar-sub: 0.0
+	ffar-mul: 0.0
+	ffar-div: 0.0
+	ffar-path: 0.0
+	ffar-lt: false
+	ffar-f32: as float32! 0.0
+	ffar-ops: func [								;-- 1280 bytes of locals before the floats
+		/local
+			b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 [ffar-block! value]
+			h k [float!]
+			f [float32!]
+	][
+		h: 0.25
+		k: 4.0
+		f: as float32! 0.5
+		b10/a16: 3.0
+		ffar-sub: 2.0 - h
+		ffar-mul: h * k
+		ffar-div: k / h
+		ffar-path: b10/a16 - h
+		ffar-lt: h < k
+		ffar-f32: f * as float32! 2.0
+	]
+	ffar-ops
+
+	--test-- "ffar-1"
+		--assert ffar-sub = 1.75
+	--test-- "ffar-2"
+		--assert ffar-mul = 1.0
+	--test-- "ffar-3"
+		--assert ffar-div = 16.0
+	--test-- "ffar-4"
+		--assert ffar-path = 2.75
+	--test-- "ffar-5"
+		--assert ffar-lt
+	--test-- "ffar-6"
+		--assert ffar-f32 = as float32! 1.0
+
+===end-group===
+
 ===start-group=== "Arithmetic & Comparison"
 
   --test-- "float-auto-1"

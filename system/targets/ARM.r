@@ -765,7 +765,17 @@ make-profilable make target-class [
 		if object? name [name: compiler/unbox name]
 
 		either offset: emitter/local-offset? name [	;-- local variable case
+			either 1020 < abs offset [				;-- beyond FLDD/FLDS 8-bit word offsets
+				emit-load-imm32/reg abs offset 3	;-- MOV r3, #|offset|
+				emit-i32 either negative? offset [
+					#{e04b3003}						;-- SUB r3, fp, r3
+				][
+					#{e08b3003}						;-- ADD r3, fp, r3
+				]
+				emit-i32 gcode
+			][
 				emit-load-local/float lcode offset
+			]
 		][											;-- global variable case
 			pools/collect/spec/with 0 name #{e59f3000}	;-- LDR r3, [pc, #offset]
 			if PIC? [emit-i32 #{e0833009}]				;-- ADD r3, sb
