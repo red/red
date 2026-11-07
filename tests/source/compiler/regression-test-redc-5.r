@@ -732,6 +732,21 @@ recycle/off
 		--assert not crashed?
 		--assert found? find qt/output "1"
 		--assert found? find qt/output "other"
+		
+	--test-- "frame-name-local-case-variant"
+		;-- The call frame symbol of a function made in a context inside a function, named
+		;-- by a case variant of a word that is also a local word there, took the place of
+		;-- that word's symbol, so the word got the variant's spelling
+
+		--compile-and-run-this {
+			Red []
+			item: 1
+			f: func [Item][o: context [Item: does [1]]]
+			print mold 'item
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find/case qt/output "item"
 
 ===end-group===
 

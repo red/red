@@ -24,6 +24,8 @@ red: context [
 	symbols:	   make hash! 1000
 	globals:	   make hash! 1000						;-- words defined in global context
 	aliases: 	   make hash! 100
+	exec-symbols:  make hash! 500						;-- symbols reached through exec/ (shadowed by a local): declared in exec
+	frame-names:   make block! 1000						;-- [function source-word symbol...] for frames of context/renamed functions
 	contexts:	   make hash! 100						;-- storage for statically compiled contexts
 	ctx-stack:	   make block! 8						;-- contexts access path
 	shadow-funcs:  make block! 1000						;-- shadow functions contexts [symbol object! ctx...]
@@ -612,7 +614,7 @@ red: context [
 
 	emit-open-frame: func [name [word!] /with type ctx-name /local symbol][
 		symbol: either name = 'try-all ['try][name]
-		unless find symbols symbol [add-symbol symbol]
+		unless any [find/skip frame-names symbol 3 find symbols symbol][add-symbol symbol]
 		either any [
 			type = 'function!
 			'function! = all [
@@ -622,7 +624,7 @@ red: context [
 			]
 		][
 			emit 'stack/mark-func
-			emit prefix-exec symbol
+			emit frame-symbol symbol
 			emit get-func-ctx name ctx-name
 			insert-lf -3
 			append frame-kinds 'func
@@ -634,7 +636,7 @@ red: context [
 				name = 'catch		['stack/mark-catch]
 				'else				['stack/mark-native]
 			]
-			emit prefix-exec symbol
+			emit frame-symbol symbol
 			insert-lf -2
 			append frame-kinds 'other
 		]
@@ -1026,6 +1028,19 @@ red: context [
 		]
 	]
 	
+	frame-symbol: func [name [word!] /local pos][		;-- symbol of the word naming the call frames of function `name`
+		either pos: find/skip frame-names name 3 [		;-- context or renamed function: its source word's symbol
+			either all [not empty? locals-stack find-contexts pos/2][decorate-exec-ctx pos/3][pos/3]
+		][
+			prefix-exec name
+		]
+	]
+	
+	add-frame-name: func [name [word!] src [word!] /local pos][	;-- `name` frames will use the symbol of its source word
+		unless local-word? src [add-symbol src]			;-- not a local word: its case variant would get no alias
+		if pos: find/case/skip symbols src 2 [repend frame-names [name src pos/2/1]]
+	]
+	
 	generate-anon-name: has [name][
 		add-symbol name: to word! rejoin ["~anon" get-counter #"~"]
 		name
@@ -1041,7 +1056,24 @@ red: context [
 	]
 	
 	decorate-exec-ctx: func [name [word!]][
+		if #"~" = first form name [						;-- a symbol reached past a local of the same name:
+			unless find exec-symbols name [append exec-symbols name]	;-- keep it declared in exec
+		]
 		append to path! 'exec name
+	]
+	
+	split-symbols: func [/local root pos][				;-- returns the symbol table to emit at R/S root level
+		root: copy sym-table							;-- (no exec/ decoration, same word/load order); sym-table
+		clear sym-table									;-- keeps the symbols reached through exec/, as copies
+		pos: root
+		while [not tail? pos][
+			if find exec-symbols to word! pos/1 [
+				repend sym-table [pos/1 to path! reduce ['system 'words to word! clean-lf-flag pos/1]]
+				new-line skip tail sym-table -2 on
+			]
+			pos: skip pos 3
+		]
+		root
 	]
 	
 	decorate-symbol: func [name [word!] /no-alias /local pos][
@@ -1956,7 +1988,7 @@ red: context [
 						insert-lf -3
 					][
 						emit to path! reduce [type 'push]
-						emit to path! reduce ['exec decorate-symbol w]	;@@ replace by prefix-exec
+						emit decorate-exec-ctx decorate-symbol w	;@@ replace by prefix-exec
 						insert-lf -2
 					]
 				]
@@ -3007,8 +3039,6 @@ red: context [
 				_function/init-locals (1 + locals-nb)	;-- +1 for /local refinement
 			]
 		]
-		name: decorate-symbol name
-		if find symbols name [name: decorate-exec-ctx name]
 		
 		append init compose [							;-- body stack frame, function's context swapped to its arguments
 			stack/mark-func-body words/_body (last ctx-stack)
@@ -3157,7 +3187,10 @@ red: context [
 				src-name: to word! original
 				unless global? [src-name: get-prefix-func src-name]
 				name: check-func-name src-name
-				add-symbol/with word: to word! clean-lf-flag name to word! clean-lf-flag original
+				word: to word! clean-lf-flag name
+				src-name: to word! clean-lf-flag original
+				if word <> src-name [add-frame-name word src-name]	;-- context or renamed function
+				unless find/skip frame-names word 3 [add-symbol/with word src-name]
 				unless any [
 					local-word? name
 					1 < length? obj-stack
@@ -3953,7 +3986,7 @@ red: context [
 			either all [with not empty? locals-stack not compact?][	;-- only if in a function's body
 				emit reduce [							;-- special case for path-generated wrapper functions
 					'stack/mark-func
-					decorate-exec-ctx decorate-symbol name
+					frame-symbol name
 					get-func-ctx name ctx-name			;-- function's own context (for the caller-side swap)
 				]
 				insert-lf -3
@@ -4784,7 +4817,7 @@ red: context [
 			]
 			word! [
 				remove/part code 2
-				insert code compose [red/word/get (decorate-exec-ctx decorate-symbol spec)]
+				insert code compose [red/word/get (prefix-exec spec)]
 			]
 		][throw-error ["invalid #get argument:" spec]]
 	]
@@ -4823,7 +4856,7 @@ red: context [
 		]
 		either global? [
 			emit 'red/stack/mark-func
-			emit decorate-exec-ctx decorate-symbol name
+			emit frame-symbol name
 			emit get-func-ctx name none
 			insert-lf -3
 		][
@@ -5398,7 +5431,7 @@ red: context [
 		reduce [user mods main]
 	]
 	
-	comp-as-lib: func [code [block!] /local user main mark defs pos ext-ctx slots][
+	comp-as-lib: func [code [block!] /local user main mark defs pos ext-ctx slots syms][
 		out: copy/deep [
 			Red/System [
 				type:   'dll
@@ -5407,6 +5440,7 @@ red: context [
 			
 			***-root-size: <root-size>
 			with red [
+				<symbols>
 				exec: context [
 					<declarations>
 					<script>
@@ -5415,6 +5449,7 @@ red: context [
 		]
 		
 		set [user mark main] comp-source code
+		syms: split-symbols
 
 		defs: make block! 10'000
 		foreach [type cast][
@@ -5429,8 +5464,10 @@ red: context [
 			]
 		]
 		foreach [name spec] symbols [
-			repend defs [to set-word! spec/1 'as 'red-word! 0]
-			new-line skip tail defs -4 on
+			if find exec-symbols spec/1 [				;-- root level symbols are declared before exec
+				repend defs [to set-word! spec/1 'as 'red-word! 0]
+				new-line skip tail defs -4 on
+			]
 		]
 		
 		append defs [
@@ -5469,16 +5506,17 @@ red: context [
 		if job/dev-mode? [slots: slots + 100'000]		;-- Cannot know how many slots will be needed by the app
 		change/only find out <root-size> slots
 		
-		pos: third last out
+		pos: select last out 'context
 		change find pos <script> script
 		remove pos: find pos <declarations>
 		insert pos defs
+		change/part find last out <symbols> syms 1
 		
 		output: out	
 		if verbose > 2 [?? output]
 	]
 	
-	comp-as-exe: func [code [block!] /local out user mods main defs header][
+	comp-as-exe: func [code [block!] /local out user mods main defs header syms][
 		out: copy/deep either job/dev-mode? [[
 			Red/System [origin: 'Red]
 
@@ -5488,6 +5526,8 @@ red: context [
 			with red [
 				stk-bottom: system/stack/top			;-- reset stk-bottom set by libRedRT to allow GC to mark all pointers on stack
 				root-base: redbin/boot-load system/boot-data yes
+				red/boot?: yes							;-- boot mode was reset by libRedRT
+				<symbols>
 				exec: context <script>
 			]
 		]][[
@@ -5497,6 +5537,7 @@ red: context [
 			red/init
 			
 			with red [
+				<symbols>
 				exec: context <script>
 			]
 		]]
@@ -5515,11 +5556,10 @@ red: context [
 		]
 		
 		set [user mods main] comp-source code
+		syms: split-symbols
 		
 		;-- assemble all parts together in right order
 		script: make block! 100'000
-		
-		if job/dev-mode? [append script [red/boot?: yes]] ;-- boot mode was reset by libRedRT
 		
 		append script [
 			------------| "Symbols"
@@ -5554,6 +5594,7 @@ red: context [
 		]
 
 		change/only find out <root-size> redbin/index + 3000 + root-slots
+		change/part find last out <symbols> syms 1		;-- symbols declared at root level (outside exec)
 		change/only find last out <script> script		;-- inject compilation result in template
 		output: out
 		if verbose > 2 [?? output]
@@ -5655,6 +5696,8 @@ red: context [
 		clear needed
 		clear symbols
 		clear aliases
+		clear exec-symbols
+		clear frame-names
 		clear globals
 		clear sys-global
 		clear contexts
