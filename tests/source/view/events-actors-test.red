@@ -116,4 +116,15 @@ got-face: got-window: got-offset: got-picked: bx: e: none
 		--assert changed?
 ===end-group===
 
+===start-group=== "backend events"
+	--test-- "#5775"											;-- bit 16 set in a backend event's flags: not a `make event!` value
+		got-face: none
+		p: layout [base 40x40 on-scroll [got-face: event/face]]
+		bx: p/pane/1
+		e: make-event-wrapper 'scroll bx 65538				;-- the flags of a GTK scroll event at position 4096
+		recycle												;-- the GC must not read its msg as a Red node
+		system/view/awake e
+		--assert same? bx got-face
+===end-group===
+
 ~~~end-file~~~

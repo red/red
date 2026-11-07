@@ -510,8 +510,8 @@ collector: context [
 					if h/extID >= 0 [externals/mark h/extID null]
 				]
 				TYPE_EVENT [									;-- synthetic `make event!` value: msg is a Red cell-node
-					evt: as red-event! value				;-- 00010000h = gui/EVT_FLAG_SYNTHETIC (View's platform.red; raw value here as the collector also compiles in core-only builds)
-					if all [(evt/flags and 00010000h) <> 0  evt/msg <> null][
+					evt: as red-event! value
+					if all [(evt/header and flag-synthetic) <> 0  evt/msg <> null][
 						mark-block-node :evt/msg
 					]
 				]

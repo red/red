@@ -53,7 +53,7 @@ event: context [
 			v	[red-value!]
 	][
 		v: null
-		if (evt/flags and gui/EVT_FLAG_SYNTHETIC) <> 0 [	;-- synthetic event (built via `make event!`)
+		if (evt/header and flag-synthetic) <> 0 [			;-- synthetic event (built via `make event!`)
 			s: null										;-- extras node [face window offset picked], null if none were given
 			if evt/msg <> null [n: as node! evt/msg  s: as series! n/value]
 			v: switch field [
@@ -148,10 +148,10 @@ event: context [
 		#if debug? = yes [if verbose > 0 [print-line "event/make"]]
 
 		evt: as red-event! stack/push*
-		evt/header: TYPE_EVENT
+		evt/header: TYPE_EVENT or flag-synthetic		;-- every make-event value is synthetic (marked by the GC, see runtime/collector.reds)
 		evt/type:   0
 		evt/msg:    null
-		evt/flags:  gui/EVT_FLAG_SYNTHETIC				;-- every make-event value is synthetic (marked by the GC, see runtime/collector.reds)
+		evt/flags:  0
 		face:	    null
 		window:     null
 		ofs:	    null
