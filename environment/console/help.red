@@ -137,7 +137,7 @@ help-ctx: context [
 		]
 	]
 	
-	get-sys-words: func [test [function!]][
+	get-sys-words: func [test [any-function!]][
 		collect [
 			foreach word words-of system/words [
 				if test get/any word [keep word]
