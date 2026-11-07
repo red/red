@@ -117,17 +117,17 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 		]
 	]
 	
-	;-- Generates all type testing functions (action?, bitset?, binary?,...)
+	;-- Generates all type testing routines (action?, bitset?, binary?,...)
 	
 	foreach name test-list [
 		repend list [
-			load head change back tail form name "?:" 'func
-			["Returns true if the value is this type" value [any-type!]]
-			compose [(name) = type? :value]
+			load head change back tail form name "?:" 'routine
+			copy/deep ["Returns true if the value is this type" value [any-type!] return: [logic!]]
+			load join "TYPE_OF(value) = TYPE_" replace/all uppercase head clear back tail form name "-" "_"
 		]
 	]
 	
-	;-- Generates all typesets testing functions (any-list?, any-block?,...)
+	;-- Generates all typesets testing routines (any-list?, any-block?,...)
 	
 	docstring: "Returns true if the value is any type of "
 	foreach name [
@@ -135,9 +135,19 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 		series! number! immediate! scalar! all-word! any-point! planar!
 	][
 		repend list [
-			load head change back tail form name "?:" 'func
-			compose [(join docstring head clear back tail form name) value [any-type!]]
-			compose [find (name) type? :value]
+			load head change back tail form name "?:" 'routine
+			compose/deep [
+				(join docstring head clear back tail form name) value [any-type!] return: [logic!]
+				/local
+					type [integer!]
+					ts	 [red-typeset!]
+					pos	 [byte-ptr!]
+			]
+			compose [
+				type: TYPE_OF (to paren! 'value)
+				ts: as red-typeset! #get (name)
+				BS_TEST_BIT_ALT (to paren! [ts type])
+			]
 		]
 	]
 	
