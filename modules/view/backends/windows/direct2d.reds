@@ -1971,10 +1971,10 @@ create-render-target: func [
 	desc/Format: 87			;-- DXGI_FORMAT_B8G8R8A8_UNORM
 	desc/SampleCount: 1
 	desc/BufferUsage: 20h	;-- DXGI_USAGE_RENDER_TARGET_OUTPUT
-	desc/BufferCount: 2
-	desc/Scaling: as-integer win8+?	;-- win7: DXGI_SCALING_STRETCH: 0 win8+: DXGI_SCALING_NONE: 1
+	desc/BufferCount: 1
+	desc/Scaling: 0			;-- DXGI_SCALING_STRETCH (bitblt model)
 	desc/AlphaMode: 0
-	desc/SwapEffect: 3		;-- DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL
+	desc/SwapEffect: 1		;-- DXGI_SWAP_EFFECT_SEQUENTIAL: the frame is kept, Present copies it into the window
 	rt/flags: desc/Flags
 
 	int: 0

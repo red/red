@@ -1837,6 +1837,10 @@ WndProc: func [
 		]
 		WM_DISPLAYCHANGE [
 			#call [system/view/platform/refresh-screens]
+			#if draw-engine <> 'GDI+ [				;-- e.g. a monitor switched on: the bitblt presents made
+				g_standby?: no						;-- while it was off showed nothing
+				RedrawWindow hWnd null null 81h		;-- RDW_INVALIDATE | RDW_ALLCHILDREN
+			]
 		]
 		WM_THEMECHANGED [
 			values: values + FACE_OBJ_PANE

@@ -124,7 +124,7 @@ Red [
 	]
 	image: [
 		default-actor: on-down
-		template: [type: 'base size: 100x100]
+		template: [type: 'base size: 100x100 color: white]
 		init: [unless image [image: make image! size]]
 	]
 ]
