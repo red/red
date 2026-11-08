@@ -117,7 +117,10 @@ Red/System [
 		][
 			cycles/reset
 			silent: as red-logic! #get system/view/silent?
-			if all [TYPE_OF(silent) = TYPE_LOGIC silent/value][throw 1]
+			if all [TYPE_OF(silent) = TYPE_LOGIC silent/value][
+				if catch? [throw RED_THROWN_ERROR]		;-- unreported, its catcher clears it as for a reported error:
+				throw 1									;-- a stale system/thrown would abort the caller (window creation)
+			]
 			
 			base: block/rs-head cmds
 			cmds: as red-block! stack/push as red-value! cmds
