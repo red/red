@@ -1153,6 +1153,7 @@ OS-draw-line-width: func [
 draw-shadow: func [
 	ctx			[draw-ctx!]
 	bmp			[this!]			;-- input bitmap
+	prev		[this!]			;-- the draw's own target, to go back to
 	x			[float32!]
 	y			[float32!]
 	w			[float32!]
@@ -1167,7 +1168,6 @@ draw-shadow: func [
 		eff2	[this!]
 		effect	[ID2D1Effect]
 		pt		[POINT_2F value]
-		target	[render-target!]
 		output	[com-ptr! value]
 		sigma	[float32!]
 		s		[shadow!]
@@ -1182,8 +1182,8 @@ draw-shadow: func [
 	err1: 0 err2: 0
 	dc/Flush this :err1 :err2
 
-	target: as render-target! ctx/target
-	dc/SetTarget this target/bitmap
+	dc/SetTarget this prev
+	COM_SAFE_RELEASE(unk prev)
 
 	s: ctx/shadows
 	until [
@@ -1255,6 +1255,7 @@ OS-draw-box: func [
 		m		[D2D_MATRIX_3X2_F value]
 		offset	[float32!]
 		pt		[red-point2D!]
+		prev	[com-ptr! value]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1290,6 +1291,7 @@ OS-draw-box: func [
 				as-integer (h + ctx/pen-width) * scale
 				1
 		dc/GetTransform this :m0
+		dc/GetTarget this :prev					;-- draw-shadow goes back to it
 		dc/SetTarget this bmp
 		matrix2d/identity :m
 		dc/SetTransform this :m			;-- set to identity matrix
@@ -1336,7 +1338,7 @@ OS-draw-box: func [
 
 	if ctx/shadow? [
 		dc/SetTransform this :m0
-		draw-shadow ctx bmp up-x up-y w h
+		draw-shadow ctx bmp prev/value up-x up-y w h
 	]
 ]
 
@@ -1507,6 +1509,7 @@ do-draw-ellipse: func [
 		m0		[D2D_MATRIX_3X2_F value]
 		m		[D2D_MATRIX_3X2_F value]
 		offset	[float32!]
+		prev	[com-ptr! value]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1524,6 +1527,7 @@ do-draw-ellipse: func [
 				as-integer (height + ctx/pen-width) * scale
 				1
 		dc/GetTransform this :m0
+		dc/GetTarget this :prev					;-- draw-shadow goes back to it
 		dc/SetTarget this bmp
 		matrix2d/identity :m
 		dc/SetTransform this :m			;-- set to identity matrix
@@ -1561,7 +1565,7 @@ do-draw-ellipse: func [
 	]
 	if ctx/shadow? [
 		dc/SetTransform this :m0
-		draw-shadow ctx bmp x y width height
+		draw-shadow ctx bmp prev/value x y width height
 	]
 ]
 
