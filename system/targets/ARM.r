@@ -3079,14 +3079,13 @@ make-profilable make target-class [
 		args [block!] fspec [block!] spec [block!] attribs [block! none!] /routine name [word!]
 		/local extra cb?
 	][
+		cb?: any [
+			fspec/5 = 'callback
+			all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
+		]
 		either routine [							;-- test for function! pointer case
 			emit-frame-chaining/store
-			if cb?: any [
-				fspec/5 = 'callback
-				all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
-			][
-				extra: emit-AAPCS-header args fspec attribs
-			]
+			if cb? [extra: emit-AAPCS-header args fspec attribs]
 			name: pick tail fspec -2
 			
 			emit-i32 #{e1a0c000}					;-- MOV r12, r0
@@ -3101,15 +3100,16 @@ make-profilable make target-class [
 			emit-i32 #{e1a0a000}					;-- MOV r10, r0
 			emit-i32 #{e1a0000c}					;-- MOV r0, r12
 			emit-i32 #{e120003a}					;-- BLX r10
-			if all [extra positive? extra][
-				emit-op-imm32 #{e28dd000} extra		;-- ADD sp, sp, extra	; skip extra stack arguments
-			]
-			if cb? [emit-hf-return fspec/4]
 		][
 			if all [compiler/variadic? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
+			if cb? [extra: emit-AAPCS-header args fspec attribs] ;-- callee has an AAPCS prolog
 			emit-reloc-addr spec/3
 			emit-i32 #{eb000000}					;-- BL <disp>
 		]
+		if all [extra positive? extra][
+			emit-op-imm32 #{e28dd000} extra			;-- ADD sp, sp, extra	; skip extra stack arguments
+		]
+		if cb? [emit-hf-return fspec/4]
 	]
 
 	patch-call: func [code-buf rel-ptr dst-ptr][
@@ -3308,17 +3308,21 @@ make-profilable make target-class [
 				extras: 0
 				args: extract-arguments args		;-- cleanup and reverse arguments order
 				fargs-nb: count-floats args
+				args-nb: args-nb - fargs-nb			;-- integer arguments count
 				
 				foreach arg args [					;-- process in reverse order
 					either find [float! float64! float32!] arg/1 [
 						emit-push-float fargs-nb - freg arg 		 ;-- push in reverse order
 						freg: freg + 1
+						extras: extras + pick [2 1] to logic! find [float! float64!] arg/1
 					][
-						emit-i32 #{e92d00}			;-- PUSH {r<n>}
-						emit-i32 to char! shift/left 1 args-nb - reg ;-- push in reverse order
+						if args-nb - reg < 4 [		;-- r0-r3 only, next ones are passed on stack
+							emit-i32 #{e92d00}		;-- PUSH {r<n>}
+							emit-i32 to char! shift/left 1 args-nb - reg ;-- push in reverse order
+							extras: extras + 1
+						]
 						reg: reg + 1
 					]
-					extras: extras + pick [2 1] to logic! find [float! float64!] arg/1
 				]
 				args-nb: extras
 			][

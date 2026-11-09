@@ -86,4 +86,38 @@ Red/System [
   
 ===end-group===
 
+===start-group=== "cdecl functions"
+
+	cdecl-int5!: alias function! [[cdecl] a [integer!] b [integer!] c [integer!] d [integer!] e [integer!] return: [integer!]]
+	cdecl-mix!: alias function! [[cdecl] a [integer!] b [integer!] f [float!] return: [float!]]
+	cdecl-int2: func [[cdecl] a [integer!] b [integer!] return: [integer!]][a * 10 + b]
+	cdecl-int5: func [[cdecl] a [integer!] b [integer!] c [integer!] d [integer!] e [integer!] return: [integer!]][
+		(((a * 10 + b) * 10 + c) * 10 + d) * 10 + e
+	]
+	cdecl-mix: func [[cdecl] a [integer!] b [integer!] f [float!] return: [float!]][
+		(as float! a * 10 + b) * 10.0 + f
+	]
+	
+	--test-- "cdecl-1"
+		--assert 12 = cdecl-int2 1 2
+	
+	--test-- "cdecl-2"
+		cdecl-2-sp: system/stack/top
+		--assert 12345 = cdecl-int5 1 2 3 4 5
+		--assert cdecl-2-sp = system/stack/top
+	
+	--test-- "cdecl-3"
+		--assert 123.5 = cdecl-mix 1 2 3.5
+	
+	--test-- "cdecl-4"
+		cdecl-4-s: declare struct! [int5 [cdecl-int5!] mix [cdecl-mix!]]
+		cdecl-4-s/int5: as cdecl-int5! :cdecl-int5
+		--assert 12345 = cdecl-4-s/int5 1 2 3 4 5
+	
+	--test-- "cdecl-5"
+		cdecl-4-s/mix: as cdecl-mix! :cdecl-mix
+		--assert 123.5 = cdecl-4-s/mix 1 2 3.5
+  
+===end-group===
+
 ~~~end-file~~~
