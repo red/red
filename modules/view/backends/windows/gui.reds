@@ -1800,7 +1800,7 @@ make-face-view: func [
 			sym = group-box
 		][
 			class: #u16 "RedPanel"
-			#if draw-engine <> 'GDI+ [if sym = panel [flags: flags or WS_CLIPCHILDREN]]	;-- its erase must not cover its children
+			if sym = panel [flags: flags or WS_CLIPCHILDREN]	;-- its erase must not cover its children
 			either all [
 				parent <> 0
 				(WS_EX_LAYERED and GetWindowLong as handle! parent GWL_EXSTYLE) <> 0
@@ -1862,7 +1862,7 @@ make-face-view: func [
 		]
 		any [sym = base sym = rich-text][
 			class: #u16 "RedBase"
-			#if draw-engine <> 'GDI+ [flags: flags or WS_CLIPCHILDREN]		;-- its frame must not cover its children
+			flags: flags or WS_CLIPCHILDREN						;-- its frame must not cover its children
 			either all [
 				parent <> 0
 				(WS_EX_LAYERED and GetWindowLong as handle! parent GWL_EXSTYLE) <> 0
