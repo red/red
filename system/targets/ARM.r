@@ -1626,10 +1626,14 @@ make-profilable make target-class [
 					]
 				][
 					either offset: emitter/local-offset? value [
-						either alt [
-							emit-load-local/alt #{e3000000} abs offset	;-- MOV r1, offset
+						either compiler/job/cpu-version < 7.0 [	;-- MOVW needs ARMv6T2+
+							emit-load-imm32/reg abs offset pick [1 0] to-logic alt
 						][
-							emit-load-local #{e3000000} abs offset		;-- MOV r0, offset
+							either alt [
+								emit-load-local/alt #{e3000000} abs offset	;-- MOVW r1, offset
+							][
+								emit-load-local #{e3000000} abs offset		;-- MOVW r0, offset
+							]
 						]
 						alt: to-logic alt
 						emit-i32 either negative? offset [
@@ -2343,7 +2347,7 @@ make-profilable make target-class [
 			switch width [
 				1 [
 					emit-i32 #{e1a03c00}			;-- MOV r3, r0, LSL #24
-					emit-i32 #{e1533c01}			;-- CMP r3, r1, LSL #24
+					emit-i32 #{e1530c01}			;-- CMP r3, r1, LSL #24
 				]
 				;2 []								;-- 16-bit not supported
 				4 [emit-i32 #{e1500001}]			;-- CMP r0, r1		; not commutable op
@@ -3106,7 +3110,7 @@ make-profilable make target-class [
 			]
 			emit-i32 #{e1a0a000}					;-- MOV r10, r0
 			emit-i32 #{e1a0000c}					;-- MOV r0, r12
-			emit-i32 #{e120003a}					;-- BLX r10
+			emit-i32 #{e12fff3a}					;-- BLX r10
 		][
 			if all [compiler/variadic? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
 			if cb? [extra: emit-AAPCS-header args fspec attribs] ;-- callee has an AAPCS prolog
