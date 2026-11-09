@@ -1296,6 +1296,7 @@ update-window: func [
 			values: get-face-values hWnd
 			sz: as red-pair! values + FACE_OBJ_SIZE
 			pos: as red-point2D! values + FACE_OBJ_OFFSET
+			if TYPE_OF(pos) = TYPE_PAIR [as-point2D as red-pair! pos]
 			word: as red-word! values + FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
 			if type = rich-text [
