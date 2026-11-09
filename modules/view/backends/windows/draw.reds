@@ -438,6 +438,7 @@ draw-end: func [
 		sc: as IDXGISwapChain1 this/vtbl
 		flags: either g_standby? [DXGI_PRESENT_TEST][0]
 		hr: sc/Present this 0 flags
+		if all [hr = COM_S_OK flags <> 0][hr: sc/Present this 0 0]	;-- visible again: the test showed nothing
 
 		switch hr [
 			COM_S_OK [g_standby?: no]
