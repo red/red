@@ -3086,7 +3086,7 @@ make-profilable make target-class [
 		either routine [							;-- test for function! pointer case
 			emit-frame-chaining/store
 			if cb? [extra: emit-AAPCS-header args fspec attribs]
-			name: pick tail fspec -2
+			if 'local = last fspec [name: pick tail fspec -2]
 			
 			emit-i32 #{e1a0c000}					;-- MOV r12, r0
 			either all [

@@ -120,4 +120,33 @@ Red/System [
   
 ===end-group===
 
+===start-group=== "function pointer in a global variable"
+
+	gfp-fn!: alias function! [a [integer!] return: [integer!]]
+	gfp-cfn!: alias function! [[cdecl] a [integer!] b [integer!] return: [integer!]]
+	gfp-inc: func [a [integer!] return: [integer!]][a + 1]
+	gfp-sub: func [[cdecl] a [integer!] b [integer!] return: [integer!]][a - b]
+	
+	--test-- "gfp1"
+		gfp1-ptr: as gfp-fn! :gfp-inc
+		--assert 42 = gfp1-ptr 41
+	
+	--test-- "gfp2"
+		gfp2-call: func [a [integer!] return: [integer!]][gfp1-ptr a]
+		--assert 42 = gfp2-call 41
+	
+	--test-- "gfp3"
+		gfp3-ptr: as gfp-cfn! :gfp-sub
+		--assert 2 = gfp3-ptr 5 3
+	
+	--test-- "gfp4"
+		gfp4-ctx: context [
+			ptr: as gfp-fn! :gfp-inc
+			val: ptr 1
+		]
+		--assert 2 = gfp4-ctx/val
+		--assert 3 = gfp4-ctx/ptr 2
+  
+===end-group===
+
 ~~~end-file~~~
