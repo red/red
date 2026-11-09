@@ -637,7 +637,11 @@ make-profilable make target-class [
 	
 	emit-atomic-fence: does [
 		if verbose >= 3 [print ">>>emitting ATOMIC-FENCE"]
-		emit #{0FAEF0}								;-- MFENCE
+		either compiler/job/cpu-version < 4.0 [		;-- MFENCE needs SSE2
+			emit #{F0830C2400}						;-- LOCK OR dword [esp], 0
+		][
+			emit #{0FAEF0}							;-- MFENCE
+		]
 	]
 
 	emit-get-overflow: does [

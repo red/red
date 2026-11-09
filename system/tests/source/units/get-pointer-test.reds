@@ -127,4 +127,10 @@ Red/System [
 	--assert gp5/bb/b1 = #"A"
 	--assert #"A" = as byte! p-bb-b1/value
 		
+	--test-- "get-var-operand-1"
+		gpo-ptr: declare int-ptr!
+		gpo-int: 0
+		gpo-ptr: :gpo-int
+		--assert gpo-ptr = :gpo-int					;-- address of a global as the right operand
+		
 ~~~end-file~~~

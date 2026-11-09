@@ -10,7 +10,7 @@ change-dir %../
 
 ;; Cross-compiles %arm-encoding.reds for Linux-ARM (cpu-version 5.0) and checks the emitted code.
 ;; Cores that ignore should-be-zero/one fields run the faulty encodings anyway; QEMU and strict
-;; cores raise SIGILL on them, and ARMv5/v6 cores have no MOVW.
+;; cores raise SIGILL on them, and ARMv5/v6 cores have no MOVW and no DMB.
 
 ~~~start-file~~~ "ARM encodings"
 
@@ -54,6 +54,10 @@ change-dir %../
 	--test-- "arm-enc-4 no MOVW below cpu-version 7.0"
 		--assert none <> find arm-enc-bin #{00004BE0}					;-- SUB r0, fp, r0: a local's address
 		--assert not arm-enc-movw? arm-enc-bin
+
+	--test-- "arm-enc-5 memory fence below cpu-version 7.0"
+		--assert none <> find arm-enc-bin #{0FEAE0E35FE04EE23EFF2FE1}	;-- MVN lr, #F000h / SUB lr, lr, #5Fh / BLX lr
+		--assert none =  find arm-enc-bin #{5BF07FF5}					;-- DMB ish
 
 	if arm-enc-exe [attempt [delete qt/runnable-dir/:arm-enc-exe]]
 

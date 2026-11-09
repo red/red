@@ -22,6 +22,24 @@ Red/System [
 	]
 ]
 
+#if OS <> 'Windows [								;-- no C99 float functions in msvcrt.dll
+	#import [
+		LIBM-file cdecl [
+			test-fmaxf: "fmaxf" [
+				a		[float32!]
+				b		[float32!]
+				return:	[float32!]
+			]
+			test-fmaf: "fmaf" [
+				x		[float32!]
+				y		[float32!]
+				z		[float32!]
+				return:	[float32!]
+			]
+		]
+	]
+]
+
 lt-array!: alias struct! [
 	a			[integer!]
 	b			[integer!]
@@ -79,6 +97,12 @@ lt-int!: alias struct! [
 		--assert old/1 = #"H"
 		--assert old/2 = #"W"
 		--assert 2 = length? old
+	#if OS <> 'Windows [
+		--test-- "lib5"
+			--assert (as float32! -3.0) = test-fmaxf as float32! -5.0 as float32! -3.0
+		--test-- "lib6"
+			--assert (as float32! 10.0) = test-fmaf as float32! 2.0 as float32! 3.0 as float32! 4.0
+	]
 		
 ===end-group===
 

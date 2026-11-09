@@ -57,6 +57,7 @@ print ["This test started at" start-time]
   --run-test-file-quiet %source/compiler/define-test.reds
   --run-script-quiet %source/compiler/regression-test-rsc.r
   --run-script-quiet %source/compiler/arm-encoding-test.r
+  --run-script-quiet %source/compiler/ia32-encoding-test.r
 ===end-group===
 
 ===start-group=== "Datatype tests"

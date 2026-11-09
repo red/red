@@ -106,6 +106,49 @@ Red/System [
 		]
 		--assert alloc-test
 
+	--test-- "alloc-2"
+		alloc-zero-test: func [
+			return: [logic!]
+			/local
+				buf [int-ptr!]
+				i	[integer!]
+				ok? [logic!]
+		][
+			buf: system/stack/allocate 8
+			i: 1
+			until [
+				buf/i: -1
+				i: i + 1
+				i > 8
+			]
+			system/stack/free 8
+			buf: system/stack/allocate/zero 8			;-- same stack area, cleared
+			ok?: yes
+			i: 1
+			until [
+				if buf/i <> 0 [ok?: no]
+				i: i + 1
+				i > 8
+			]
+			system/stack/free 8
+			ok?
+		]
+		--assert alloc-zero-test
+
+	--test-- "alloc-3"
+		alloc-zero-empty: func [
+			return: [integer!]
+			/local
+				buf	  [int-ptr!]
+				guard [integer!]
+		][
+			guard: 123
+			buf: system/stack/allocate/zero 0
+			system/stack/free 0
+			guard
+		]
+		--assert 123 = alloc-zero-empty
+
 ===end-group===
 
 ===start-group=== "system/cpu register read/write"

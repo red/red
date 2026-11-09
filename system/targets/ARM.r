@@ -570,6 +570,17 @@ make-profilable make target-class [
 		regs
 	]
 	
+	next-vfp-reg: func [used [integer!] type [word!] /local n][ ;-- AAPCS-VFP: [s<n>|d<n> used], used: s0-s15 bitmask
+		n: 0
+		either type = 'float32! [
+			while [0 <> (used and shift/left 1 n)][n: n + 1]	;-- lowest free single (back-filling)
+			reduce [n used or shift/left 1 n]
+		][
+			while [0 <> (used and shift/left 3 n)][n: n + 2]	;-- lowest free even pair
+			reduce [n / 2 used or shift/left 3 n]
+		]
+	]
+	
 	extract-arguments: func [spec [block!] /local cnt][
 		spec: copy spec
 		clear find spec first [return:]
@@ -622,7 +633,11 @@ make-profilable make target-class [
 
 	instruction-buffer: make binary! 4
 	
-	f-inc: func [op [binary!] idx [integer!]][
+	f-inc: func [op [binary!] idx [integer!]][			;-- sets d<idx>, or s<idx> for a single precision op
+		if #"^(0A)" = (op/3 and #"^(0F)") [				;-- s<idx>: Vd = idx >> 1, D = idx and 1
+			op: op or debase/base to-hex shift/left idx and 1 22 16
+			idx: shift idx 1
+		]
 		either zero? idx [op][op or debase/base to-hex shift/left idx 12 16]
 	]
 	
@@ -654,7 +669,7 @@ make-profilable make target-class [
 			switch bits [
 				0 [value]
 				1 [(shift/left value and 255 2) or shift/logical value 30]
-				2 [(shift/left value and 16 4) or shift/logical value 28]
+				2 [(shift/left value and 15 4) or shift/logical value 28]
 				3 [(shift/left value and 3 6) or shift/logical value 26]
 			]
 		][
@@ -935,11 +950,11 @@ make-profilable make target-class [
 	emit-alloc-stack: func [zeroed? [logic!]][
 		emit-i32 #{e04dd100}						;-- SUB sp, r0, LSL #2
 		if zeroed? [
-			emit-i32 #{e1a03000}					;-- MOV r3, r0		; count
-			emit-i32 #{e1a02000}					;-- MOV r2, sp		; dst
+			emit-i32 #{e1b03000}					;-- MOVS r3, r0		; count (Z set if zero)
+			emit-i32 #{e1a0200d}					;-- MOV r2, sp		; dst
 			emit-i32 #{e3a01000}					;-- MOV r1, 0		; zero
-			emit-i32 #{e4821004}					;--	.loop:	STR r1, [r2!], #4
-			emit-i32 #{e2555001}					;-- 		SUBS r5, r5, 1
+			emit-i32 #{14821004}					;--	.loop:	STRNE r1, [r2], #4
+			emit-i32 #{12533001}					;-- 		SUBSNE r3, r3, 1
 			emit-i32 #{1afffffc}					;-- 		BNE .loop
 		]
 	]
@@ -1270,7 +1285,13 @@ make-profilable make target-class [
 
 	emit-atomic-fence: does [
 		if verbose >= 3 [print ">>>emitting ATOMIC-FENCE"]
-		emit-i32 #{f57ff05b}						;-- DMB ish (memory fence)
+		either compiler/job/cpu-version < 7.0 [			;-- no DMB before ARMv7
+			emit-i32 #{e3e0ea0f}					;-- MVN lr, #F000h	; lr: FFFF0FFFh
+			emit-i32 #{e24ee05f}					;-- SUB lr, lr, #5Fh	; lr: FFFF0FA0h, Linux kernel barrier helper
+			emit-i32 #{e12fff3e}					;-- BLX lr
+		][
+			emit-i32 #{f57ff05b}					;-- DMB ish (memory fence)
+		]
 	]
 	
 	emit-get-overflow: does [
@@ -1642,7 +1663,7 @@ make-profilable make target-class [
 							pick [#{e08b1001} #{e08b0000}] alt ;-- ADD r0|r1, fp, r0|r1
 						]
 					][
-						pools/collect/spec 0 original
+						pools/collect/spec/with 0 original either alt [#{e59f1000}][#{e59f0000}] ;-- LDR r0|r1, [pc, #offset]
 						if PIC? [emit-i32 either alt [#{e0811009}][#{e0800009}]] ;-- ADD r0|r1, sb
 					]
 				]
@@ -2273,6 +2294,7 @@ make-profilable make target-class [
 		if all [compiler/overflow-check? name = first [<<] b = 'imm find [1 2 4] width][
 			emit-overflow-check-shift compiler/unbox args/2
 		]
+		if all [b = 'imm zero? compiler/unbox args/2][exit]	;-- no code: ASR/LSR #0 would shift by 32
 		switch b [
 			ref [
 				either all [object? args/2 not args/2/keep? compiler/any-float? compiler/get-type args/2/data][
@@ -2841,7 +2863,7 @@ make-profilable make target-class [
 				]
 				if block? right [
 					either all [path? left not path? right][
-						emit-pop-float 1
+						emit-pop-float pick [1 2] width = 8	;-- d1 or s2
 					][
 						emit-float 
 							#{ec410b11}				;-- FMDRR d1, r1, r0
@@ -2921,7 +2943,7 @@ make-profilable make target-class [
 	emit-AAPCS-header: func [
 		args [block!] fspec [block!] attribs [block! none!]
 		/calc
-		/local reg bits offset type size stk freg cconv types nb armhf? struct? r t by-val? body
+		/local reg bits offset type size stk freg idx cconv types nb armhf? struct? r t by-val? body
 	][
 		either args/1 = #custom [
 			unless calc [
@@ -2975,8 +2997,8 @@ make-profilable make target-class [
 							find attribs 'keep
 						]
 					][
-						unless calc [emit-pop-float/with freg type]
-						freg: freg + 1
+						set [idx freg] next-vfp-reg freg type/1
+						unless calc [emit-pop-float/with idx type]
 					][
 						struct?: type/1 = 'struct!
 						all [
@@ -3260,7 +3282,6 @@ make-profilable make target-class [
 		][
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
 			
-			if callback? [offset: offset + (9 * 4) + (8 * 8)] ;-- skip saved regs: {r4-r11, lr}, {d8-d15}
 			offset: offset + locals-offset + ((level + 1) * 8)  ;-- account for the 2 saved slots
 
 			either offset > 255 [
@@ -3278,7 +3299,7 @@ make-profilable make target-class [
 
 	emit-prolog: func [
 		name [word!] locals [block!] bitmap [integer!]
-		/local args-nb attribs args reg freg fargs-nb cb? locals-size pos extras regs
+		/local args-nb attribs args reg freg fargs-nb fregs used n cb? locals-size pos extras regs
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
@@ -3320,10 +3341,18 @@ make-profilable make target-class [
 				args: extract-arguments args		;-- cleanup and reverse arguments order
 				fargs-nb: count-floats args
 				args-nb: args-nb - fargs-nb			;-- integer arguments count
+				used: 0
+				fregs: make block! fargs-nb			;-- VFP registers of the float arguments, in reverse order
+				foreach arg reverse copy args [		;-- allocated in calling order
+					if find [float! float64! float32!] arg/1 [
+						set [n used] next-vfp-reg used arg/1
+						insert fregs n
+					]
+				]
 				
 				foreach arg args [					;-- process in reverse order
 					either find [float! float64! float32!] arg/1 [
-						emit-push-float fargs-nb - freg arg 		 ;-- push in reverse order
+						emit-push-float fregs/:freg arg 		 ;-- push in reverse order
 						freg: freg + 1
 						extras: extras + pick [2 1] to logic! find [float! float64!] arg/1
 					][

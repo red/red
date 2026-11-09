@@ -33,6 +33,9 @@ arm-enc-below?: func [
 	b < as byte! 65									;-- byte! comparison: CMP r3, r1, LSL #24
 ]
 
+arm-enc-state: 0
+
 arm-enc-fptrs/f 41									;-- call through a function pointer: BLX r10
 arm-enc-peek
 arm-enc-below? as byte! 17
+system/atomic/store :arm-enc-state 1				;-- memory fence: no DMB below cpu-version 7.0

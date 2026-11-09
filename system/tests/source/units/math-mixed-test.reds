@@ -8276,4 +8276,34 @@ Red/System [
 ===end-group===
 
 
+===start-group=== "Literal operands"
+
+	--test-- "literal-operand-1"
+		mm-lit: 1
+		--assert mm-lit + F000000Fh = F0000010h			;-- literal with only its top and bottom 4 bits set
+	--test-- "literal-operand-2"
+		mm-lit: 15
+		mm-lit: mm-lit + 536870912
+		--assert mm-lit = 2000000Fh
+	--test-- "literal-operand-3"
+		mm-lit: 0
+		mm-lit: mm-lit or 2000000Fh
+		--assert mm-lit and 15 = 15
+	--test-- "literal-operand-4"
+		mm-lit: 0
+		mm-lit: mm-lit xor EFFFFFFEh					;-- complement: 10000001h
+		--assert mm-lit and 15 = 14
+	--test-- "literal-shift-1"
+		mm-lit: -5
+		--assert mm-lit >> 0 = -5
+	--test-- "literal-shift-2"
+		mm-lit: -5
+		--assert mm-lit -** 0 = -5
+	--test-- "literal-shift-3"
+		mm-lit-b: as byte! 200
+		--assert mm-lit-b >> 0 = as byte! 200
+
+===end-group===
+
+
 ~~~end-file~~~

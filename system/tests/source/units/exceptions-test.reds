@@ -376,6 +376,43 @@ Red/System [
 		fun-nest-1: func [][catch 20 [fun-nest-2]]
 		fun-nest-1
 		--assert system/thrown = 6
+		system/thrown: 0
+
+	--test-- "throw-cdecl-1"
+		exc-cdecl-slots: func [
+			[cdecl]
+			return: [logic!]
+			/local
+				slot	  [int-ptr!]
+				buf		  [int-ptr!]
+				addr flag [integer!]
+				i		  [integer!]
+		][
+			slot: (as int-ptr! system/stack/frame) - 2	;-- catch resume address, then catch flag
+			addr: slot/1
+			flag: slot/2
+			buf: system/stack/allocate 64				;-- fill the stack below this frame with -1
+			i: 1
+			until [
+				buf/i: -1
+				i: i + 1
+				i > 64
+			]
+			system/stack/free 64
+			catch 10 [throw 5]
+			all [slot/1 = addr slot/2 = flag]			;-- restored when the catch ends
+		]
+		--assert exc-cdecl-slots
+		system/thrown: 0
+
+	--test-- "throw-cdecl-2"
+		exc-cdecl-rethrow: func [[cdecl]][
+			catch 10 [throw 5]
+			throw 50									;-- not caught in this function
+		]
+		catch 100 [exc-cdecl-rethrow]
+		--assert system/thrown = 50
+		system/thrown: 0
 
 
 ~~~end-file~~~
