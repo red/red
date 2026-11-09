@@ -149,4 +149,48 @@ Red/System [
   
 ===end-group===
 
+===start-group=== "cdecl float! arguments"
+	;-- ARM soft-float: a float! after an odd count of 32-bit arguments skips r1, or goes on stack and leaves r3 unused
+
+	cfa-ifi!: alias function! [[cdecl] a [integer!] f [float!] b [integer!] return: [integer!]]
+	cfa-ifi: func [[cdecl] a [integer!] f [float!] b [integer!] return: [integer!]][
+		(a * 100) + ((as integer! f) * 10) + b
+	]
+	cfa-if: func [[cdecl] a [integer!] f [float!] return: [integer!]][
+		(a * 10) + as integer! f
+	]
+	cfa-iiif: func [[cdecl] a [integer!] b [integer!] c [integer!] f [float!] return: [integer!]][
+		(a * 1000) + (b * 100) + (c * 10) + as integer! f
+	]
+	cfa-iiifi: func [[cdecl] a [integer!] b [integer!] c [integer!] f [float!] d [integer!] return: [integer!]][
+		(a * 10000) + (b * 1000) + (c * 100) + ((as integer! f) * 10) + d
+	]
+	cfa-std: func [[stdcall] a [integer!] f [float!] b [integer!] return: [integer!]][
+		(a * 100) + ((as integer! f) * 10) + b
+	]
+
+	--test-- "cfa-1"
+		--assert 123 = cfa-ifi 1 2.0 3
+
+	--test-- "cfa-2"
+		--assert 12 = cfa-if 1 2.0
+
+	--test-- "cfa-3"
+		--assert 1234 = cfa-iiif 1 2 3 4.0
+
+	--test-- "cfa-4"
+		cfa-4-sp: system/stack/top
+		--assert 12345 = cfa-iiifi 1 2 3 4.0 5
+		--assert cfa-4-sp = system/stack/top
+
+	--test-- "cfa-5"
+		cfa-5-s: declare struct! [ifi [cfa-ifi!]]
+		cfa-5-s/ifi: as cfa-ifi! :cfa-ifi
+		--assert 123 = cfa-5-s/ifi 1 2.0 3
+
+	--test-- "cfa-6"
+		--assert 123 = cfa-std 1 2.0 3
+  
+===end-group===
+
 ~~~end-file~~~

@@ -550,17 +550,24 @@ make-profilable make target-class [
 		cnt
 	]
 	
-	count-regs: func [spec [block!] /local cnt][
+	arg-regs?: func [spec [block!] /local cnt regs][ ;-- returns r0-r3 holding arguments, in push order
 		cnt: 0
-		parse spec [
+		regs: make block! 4
+		parse head reverse copy spec [				;-- registers are allocated in calling order
 			any [
 				into [['float! | 'float64!] (
-					cnt: cnt + pick [3 2] odd? cnt	;-- account for 64-bit alignment
+					if odd? cnt [cnt: cnt + 1]		;-- account for 64-bit alignment (r1 or r3 unused)
+					insert regs reduce [cnt + 1 cnt]
+					cnt: cnt + 2
 				)]
-				| skip (cnt: cnt + 1)
+				| skip (
+					insert regs cnt
+					cnt: cnt + 1
+				)
 			]
 		]
-		min 4 cnt
+		remove-each reg regs [reg > 3]				;-- next arguments are on stack
+		regs
 	]
 	
 	extract-arguments: func [spec [block!] /local cnt][
@@ -3267,7 +3274,7 @@ make-profilable make target-class [
 
 	emit-prolog: func [
 		name [word!] locals [block!] bitmap [integer!]
-		/local args-nb attribs args reg freg fargs-nb cb? locals-size pos extras
+		/local args-nb attribs args reg freg fargs-nb cb? locals-size pos extras regs
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
@@ -3326,14 +3333,16 @@ make-profilable make target-class [
 				]
 				args-nb: extras
 			][
-				args-nb: any [
-					all [attribs find attribs 'variadic 4] ;-- push all 4 regs and let user code deal with it
-				 	min 4 max args-nb count-regs extract-arguments args ;-- count registers accurately
+				regs: any [
+					all [attribs find attribs 'variadic [3 2 1 0]] ;-- push all 4 regs and let user code deal with it
+					all [empty? args positive? args-nb [3 2 1 0]] ;-- ***_start: arguments count, no spec
+					arg-regs? extract-arguments args	;-- skip unused registers, frame has no padding slot
 				]
-				repeat i args-nb [
+				foreach reg regs [
 					emit-i32 #{e92d00}				;-- PUSH {r<n>}
-					emit-i32 to char! shift/left 1 args-nb - i	;-- push in reverse order
+					emit-i32 to char! shift/left 1 reg	;-- push in reverse order
 				]
+				args-nb: length? regs
 			]
 		]
 			
