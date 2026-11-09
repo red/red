@@ -1141,7 +1141,7 @@ make-profilable make target-class [
 				emit-load-imm32 3					;-- MOV r0, <FPU_TYPE_VFP>
 			]
 			status [
-				emit-i32 #{E200005F}				;-- AND r0, 5Fh		; only exception bits
+				emit-i32 #{E200009F}				;-- AND r0, 9Fh		; only exception bits
 			]
 			options [
 				set [value bit] switch/default option [
@@ -1207,7 +1207,7 @@ make-profilable make target-class [
 				][
 					compiler/throw-error ["invalid FPU mask name:" mask]
 				]
-				emit-op-imm32 #{e3800000} shift/left 1 bit  ;-- OR r0, r0, #mask
+				emit-op-imm32 pick [#{e3c00000} #{e3800000}] value = 1 shift/left 1 bit ;-- BIC|ORR r0, r0, #mask	; masked: trap off
 			]
 		]
 		emit-i32 #{eee10a10}						;-- FMXR FPSCR, r0
@@ -1415,7 +1415,7 @@ make-profilable make target-class [
 	]
 	
 	emit-push-all: does [
-		emit-i32 #{e92d57ff}						;-- STMFD sp!, {r0-r12,r14}
+		emit-i32 #{e92d5fff}						;-- STMFD sp!, {r0-r12,r14}
 		emit-i32 #{ed2d0b21}						;-- FSTMDBX sp!, {d0-d15}
 		emit-i32 #{e10f0000}						;-- MRS r0, CPSR
 		emit-i32 #{e92d0001}						;-- STMFD sp!, {r0}
@@ -1425,7 +1425,7 @@ make-profilable make target-class [
 		emit-i32 #{e8bd0001}						;-- LDMFD sp!, {r0}
 		emit-i32 #{e129f000}						;-- MSR CPSR, r0
 		emit-i32 #{ecbd0b21}						;-- FLDMIAX sp!, {d0-d15}
-		emit-i32 #{e8bd57ff}						;-- LDMFD sp!, {r0-r12,r14}
+		emit-i32 #{e8bd5fff}						;-- LDMFD sp!, {r0-r12,r14}
 	]
 	
 	emit-clear-slot: func [name [word!]][
@@ -2322,6 +2322,7 @@ make-profilable make target-class [
 				#{e1a00330}							;-- LSR r0, r0, r3
 			]
 		] name
+		if all [width = 1 name <> first [<<]][emit-i32 #{e20000ff}]	;-- AND r0, r0, #FFh	; byte! is unsigned
 	
 		emit-i32 either b = 'imm [
 			opcode/1 or to-shift-imm args/2
@@ -2381,7 +2382,8 @@ make-profilable make target-class [
 			imm [
 				switch width [
 					1 [
-						emit-i32 join #{e35000}		;-- CMP r0, #imm8
+						emit-i32 #{e1a03c00}		;-- MOV r3, r0, LSL #24
+						emit-i32 join #{e35304}		;-- CMP r3, #imm8 << 24	; low byte only, as op-poly
 							to char! arg2
 					]
 					;2 []							;-- 16-bit not supported
@@ -2540,7 +2542,7 @@ make-profilable make target-class [
 				if all [compiler/overflow-check? width = 4][
 					emit-overflow-check-division
 				]
-				either compiler/job/cpu-version < 7.0 [
+				either any [compiler/job/cpu-version < 7.0 not compiler/job/idiv?][
 					call-divide mod?
 				][
 					either mod? [
@@ -2955,7 +2957,7 @@ make-profilable make target-class [
 					stack-width * max 0 args/2/1 - 4 ;-- return extra args on stack count
 				][
 					emit-load nb
-					emit-i32 #{e1b0c000}			;-- MOVS ip, r0
+					emit-i32 #{e250c000}			;-- SUBS ip, r0, #0	; clears V for GT
 					emit-i32 #{c8bd0001}			;-- POPGT {r0}
 					emit-i32 #{e25cc001}			;-- SUBS ip, 1
 					emit-i32 #{c8bd0002}			;-- POPGT {r1}
@@ -3073,8 +3075,12 @@ make-profilable make target-class [
 
 	emit-call-syscall: func [args [block!] fspec [block!] attribs [block! none!] /local extra][	; @@ check if it needs stack alignment too
 		extra: emit-AAPCS-header args fspec attribs
-		emit-i32 #{e3a070}							;-- MOV r7, <syscall>
-		emit-i32 to-bin8 last fspec
+		either 255 < last fspec [
+			emit-load-imm32/reg last fspec 7		;-- r7: <syscall>
+		][
+			emit-i32 #{e3a070}						;-- MOV r7, <syscall>
+			emit-i32 to-bin8 last fspec
+		]
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
 		unless zero? extra [
 			emit-op-imm32 #{e28dd000} extra			;-- ADD sp, sp, extra	; skip extra stack arguments

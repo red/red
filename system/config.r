@@ -26,6 +26,7 @@ REBOL [
 ;;  syscall:		'Linux | 'BSD				;-- syscalls calling convention (default to Linux)
 ;;  stack-align-16?: yes | no					;-- yes => align stack to 16 bytes (default: no)
 ;;  literal-pool?:	 yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
+;;  idiv?:			 yes | no					;-- ARM: no => software integer division for cores without SDIV (Cortex-A8, A9) (default: yes)
 ;;	debug?:			 yes | no					;-- yes => emit debug information into binary
 ;;	debug-safe?:	 yes | no					;-- yes => try to avoid over-crashing on runtime debug reports
 ;;	dev-mode?:		 yes | no					;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary

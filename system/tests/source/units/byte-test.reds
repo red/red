@@ -10834,4 +10834,30 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "Comparisons with a literal"
+
+	--test-- "byte-lit-cmp-1"
+		bl-cmp: as byte! 255
+		--assert (bl-cmp + as byte! 1) = #"^(00)"		;-- the sum wraps to a byte
+	--test-- "byte-lit-cmp-2"
+		--assert (bl-cmp + as byte! 3) < #"^(05)"
+
+===end-group===
+
+===start-group=== "Right shifts (byte! is unsigned)"
+
+	--test-- "byte-shift-1"
+		bs-b: as byte! 128
+		--assert (bs-b >> 1) = #"^(40)"
+	--test-- "byte-shift-2"
+		bs-n: 1
+		--assert (bs-b >> bs-n) = #"^(40)"
+	--test-- "byte-shift-3"
+		bs-b: as byte! 255
+		--assert ((bs-b + as byte! 1) >> 1) = #"^(00)"	;-- the sum wraps first
+	--test-- "byte-shift-4"
+		--assert ((bs-b + as byte! 1) -** 1) = #"^(00)"
+
+===end-group===
+
 ~~~end-file~~~

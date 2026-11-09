@@ -9,7 +9,8 @@ REBOL [
 change-dir %../
 
 ;; Compiles %ia32-encoding.reds for MSDOS-Old (cpu-version 1.0) and MSDOS, then checks the emitted
-;; code: CPUs without SSE2 (before the Pentium 4) have no MFENCE.
+;; code: CPUs without SSE2 (before the Pentium 4) have no MFENCE. %ia32-encoding-pic.reds, a Linux
+;; shared library (PIC code), checks the cpu-version 1.0 float! to integer! conversion.
 
 ~~~start-file~~~ "IA-32 encodings"
 
@@ -22,16 +23,24 @@ change-dir %../
 	ia32-enc-new?: --compile %source/compiler/ia32-encoding.reds
 	ia32-enc-new: either ia32-enc-new? [read/binary ia32-enc-file][#{}]
 	qt/compile-flag: ia32-enc-flag
+	ia32-enc-pic?: --compile-dll %source/compiler/ia32-encoding-pic.reds "Linux"
+	ia32-enc-pic: either ia32-enc-pic? [read/binary qt/runnable-dir/:ia32-enc-pic?][#{}]
 
 	--test-- "ia32-enc-1 compiles for MSDOS-Old and MSDOS"
 		--assert none <> ia32-enc-old?
 		--assert none <> ia32-enc-new?
 
 	--test-- "ia32-enc-2 memory fence below cpu-version 4.0"
-		--assert none <> find ia32-enc-old #{F0830C2400}			;-- LOCK OR dword [esp], 0
-		--assert none =  find ia32-enc-old #{0FAEF0}				;-- MFENCE needs SSE2
-		--assert none <> find ia32-enc-new #{0FAEF0}
+		--assert none <> find/case ia32-enc-old #{F0830C2400}			;-- LOCK OR dword [esp], 0
+		--assert none =  find/case ia32-enc-old #{0FAEF0}				;-- MFENCE needs SSE2
+		--assert none <> find/case ia32-enc-new #{0FAEF0}
+
+	--test-- "ia32-enc-3 FLDCW in PIC code below cpu-version 4.0"
+		--assert none <> ia32-enc-pic?
+		--assert none <> find/case ia32-enc-pic #{D9AB}				;-- FLDCW [ebx+disp]
+		--assert none =  find/case ia32-enc-pic #{D92D}				;-- FLDCW [disp32]: absolute address
 
 	if exists? ia32-enc-file [attempt [delete ia32-enc-file]]
+	if ia32-enc-pic? [attempt [delete qt/runnable-dir/:ia32-enc-pic?]]
 
 ~~~end-file~~~

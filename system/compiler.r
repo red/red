@@ -60,6 +60,7 @@ system-dialect: make-profilable context [
 		export-ABI:			none						;-- force a calling convention for exports
 		stack-align-16?:	no							;-- yes => align stack to 16 bytes
 		literal-pool?:		no							;-- yes => use pools to store literals, no => store them inlined (default: no)
+		idiv?:				yes							;-- ARM: yes => SDIV for integer division from cpu-version 7.0, no => software division
 		unicode?:			no							;-- yes => use Red Unicode API for printing on screen
 		red-pass?:			no							;-- yes => Red compiler was invoked
 		red-only?:			no							;-- yes => stop compilation at Red/System level and display output

@@ -343,8 +343,7 @@ make-profilable make target-class [
 						emit #{D92C24}				;-- FLDCW [esp]
 						emit #{83C404}				;-- ADD esp, 4			; free space
 						emit #{DB1C24}				;-- FISTP dword [esp]	; save as 32-bit
-						emit #{D92D}				;-- FLDCW [<word>]	 	; global
-						emit-reloc-addr fpu-cword/2	;-- one-based index
+						emit-fpu-update				;-- FLDCW [<word>]	; restore the control word
 					]
 				]
 				unless push [
@@ -1645,8 +1644,13 @@ make-profilable make target-class [
 				emit #{50}							;-- PUSH eax
 			]
 			char! [
-				emit #{6A}							;-- PUSH value
-				emit value
+				either value < #"^(80)" [
+					emit #{6A}						;-- PUSH value
+					emit value
+				][
+					emit #{68}						;-- PUSH value	; imm32: no sign extension
+					emit to-bin32 to integer! value
+				]
 			]
 			integer! [
 				either all [-128 <= value value <= 127][
@@ -1829,8 +1833,8 @@ make-profilable make target-class [
 			]
 			>>  [
 				emit-poly pick [
-					[#{C0F8} #{C1F8}]				;-- SAR rA, value
-					[#{D2F8} #{D3F8}]				;-- SAR rA, cl
+					[#{C0E8} #{C1F8}]				;-- SHR al|SAR eax, value	; byte! is unsigned
+					[#{D2E8} #{D3F8}]				;-- SHR al|SAR eax, cl
 				] b = 'imm
 			]
 			-** [
@@ -2015,7 +2019,7 @@ make-profilable make target-class [
 							either width = 1 [
 								emit #{C0E0}		;-- SHL al, log2(b)	; 8-bit unsigned
 							][
-								emit-poly [#{C0ED} #{C1E0}]	;-- SAL rA, log2(b) ; signed
+								emit-poly [#{C0E0} #{C1E0}]	;-- SAL rA, log2(b) ; signed
 							]
 							emit to-bin8 c
 						][

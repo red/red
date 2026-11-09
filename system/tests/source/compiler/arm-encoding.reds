@@ -33,9 +33,27 @@ arm-enc-below?: func [
 	b < as byte! 65									;-- byte! comparison: CMP r3, r1, LSL #24
 ]
 
+arm-enc-is-a?: func [
+	b		[byte!]
+	return: [logic!]
+][
+	b = #"A"										;-- with a literal: CMP r3, #41000000h
+]
+
+#syscall [
+	arm-enc-sys: 300 [return: [integer!]]			;-- number above 255
+]
+
 arm-enc-state: 0
 
 arm-enc-fptrs/f 41									;-- call through a function pointer: BLX r10
 arm-enc-peek
 arm-enc-below? as byte! 17
 system/atomic/store :arm-enc-state 1				;-- memory fence: no DMB below cpu-version 7.0
+arm-enc-is-a? as byte! 66
+arm-enc-sys
+system/fpu/mask/zero-divide: yes					;-- masked: BIC of the trap-enable bit
+system/fpu/mask/overflow: no						;-- unmasked: ORR
+arm-enc-state: system/fpu/status
+system/stack/push-all
+system/stack/pop-all

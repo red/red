@@ -19,6 +19,10 @@ Red/System [
 			i		[integer!]
 			return:	[integer!]
 		]
+		test-abs-byte: "abs" [
+			b		[byte!]
+			return:	[integer!]
+		]
 	]
 ]
 
@@ -103,6 +107,8 @@ lt-int!: alias struct! [
 		--test-- "lib6"
 			--assert (as float32! 10.0) = test-fmaf as float32! 2.0 as float32! 3.0 as float32! 4.0
 	]
+	--test-- "lib7"
+		--assert 255 = test-abs-byte #"^(FF)"			;-- a byte! argument arrives zero-extended
 		
 ===end-group===
 
