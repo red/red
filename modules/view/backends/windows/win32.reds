@@ -444,6 +444,7 @@ Red/System [
 #define VK_PROCESSKEY		E5h
 
 #define DEFAULT_GUI_FONT 	17
+#define OBJ_FONT			6
 
 #define ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID	0004h
 #define ACTCTX_FLAG_RESOURCE_NAME_VALID			0008h
@@ -1851,10 +1852,19 @@ BITMAPINFO32: alias struct! [					;-- BITMAPINFOHEADER, no color table (BI_RGB 3
 			hgdiobj		[handle!]
 			return:		[handle!]
 		]
+		GetCurrentObject: "GetCurrentObject" [
+			hDC			[handle!]
+			type		[integer!]
+			return:		[handle!]
+		]
 		GetDeviceCaps: "GetDeviceCaps" [
 			hDC			[handle!]
 			nIndex		[integer!]
 			return:		[integer!]
+		]
+		GetTextColor: "GetTextColor" [
+			hdc			[handle!]
+			return:		[integer!]						;-- 0x00bbggrr
 		]
 		SetTextColor: "SetTextColor" [
 			hdc			[handle!]

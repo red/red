@@ -331,9 +331,14 @@ xform: declare XFORM!
 draw-state!: alias struct! [
 	gstate		[integer!]
 	pen-clr		[integer!]
+	pen-width	[float32!]
 	brush-clr	[integer!]
 	pen-join	[integer!]
 	pen-cap		[integer!]
+	font		[handle!]
+	font-clr	[integer!]
+	text-clr	[integer!]
+	font-clr?	[logic!]
 	pen?		[logic!]
 	brush?		[logic!]
 	a-pen?		[logic!]
@@ -3852,9 +3857,14 @@ OS-draw-state-push: func [ctx [draw-ctx!] state [draw-state!] /local s][
 	GdipSaveGraphics ctx/graphics :s
 	state/gstate: s
 	state/pen-clr: ctx/pen-color
+	state/pen-width: ctx/pen-width
 	state/brush-clr: ctx/brush-color
 	state/pen-join: ctx/pen-join
 	state/pen-cap: ctx/pen-cap
+	state/font: GetCurrentObject ctx/dc OBJ_FONT
+	state/font-clr: ctx/font-color
+	state/text-clr: GetTextColor ctx/dc
+	state/font-clr?: ctx/font-color?
 	state/pen?: ctx/pen?
 	state/brush?: ctx/brush?
 	state/a-pen?: ctx/alpha-pen?
@@ -3863,7 +3873,17 @@ OS-draw-state-push: func [ctx [draw-ctx!] state [draw-state!] /local s][
 
 OS-draw-state-pop: func [ctx [draw-ctx!] state [draw-state!]][
 	GdipRestoreGraphics ctx/graphics state/gstate
+	unless ctx/other/D2D? [							;-- ctx/dc is a Direct2D render target there
+		if state/font <> GetCurrentObject ctx/dc OBJ_FONT [
+			SelectObject ctx/dc state/font
+			update-gdiplus-font ctx
+		]
+		SetTextColor ctx/dc state/text-clr
+		update-gdiplus-font-color ctx state/font-clr
+		ctx/font-color?: state/font-clr?
+	]
 	ctx/pen-join: state/pen-join
+	ctx/pen-width: state/pen-width
 	ctx/pen-cap: state/pen-cap
 	OS-draw-pen ctx state/pen-clr not state/pen? state/a-pen?
 	OS-draw-fill-pen ctx state/brush-clr not state/brush? state/a-brush?
