@@ -477,6 +477,13 @@ tagSIZE: alias struct! [
 			line		[integer!]
 			c			[handle!]
 		]
+		CTLineGetTypographicBounds: "CTLineGetTypographicBounds" [
+			line		[integer!]
+			ascent		[float32-ptr!]
+			descent		[float32-ptr!]
+			leading		[float32-ptr!]
+			return:		[float!]
+		]
 		CGRectContainsPoint: "CGRectContainsPoint" [
 			x			[float32!]
 			y			[float32!]
@@ -554,6 +561,10 @@ tagSIZE: alias struct! [
 			green		[float32!]
 			blue		[float32!]
 			alpha		[float32!]
+		]
+		CGContextSetFillColorWithColor: "CGContextSetFillColorWithColor" [
+			c			[handle!]
+			color		[integer!]
 		]
 		CGContextStrokeRect: "CGContextStrokeRect" [
 			c			[handle!]

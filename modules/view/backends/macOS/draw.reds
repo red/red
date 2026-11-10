@@ -698,7 +698,14 @@ draw-text-at: func [
 		str		[integer!]
 		attr	[integer!]
 		line	[integer!]
+		strike	[integer!]
+		font	[integer!]
+		clr		[integer!]
 		delta	[float32!]
+		xh		[float32!]
+		top		[float32!]
+		w		[float32!]
+		h		[float32!]
 		m		[CGAffineTransform!]
 ][
 	m: make-CGMatrix 1 0 0 -1 1 1
@@ -715,6 +722,17 @@ draw-text-at: func [
 	m/ty: m/ty + delta
 	CGContextSetTextMatrix ctx m/a m/b m/c m/d m/tx m/ty
 	CTLineDraw line ctx
+	strike: objc_msgSend [attrs sel_getUid "objectForKey:" NSStrikethroughStyleAttributeName]
+	unless zero? objc_msgSend [strike sel_getUid "intValue"][	;-- Core Text draws no strikethrough
+		font: objc_msgSend [attrs sel_getUid "objectForKey:" NSFontAttributeName]
+		clr: objc_msgSend [attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
+		h: objc_msgSend_f32 [font sel_getUid "underlineThickness"]
+		xh: objc_msgSend_f32 [font sel_getUid "xHeight"]
+		top: m/ty - (xh + h / 2.0)							;-- centered at half the x-height
+		w: as float32! CTLineGetTypographicBounds line null null null
+		CGContextSetFillColorWithColor ctx objc_msgSend [clr sel_getUid "CGColor"]
+		CGContextFillRect ctx x top w h
+	]
 
 	CFRelease str
 	CFRelease attr
