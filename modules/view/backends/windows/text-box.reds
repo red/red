@@ -19,6 +19,9 @@ Red/System [
 #define TBOX_METRICS_CHAR_INDEX?	5
 #define TBOX_METRICS_OFFSET_LOWER	6
 
+#define TEXT_UNDERLINE				1		;-- get-font-decoration flags
+#define TEXT_STRIKE					2
+
 hidden-hwnd:  as handle! 0
 line-metrics: as DWRITE_LINE_METRICS 0
 max-line-cnt: 0
@@ -285,6 +288,51 @@ OS-text-box-metrics: func [
 	]
 ]
 
+get-font-decoration: func [						;-- TEXT_UNDERLINE and TEXT_STRIKE flags of a font's style
+	font	[red-object!]
+	return: [integer!]
+	/local
+		style	[red-word!]
+		blk		[red-block!]
+		len		[integer!]
+		sym		[integer!]
+		flags	[integer!]
+][
+	style: as red-word! (object/get-values font) + FONT_OBJ_STYLE
+	len: switch TYPE_OF(style) [
+		TYPE_BLOCK [
+			blk: as red-block! style
+			style: as red-word! block/rs-head blk
+			block/rs-length? blk
+		]
+		TYPE_WORD  [1]
+		default	   [0]
+	]
+	flags: 0
+	loop len [
+		sym: symbol/resolve style/symbol
+		if sym = _underline [flags: flags or TEXT_UNDERLINE]
+		if sym = _strike [flags: flags or TEXT_STRIKE]
+		style: style + 1
+	]
+	flags
+]
+
+set-text-decoration: func [						;-- underlines and/or strikes out the whole text of a layout
+	layout	[this!]
+	text	[red-string!]
+	flags	[integer!]
+	/local
+		dl	[IDWriteTextLayout]
+		len	[integer!]
+][
+	if any [zero? flags TYPE_OF(text) <> TYPE_STRING][exit]
+	len: adjust-index text 0 string/rs-length? text 1	;-- in UTF-16 units
+	dl: as IDWriteTextLayout layout/vtbl
+	if flags and TEXT_UNDERLINE <> 0 [dl/SetUnderline layout yes 0 len]
+	if flags and TEXT_STRIKE <> 0 [dl/SetStrikethrough layout yes 0 len]
+]
+
 OS-text-box-layout: func [
 	box		[red-object!]
 	target	[render-target!]
@@ -398,6 +446,7 @@ OS-text-box-layout: func [
 		if TYPE_OF(fcolor) = TYPE_TUPLE [
 			OS-text-box-color as handle! target as handle! layout 0 string/rs-length? str get-tuple-color fcolor
 		]
+		set-text-decoration layout str get-font-decoration font
 	]
 
 	styles: as red-block! values + FACE_OBJ_DATA

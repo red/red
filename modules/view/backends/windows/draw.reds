@@ -576,7 +576,9 @@ draw-text: func [									;-- BG?: paint a text-box face's color behind its text
 			ctx/text-format: as this! create-text-format as red-object! text null
 		]
 		set-line-spacing ctx/text-format null
-		create-text-layout text ctx/text-format 0 0
+		layout: create-text-layout text ctx/text-format 0 0
+		set-text-decoration layout text ctx/font-decoration
+		layout
 	]
 	color?: no
 	if ctx/font-color <> ctx/pen-color [
@@ -1634,6 +1636,7 @@ OS-draw-font: func [
 		ctx/font-color: ctx/pen-color
 		ctx/font-color?: no
 	]
+	ctx/font-decoration: get-font-decoration font	;-- set on each text layout by draw-text
 ]
 
 OS-draw-arc: func [

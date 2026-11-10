@@ -256,6 +256,7 @@ Red/System [
 						pen-color		[integer!]
 						brush-color		[integer!]
 						font-color		[integer!]
+						font-decoration	[integer!]
 						pen-join		[integer!]
 						pen-cap			[integer!]
 						pen-pattern		[float32-ptr!]

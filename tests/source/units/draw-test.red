@@ -54,6 +54,63 @@ do [if all [system/view value? 'image! datatype? get 'image!] [
 
 ===end-group===
 
+===start-group=== "draw text decorations"
+	td-plain:  make font! [name: "Arial" size: 20]
+	td-under:  make td-plain [style: 'underline]
+	td-strike: make td-plain [style: [strike]]
+	td-both:   make td-plain [style: [underline strike]]
+
+	td-scan: function [								;-- rows of img holding a dark run of 30+ pixels
+		img [image!]
+	][
+		rows: make block! 4
+		repeat y img/size/y [
+			run: 0
+			repeat x img/size/x [
+				p: img/(as-pair x y)
+				run: either 510 > (p/1 + p/2 + p/3) [run + 1][0]
+				if run = 30 [append rows y]
+			]
+		]
+		rows
+	]
+	td-rows: func [cmds [block!]][					;-- td-scan of a text drawn after cmds
+		td-scan draw 160x60 compose [pen black (cmds) text 10x5 "llllllllllll"]
+	]
+	td-rt: rtd-layout ["llllllllllll"]
+	td-rt/color: none
+	td-rt-rows: func [font [object!]][				;-- td-scan of the td-rt rich-text drawn with font
+		td-rt/font: font
+		td-scan draw 160x60 compose [pen black text 10x5 (td-rt)]
+	]
+	td-under-rows:  td-rows [font td-under]
+	td-strike-rows: td-rows [font td-strike]
+
+	--test-- "text-deco-1" --assert empty? td-rows [font td-plain]
+	--test-- "text-deco-2" --assert not empty? td-under-rows
+	--test-- "text-deco-3" --assert not empty? td-strike-rows
+	--test-- "text-deco-4"
+		--assert to logic! all [					;-- the underline is below the strike line
+			not empty? td-under-rows
+			not empty? td-strike-rows
+			td-under-rows/1 > last td-strike-rows
+		]
+	--test-- "text-deco-5" --assert equal? td-rows [font td-both] sort union td-under-rows td-strike-rows
+	--test-- "text-deco-6" --assert empty? td-rows [font td-under font td-plain]
+	--test-- "text-deco-7" --assert empty? td-rows [push [font td-under]]
+	if image? try [draw 1x1 compose [text 0x0 (td-rt)]][	;-- GDI+ draws no rich-text on images
+		--test-- "text-deco-8" --assert empty? td-rt-rows td-plain
+		--test-- "text-deco-9"
+			td-rt-under:  td-rt-rows td-under
+			td-rt-strike: td-rt-rows td-strike
+			--assert to logic! all [				;-- a rich-text face's own font
+				not empty? td-rt-under
+				not empty? td-rt-strike
+				td-rt-under/1 > last td-rt-strike
+			]
+	]
+===end-group===
+
 ===start-group=== "draw empty images"
 	e: make image! 0x0
 	--test-- "empty4" --assert image? draw copy i [fill-pen bitmap e box 0x0 2x2]
