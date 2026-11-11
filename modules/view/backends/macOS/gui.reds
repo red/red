@@ -2448,6 +2448,8 @@ OS-to-image: func [
 		word	[red-word!]
 		rep		[integer!]
 		id		[integer!]
+		nsgc	[integer!]
+		back	[integer!]
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
@@ -2481,14 +2483,25 @@ OS-to-image: func [
 					;-- title
 					bmp: CGWindowListCreateImage rc 8 id 1 or 8
 
-					;-- content
+					;-- content, composited over the window's background (drawn by the window frame, not by the content view)
 					rep: objc_msgSend [cview sel_getUid "bitmapImageRepForCachingDisplayInRect:" rc2/x rc2/y rc2/w rc2/h]
 					objc_msgSend [cview sel_getUid "cacheDisplayInRect:toBitmapImageRep:" rc2/x rc2/y rc2/w rc2/h rep]
+					back: objc_msgSend [cview sel_getUid "bitmapImageRepForCachingDisplayInRect:" rc2/x rc2/y rc2/w rc2/h]
+					nsgc: objc_getClass "NSGraphicsContext"
+					objc_msgSend [nsgc sel_getUid "saveGraphicsState"]
+					objc_msgSend [nsgc sel_getUid "setCurrentContext:" objc_msgSend [nsgc sel_getUid "graphicsContextWithBitmapImageRep:" back]]
+					objc_msgSend [objc_msgSend [view sel_getUid "backgroundColor"] sel_getUid "setFill"]
+					objc_msgSend [objc_getClass "NSBezierPath" sel_getUid "fillRect:" F32_0 F32_0 rc2/w rc2/h]
+					objc_msgSend [
+						rep sel_getUid "drawInRect:fromRect:operation:fraction:respectFlipped:hints:"
+						F32_0 F32_0 rc2/w rc2/h F32_0 F32_0 F32_0 F32_0 2 F32_1 no 0	;-- whole rep, source-over
+					]
+					objc_msgSend [nsgc sel_getUid "restoreGraphicsState"]
 					img: objc_msgSend [
 						objc_msgSend [objc_getClass "NSImage" sel_alloc]
 						sel_getUid "initWithSize:" as float! rc2/w as float! rc2/h
 					]
-					objc_msgSend [img sel_getUid "addRepresentation:" rep]
+					objc_msgSend [img sel_getUid "addRepresentation:" back]
 					bmp2: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
 
 					;-- combine
