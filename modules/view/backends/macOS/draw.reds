@@ -28,8 +28,18 @@ draw-state!: alias struct! [
 	pen-cap		[integer!]
 	pen?		[logic!]
 	brush?		[logic!]
-	a-pen?		[logic!]
-	a-brush?	[logic!]
+	grad-pen	[integer!]									;-- grad-pen..grad-brush?: same order as in draw-ctx!
+	grad-type	[integer!]
+	grad-spread	[integer!]
+	grad-x1		[float32!]
+	grad-y1		[float32!]
+	grad-x2		[float32!]
+	grad-y2		[float32!]
+	grad-radius	[float32!]
+	grad-pos?	[logic!]
+	grad-pen?	[logic!]
+	grad-brush?	[logic!]
+	matrix		[CGAffineTransform! value]
 	font-clr?	[logic!]
 ]
 
@@ -103,6 +113,7 @@ draw-end: func [
 	pattern?	[logic!]
 ][
 	if dc/font-attrs <> 0 [objc_msgSend [dc/font-attrs sel_release]]
+	if dc/grad-pen <> -1 [CGGradientRelease dc/grad-pen]
 	CGColorSpaceRelease dc/colorspace
 	unless pattern? [
 		CGContextRestoreGState CGCtx
@@ -455,6 +466,7 @@ do-draw-path: func [
 		if dc/pen? [
 			CGContextAddPath ctx path
 			CGContextStrokePath ctx
+			CGPathRelease path
 		]
 	]
 ]
@@ -1574,8 +1586,9 @@ OS-draw-state-push: func [dc [draw-ctx!] state [draw-state!]][
 	state/pen-cap: dc/pen-cap
 	state/pen?: dc/pen?
 	state/brush?: dc/brush?
-	state/a-pen?: dc/grad-pen?
-	state/a-brush?: dc/grad-brush?
+	copy-memory as byte-ptr! :state/grad-pen as byte-ptr! :dc/grad-pen (as-integer state/matrix) - as-integer :state/grad-pen
+	copy-memory as byte-ptr! state/matrix as byte-ptr! dc/matrix size? CGAffineTransform!
+	if dc/grad-pen <> -1 [CGGradientRetain dc/grad-pen]		;-- the saved state's own reference
 	state/font-clr?: dc/font-color?
 	objc_msgSend [state/font-attrs sel_getUid "retain"]
 ]
@@ -1590,8 +1603,9 @@ OS-draw-state-pop: func [dc [draw-ctx!] state [draw-state!]][
 	dc/pen-cap: state/pen-cap
 	dc/pen?: state/pen?
 	dc/brush?: state/brush?
-	dc/grad-pen?: state/a-pen?
-	dc/grad-brush?: state/a-brush?
+	if dc/grad-pen <> -1 [CGGradientRelease dc/grad-pen]	;-- the inner level's one
+	copy-memory as byte-ptr! :dc/grad-pen as byte-ptr! :state/grad-pen (as-integer state/matrix) - as-integer :state/grad-pen
+	copy-memory as byte-ptr! dc/matrix as byte-ptr! state/matrix size? CGAffineTransform!
 	dc/font-color?: state/font-clr?
 ]
 

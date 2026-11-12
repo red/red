@@ -517,6 +517,10 @@ tagSIZE: alias struct! [
 		CGGradientRelease: "CGGradientRelease" [
 			gradient	[integer!]
 		]
+		CGGradientRetain: "CGGradientRetain" [
+			gradient	[integer!]
+			return:		[integer!]
+		]
 		CGContextDrawLinearGradient: "CGContextDrawLinearGradient" [
 			ctx			[handle!]
 			gradient	[integer!]
