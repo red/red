@@ -2864,7 +2864,7 @@ OS-draw-state-pop: func [
 	COM_SAFE_RELEASE(IUnk ctx/brush)
 	COM_SAFE_RELEASE(IUnk ctx/pen-style)
 	unless ctx/font? [COM_SAFE_RELEASE(IUnk ctx/text-format)]
-	if ctx/pen-pattern <> null [free as byte-ptr! ctx/pen-pattern]
+	if all [ctx/pen-pattern <> null ctx/pen-pattern <> draw-state/pen-pattern][free as byte-ptr! ctx/pen-pattern]
 	copy-memory as byte-ptr! :ctx/state as byte-ptr! draw-state size? draw-state!
 	ctx/state: null
 	if ctx/pen-type = DRAW_BRUSH_COLOR [OS-draw-pen ctx ctx/pen-color no]

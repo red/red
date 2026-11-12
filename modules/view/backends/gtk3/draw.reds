@@ -211,6 +211,7 @@ draw-end: func [
 		cairo_path_destroy dc/clip-path
 		dc/clip-path: null
 	]
+	if dc/pen-pattern <> null [free as byte-ptr! dc/pen-pattern]
 ]
 
 cairo-matrix-translate: func [
@@ -3541,7 +3542,7 @@ OS-draw-state-pop: func [
 	state		[draw-state!]
 ][
 	cairo_restore dc/cr
-	if dc/pen-pattern <> null [free as byte-ptr! dc/pen-pattern]
+	if all [dc/pen-pattern <> null dc/pen-pattern <> state/pen-pattern][free as byte-ptr! dc/pen-pattern]
 	if dc/font-attrs <> null [pango_attr_list_unref dc/font-attrs]
 	;-- Release any pattern the inner block left in dc before the memcpy
 	;-- overwrites the pointer with the saved one (whose extra ref was taken
