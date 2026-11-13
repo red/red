@@ -125,7 +125,6 @@ draw-begin: func [
 		fe		[cairo_font_extents_t! value]
 ][
 	ctx/cr:				cr
-	ctx/pen-pattern:	null
 	ctx/pen-width:		1.0
 	ctx/pen-color:		0						;-- default: black
 	ctx/brush-color:	0
@@ -211,7 +210,6 @@ draw-end: func [
 		cairo_path_destroy dc/clip-path
 		dc/clip-path: null
 	]
-	if dc/pen-pattern <> null [free as byte-ptr! dc/pen-pattern]
 ]
 
 cairo-matrix-translate: func [
@@ -1964,40 +1962,31 @@ OS-draw-fill-pen: func [
 	]
 ]
 
-_set-line-dash: func [
-	dc		[draw-ctx!]
-	/local
-		cnt		[integer!]
-		pint	[int-ptr!]
-		pf		[float-ptr!]
-		dashes	[float-ptr!]
-][
-	if dc/pen-pattern <> null [
-		pint: as int-ptr! dc/pen-pattern
-		cnt: pint/value
-		dashes: dc/pen-pattern + 1
-		pf: as float-ptr! system/stack/allocate cnt * 2
-		while [cnt > 0][
-			pf/cnt: dashes/cnt * dc/pen-width
-			cnt: cnt - 1
-		]
-		cairo_set_dash dc/cr pf pint/value 0.0
-	]
-]
-
 OS-draw-line-width: func [
 	dc			[draw-ctx!]
 	width		[red-value!]
 	/local
 		w		[float!]
+		cnt		[integer!]
+		n		[integer!]
+		pf		[float-ptr!]
 ][
 	w: get-float as red-integer! width
 	dc/line-width?: w > 0.0
 	if w <= 0.0 [w: 1.0]
+	cnt: cairo_get_dash_count dc/cr
+	if cnt > 0 [										;-- dashes are in line-width units: rescale cairo's
+		pf: as float-ptr! system/stack/allocate cnt * 2
+		cairo_get_dash dc/cr pf null
+		n: cnt
+		while [n > 0][
+			pf/n: pf/n / dc/pen-width * w
+			n: n - 1
+		]
+		cairo_set_dash dc/cr pf cnt 0.0
+	]
 	dc/pen-width: w
 	cairo_set_line_width dc/cr w
-
-	_set-line-dash dc
 ]
 
 OS-draw-box: func [
@@ -2854,29 +2843,19 @@ OS-draw-line-pattern: func [
 		cnt		[integer!]
 		dashes	[float-ptr!]
 		pf		[float-ptr!]
-		pint	[int-ptr!]
 ][
-	if dc/pen-pattern <> null [
-		free as byte-ptr! dc/pen-pattern
-		dc/pen-pattern: null
-	]
 	cnt: (as-integer end - start) / 16 + 1
-	dashes: null
 	if cnt > 0 [
-		dashes: as float-ptr! allocate (cnt + 1) * size? float!
-		dc/pen-pattern: dashes
-		;-- save count in the first slot
-		pint: as int-ptr! dashes
-		pint/1: cnt
-		dashes: dashes + 1
+		dashes: as float-ptr! system/stack/allocate cnt * 2		;-- cairo keeps its own copy
 		pf: dashes
 		while [start <= end][
 			either zero? start/value [pf/1: 0.0001][pf/1: as float! start/value]
+			pf/1: pf/1 * dc/pen-width					;-- in line-width units
 			pf: pf + 1
 			start: start + 1
 		]
+		cairo_set_dash dc/cr dashes cnt 0.0
 	]
-	_set-line-dash dc
 ]
 
 GDK-draw-image: func [
@@ -3542,7 +3521,6 @@ OS-draw-state-pop: func [
 	state		[draw-state!]
 ][
 	cairo_restore dc/cr
-	if all [dc/pen-pattern <> null dc/pen-pattern <> state/pen-pattern][free as byte-ptr! dc/pen-pattern]
 	if dc/font-attrs <> null [pango_attr_list_unref dc/font-attrs]
 	;-- Release any pattern the inner block left in dc before the memcpy
 	;-- overwrites the pointer with the saved one (whose extra ref was taken

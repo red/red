@@ -259,8 +259,6 @@ Red/System [
 						font-decoration	[integer!]
 						pen-join		[integer!]
 						pen-cap			[integer!]
-						pen-pattern		[float32-ptr!]
-						pen-pattern-cnt [integer!]
 						pen-grad-type	[integer!]
 						brush-grad-type	[integer!]
 						prev-pen-type	[integer!]
@@ -433,7 +431,6 @@ Red/System [
 					pattern?		[logic!]
 					line-width?		[logic!]
 					pen-width		[float!]
-					pen-pattern		[float-ptr!]
 					pen-color		[integer!]					;-- 00bbggrr format
 					brush-color		[integer!]					;-- 00bbggrr format
 					font-color		[integer!]
@@ -537,7 +534,6 @@ Red/System [
 			pattern?		[logic!]
 			line-width?		[logic!]
 			pen-width		[float!]
-			pen-pattern		[float-ptr!]
 			pen-color		[integer!]					;-- 00bbggrr format
 			brush-color		[integer!]					;-- 00bbggrr format
 			font-color		[integer!]
@@ -556,6 +552,12 @@ Red/System [
 			shadow-color	[integer!]
 			shadow-inset?	[logic!]
 			shadows			[shadow! value]
+			clip-path		[handle!]
+			clip-rule		[integer!]
+			clip-x1			[float!]
+			clip-y1			[float!]
+			clip-x2			[float!]
+			clip-y2			[float!]
 			on-image?		[logic!]
 		]
 		

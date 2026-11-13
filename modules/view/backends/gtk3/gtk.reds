@@ -3289,6 +3289,15 @@ GPtrArray!: alias struct! [
 			num			[integer!]
 			offset		[float!]
 		]
+		cairo_get_dash_count: "cairo_get_dash_count" [
+			cr			[handle!]
+			return:		[integer!]
+		]
+		cairo_get_dash: "cairo_get_dash" [
+			cr			[handle!]
+			dashes		[float-ptr!]
+			offset		[float-ptr!]
+		]
 		cairo_set_source: "cairo_set_source" [
 			cr			[handle!]
 			source		[handle!]

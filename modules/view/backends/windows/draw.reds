@@ -229,7 +229,7 @@ start-draw: func [
 	ctx/pen-cap:	D2D1_CAP_STYLE_FLAT
 	ctx/pen-style:	null
 	ctx/hwnd:		hWnd
-	update-pen-style ctx
+	update-pen-style ctx null 0
 
 	t-mode: 1	;-- ClearType
 	this: d2d-ctx
@@ -344,7 +344,6 @@ release-ctx: func [
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
 	unless ctx/font? [COM_SAFE_RELEASE(IUnk ctx/text-format)]
-	if ctx/pen-pattern <> null [free as byte-ptr! ctx/pen-pattern]
 	release-pen-style ctx
 	free-shadow ctx
 ]
@@ -475,12 +474,26 @@ release-pen-style: func [
 
 update-pen-style: func [
 	ctx			[draw-ctx!]
+	dashes		[float32-ptr!]
+	cnt			[integer!]								;-- -1: the dashes of the current style
 	/local
 		prop	[D2D1_STROKE_STYLE_PROPERTIES value]
 		d2d		[ID2D1Factory]
 		hr		[integer!]
 		style	[ptr-value!]
+		this	[this!]
+		ss		[ID2D1StrokeStyle]
 ][
+	if cnt < 0 [										;-- a stroke style is immutable: carry its dashes over
+		cnt: 0
+		this: ctx/pen-style
+		unless null? this [
+			ss: as ID2D1StrokeStyle this/vtbl
+			cnt: ss/GetDashesCount this
+			dashes: as float32-ptr! system/stack/allocate cnt
+			ss/GetDashes this dashes cnt
+		]
+	]
 	release-pen-style ctx
 
 	prop/startCap: ctx/pen-cap
@@ -488,11 +501,11 @@ update-pen-style: func [
 	prop/dashCap: ctx/pen-cap
 	prop/lineJoin: ctx/pen-join
 	prop/miterLimit: as float32! 10.0
-	prop/dashStyle: either zero? ctx/pen-pattern-cnt [0][5]
+	prop/dashStyle: either zero? cnt [0][5]
 	prop/dashOffset: as float32! 0.0
 
 	d2d: as ID2D1Factory d2d-factory/vtbl
-	hr: d2d/CreateStrokeStyle d2d-factory prop ctx/pen-pattern ctx/pen-pattern-cnt :style
+	hr: d2d/CreateStrokeStyle d2d-factory prop dashes cnt :style
 	ctx/pen-style: as this! style/value
 ]
 
@@ -1853,7 +1866,7 @@ OS-draw-line-join: func [
 		true				[mode: D2D1_LINE_JOIN_MITER]
 	]
 	ctx/pen-join: mode
-	update-pen-style ctx
+	update-pen-style ctx null -1
 ]
 
 OS-draw-line-cap: func [
@@ -1869,7 +1882,7 @@ OS-draw-line-cap: func [
 		true				[mode: D2D1_CAP_STYLE_FLAT]
 	]
 	ctx/pen-cap: mode
-	update-pen-style ctx
+	update-pen-style ctx null -1
 ]
 
 OS-draw-line-pattern: func [
@@ -1882,13 +1895,9 @@ OS-draw-line-pattern: func [
 		arr		[float32-ptr!]
 		pf32	[float32-ptr!]
 ][
-	if ctx/pen-pattern <> null [free as byte-ptr! ctx/pen-pattern]
-	ctx/pen-pattern: null
-	ctx/pen-pattern-cnt: 0
-
 	cnt: (as-integer end - start) / 16 + 1
 	if cnt > 0 [
-		arr: as float32-ptr! allocate cnt * size? float32!
+		arr: as float32-ptr! system/stack/allocate cnt		;-- the stroke style keeps its own copy
 		p: start
 		pf32: arr
 		while [p <= end][
@@ -1896,10 +1905,8 @@ OS-draw-line-pattern: func [
 			pf32: pf32 + 1
 			p: p + 1
 		]
-		ctx/pen-pattern: arr
-		ctx/pen-pattern-cnt: cnt
+		update-pen-style ctx arr cnt
 	]
-	update-pen-style ctx
 ]
 
 create-4p-matrix: func [
@@ -2864,7 +2871,6 @@ OS-draw-state-pop: func [
 	COM_SAFE_RELEASE(IUnk ctx/brush)
 	COM_SAFE_RELEASE(IUnk ctx/pen-style)
 	unless ctx/font? [COM_SAFE_RELEASE(IUnk ctx/text-format)]
-	if all [ctx/pen-pattern <> null ctx/pen-pattern <> draw-state/pen-pattern][free as byte-ptr! ctx/pen-pattern]
 	copy-memory as byte-ptr! :ctx/state as byte-ptr! draw-state size? draw-state!
 	ctx/state: null
 	if ctx/pen-type = DRAW_BRUSH_COLOR [OS-draw-pen ctx ctx/pen-color no]

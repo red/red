@@ -1222,6 +1222,16 @@ ID2D1StrokeStyle: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
+	GetFactory						[integer!]
+	GetStartCap						[integer!]
+	GetEndCap						[integer!]
+	GetDashCap						[integer!]
+	GetMiterLimit					[integer!]
+	GetLineJoin						[integer!]
+	GetDashOffset					[integer!]
+	GetDashStyle					[integer!]
+	GetDashesCount					[function! [this [this!] return: [integer!]]]
+	GetDashes						[function! [this [this!] dashes [float32-ptr!] count [integer!]]]
 ]
 
 ;-- Direct Write
