@@ -2504,9 +2504,11 @@ OS-draw-brush-bitmap: func [
 		ctx/brush?:         yes
 		ctx/gp-brush:       texture
 		ctx/gp-brush-type:  BRUSH_TYPE_TEXTURE
+		ctx/other/gradient-fill?: false
 	][
 		GdipSetPenBrushFill ctx/gp-pen texture
 		ctx/gp-pen-type:    BRUSH_TYPE_TEXTURE
+		ctx/other/gradient-pen?: false
 	]
 ]
 

@@ -161,6 +161,8 @@ draw-begin: func [
 	grad/offset-on?: off
 	grad/focal-on?: off
 	grad/pattern-on?: off
+	grad/type: 0
+	grad/colors: null
 
 	grad: ctx/grad-brush
 	grad/on?: off
@@ -169,6 +171,8 @@ draw-begin: func [
 	grad/offset-on?: off
 	grad/focal-on?: off
 	grad/pattern-on?: off
+	grad/type: 0
+	grad/colors: null
 
 	ctx/font-attrs:		null
 	ctx/font-opts:		null
@@ -3043,7 +3047,7 @@ OS-draw-grad-pen-old: func [
 		dc/pen?: yes
 		dc/grad-pen
 	]
-	unless grad/on? [
+	if any [not grad/on? null? grad/colors][	;-- a pattern brush has no colors buffer
 		nums: 2 * MAX_COLORS
 		pc: as int-ptr! allocate nums * size? integer!
 		grad/colors: pc
@@ -3053,6 +3057,7 @@ OS-draw-grad-pen-old: func [
 	grad/spread: _pad
 	grad/type: type
 	grad/count: 0
+	if grad/pattern-on? [cairo_pattern_destroy grad/pattern]	;-- previous brush's pattern
 	grad/pattern-on?: off
 
 	grad/focal-on?: off
@@ -3189,7 +3194,7 @@ OS-draw-grad-pen: func [
 		dc/pen?: yes
 		dc/grad-pen
 	]
-	unless grad/on? [
+	if any [not grad/on? null? grad/colors][	;-- a pattern brush has no colors buffer
 		nums: 2 * MAX_COLORS
 		pc: as int-ptr! allocate nums * size? integer!
 		grad/colors: pc
@@ -3199,6 +3204,7 @@ OS-draw-grad-pen: func [
 	grad/spread: spread
 	grad/type: type
 	grad/count: 0
+	if grad/pattern-on? [cairo_pattern_destroy grad/pattern]	;-- previous brush's pattern
 	grad/pattern-on?: off
 
 	grad/focal-on?: off
@@ -3530,6 +3536,9 @@ OS-draw-state-pop: func [
 	;-- in OS-draw-state-push).
 	if dc/grad-pen/pattern-on?   [cairo_pattern_destroy dc/grad-pen/pattern]
 	if dc/grad-brush/pattern-on? [cairo_pattern_destroy dc/grad-brush/pattern]
+	;-- Same for a gradient stops buffer allocated by the inner block.
+	if all [dc/grad-pen/colors <> null dc/grad-pen/colors <> state/grad-pen/colors][free as byte-ptr! dc/grad-pen/colors]
+	if all [dc/grad-brush/colors <> null dc/grad-brush/colors <> state/grad-brush/colors][free as byte-ptr! dc/grad-brush/colors]
 	free-shadow dc
 	free-clip-path dc
 	copy-memory (as byte-ptr! dc) + 4 as byte-ptr! state size? draw-state!
