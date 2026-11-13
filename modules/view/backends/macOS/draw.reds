@@ -1731,6 +1731,7 @@ OS-draw-shape-beginpath: func [
 	dc          [draw-ctx!]
 	draw?		[logic!]
 ][
+	if dc/path <> 0 [CGPathRelease dc/path]			;-- a shape left unfinished by a Draw error in this paint
 	dc/path: CGPathCreateMutable
 	CGPathMoveToPoint dc/path null F32_0 F32_0
 ]
