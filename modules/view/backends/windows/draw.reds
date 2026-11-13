@@ -346,6 +346,8 @@ release-ctx: func [
 	unless ctx/font? [COM_SAFE_RELEASE(IUnk ctx/text-format)]
 	release-pen-style ctx
 	free-shadow ctx
+	release-com-object as int-ptr! ctx/sub/sink			;-- a shape left unfinished by a Draw error
+	release-com-object as int-ptr! ctx/sub/path
 ]
 
 release-hwnd-target: func [					;-- releases the render target of hWnd, asking for a repaint
@@ -2644,10 +2646,13 @@ OS-set-clip: func [
 			gsink/Release sthis
 
 			para/mask: as int-ptr! ctx/sub/path
+			ctx/sub/path: 0
+			ctx/sub/sink: 0
 		]
 	]
 
 	dc/PushLayer2 this :para null
+	release-com-object para/mask						;-- the layer holds its own reference
 ]
 
 OS-clip-end: func [

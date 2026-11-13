@@ -712,6 +712,7 @@ draw-end: func [
 	unless zero? ctx/gp-font		[GdipDeleteFont ctx/gp-font]
 	unless zero? ctx/image-attr 	[GdipDisposeImageAttributes ctx/image-attr]
 	unless zero? ctx/gp-matrix		[GdipDeleteMatrix ctx/gp-matrix]
+	unless zero? ctx/gp-path		[GdipDeletePath ctx/gp-path]		;-- a shape left unfinished by a Draw error
 	unless zero? ctx/pen			[DeleteObject as handle! ctx/pen]
 	unless zero? ctx/brush			[DeleteObject as handle! ctx/brush]
 	unless zero? ctx/other/gradient-pen/matrix		[ GdipDeleteMatrix ctx/other/gradient-pen/matrix ]
@@ -3602,6 +3603,7 @@ OS-set-clip: func [
 				ctx/gp-path
 				clip-mode
 			GdipDeletePath ctx/gp-path
+			ctx/gp-path: 0
 		]
 	][
 		dc: ctx/dc
