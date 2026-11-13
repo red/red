@@ -91,6 +91,7 @@ draw-begin: func [
 	ctx/colorspace:		CGColorSpaceCreateDeviceRGB
 	ctx/last-pt-x:		as float32! 0.0
 	ctx/last-pt-y:		as float32! 0.0
+	ctx/path:			0
 	ctx/on-image?:		on-graphic?
 
 	ctx/font-attrs: objc_msgSend [				;-- default font attributes
@@ -114,6 +115,7 @@ draw-end: func [
 ][
 	if dc/font-attrs <> 0 [objc_msgSend [dc/font-attrs sel_release]]
 	if dc/grad-pen <> -1 [CGGradientRelease dc/grad-pen]
+	if dc/path <> 0 [CGPathRelease dc/path]			;-- a shape left unfinished by a Draw error
 	CGColorSpaceRelease dc/colorspace
 	unless pattern? [
 		CGContextRestoreGState CGCtx
@@ -1714,6 +1716,7 @@ OS-set-clip: func [
 		CGPathCloseSubpath p
 		CGContextAddPath ctx p
 		CGPathRelease p
+		dc/path: 0
 	]
 	CGContextClip ctx
 ]
@@ -1744,6 +1747,7 @@ OS-draw-shape-endpath: func [
 	CGContextAddPath dc/raw path
 	do-draw-path dc
 	CGPathRelease path
+	dc/path: 0
 	true
 ]
 
