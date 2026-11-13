@@ -667,6 +667,8 @@ OS-draw-shape-beginpath: func [
 		vpoint	[POINT_2F value]
 		figure	[integer!]
 ][
+	release-com-object as int-ptr! ctx/sub/sink			;-- a shape left unfinished by a Draw error in this paint
+	release-com-object as int-ptr! ctx/sub/path
 	d2d: as ID2D1Factory d2d-factory/vtbl
 	hr: d2d/CreatePathGeometry d2d-factory :path
 	pthis: as this! path/value

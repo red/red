@@ -965,6 +965,7 @@ OS-draw-shape-beginpath: func [
 ][
 	ctx/other/connect-subpath: 0
 	either ctx/other/GDI+? [
+		unless zero? ctx/gp-path [GdipDeletePath ctx/gp-path]	;-- a shape left unfinished by a Draw error in this paint
 		path: 0
 		GdipCreatePath 0 :path	; alternate fill
 		ctx/gp-path: path
