@@ -2109,12 +2109,18 @@ OS-draw-brush-pattern: func [
 		pt			[red-point2D!]
 		pdc			[draw-ctx! value]
 		tmp			[integer!]
+		pool		[integer!]
 ][
 	;-- CoreGraphics runs the block later in a callback, where no error may be thrown: run it once now
 	tmp: OS-image/CGBitmapContextCreate null 1 1 8 4 dc/colorspace 1
+	pool: objc_msgSend [objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"] sel_getUid "init"]	;-- none is drained outside events
+	objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "saveGraphicsState"]	;-- rich-text draws in the current AppKit context
+	objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "setCurrentContext:" objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "graphicsContextWithGraphicsPort:flipped:" tmp no]]
 	draw-begin :pdc as handle! tmp null no yes
 	catch RED_THROWN_ERROR [parse-draw pdc block catch?]
 	draw-end :pdc as handle! tmp no no yes
+	objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "restoreGraphicsState"]
+	objc_msgSend [pool sel_getUid "drain"]
 	OS-image/CGContextRelease tmp
 	if system/thrown <> 0 [re-throw]
 
