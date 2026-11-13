@@ -2090,7 +2090,7 @@ OS-draw-brush-pattern: func [
 	mode	[red-word!]
 	block	[red-block!]
 	brush?	[logic!]
-	catch?	[logic!]									;-- unused: the block runs later, in a CoreGraphics callback
+	catch?	[logic!]
 	/local
 		x xx		[float32!]
 		y yy		[float32!]
@@ -2107,7 +2107,17 @@ OS-draw-brush-pattern: func [
 		height		[float32!]
 		callbacks	[CGPatternCallbacks!]
 		pt			[red-point2D!]
+		pdc			[draw-ctx! value]
+		tmp			[integer!]
 ][
+	;-- CoreGraphics runs the block later in a callback, where no error may be thrown: run it once now
+	tmp: OS-image/CGBitmapContextCreate null 1 1 8 4 dc/colorspace 1
+	draw-begin :pdc as handle! tmp null no yes
+	catch RED_THROWN_ERROR [parse-draw pdc block catch?]
+	draw-end :pdc as handle! tmp no no yes
+	OS-image/CGContextRelease tmp
+	if system/thrown <> 0 [re-throw]
+
 	dc/pattern-blk: as int-ptr! block
 	ctx: dc/raw
 	alpha: as float32! 1.0
