@@ -2072,32 +2072,26 @@ OS-draw-brush-bitmap: func [
 
 draw-pattern-callback: func [
 	[cdecl]
-	info	[int-ptr!]
+	info	[int-ptr!]										;-- the pattern's layer, holding its cell's drawing
 	ctx		[handle!]
-	/local
-		dc	[draw-ctx!]
-		w	[float32!]
-		h	[float32!]
-		blk [red-block!]
-		m	[CGAffineTransform! value]
-		wrap [integer!]
 ][
-	dc: as draw-ctx! info
-	wrap: dc/pattern-mode
-	blk: as red-block! dc/pattern-blk
-	w: dc/pattern-w
-	h: dc/pattern-h
-	do-draw ctx null blk no no yes yes
-	if wrap = flip-x [
-		CGContextScaleCTM ctx as float32! -1.0 F32_1
-		do-draw ctx null blk no no yes yes
-	]
-	if wrap = flip-y [
-		m: CGAffineTransformMake F32_1 F32_0 F32_0 as float32! -1.0 w h
-		CGContextConcatCTM ctx m
-		do-draw ctx null blk no no yes yes
-	]
-	if wrap = flip-xy [0]
+	CGContextDrawLayerAtPoint ctx F32_0 F32_0 as-integer info
+]
+
+release-pattern-layer: func [[cdecl] info [int-ptr!]][CGLayerRelease as-integer info]
+
+mirror-pattern-tile: func [								;-- mirrors the cell's space across tx/ty (sx/sy: -1), then draws the tile
+	ctx		[handle!]
+	tile	[integer!]
+	tx		[float32!]
+	ty		[float32!]
+	sx		[float32!]
+	sy		[float32!]
+	y		[float32!]
+][
+	CGContextTranslateCTM ctx tx ty
+	CGContextScaleCTM ctx sx sy
+	CGContextDrawLayerAtPoint ctx F32_0 y tile
 ]
 
 OS-draw-brush-pattern: func [
@@ -2126,17 +2120,13 @@ OS-draw-brush-pattern: func [
 		callbacks	[CGPatternCallbacks!]
 		pt			[red-point2D!]
 		pdc			[draw-ctx! value]
-		tmp			[integer!]
+		layer		[integer!]
+		cell		[integer!]
+		lctx		[handle!]
+		lw			[float32!]
+		lh			[float32!]
+		ty			[float32!]
 ][
-	;-- CoreGraphics runs the block later in a callback, where no error may be thrown: run it once now
-	tmp: OS-image/CGBitmapContextCreate null 1 1 8 4 dc/colorspace 1
-	draw-begin :pdc as handle! tmp null no yes
-	catch RED_THROWN_ERROR [parse-draw pdc block catch?]
-	draw-end :pdc as handle! tmp no no yes
-	OS-image/CGContextRelease tmp
-	if system/thrown <> 0 [re-throw]
-
-	dc/pattern-blk: as int-ptr! block
 	ctx: dc/raw
 	alpha: as float32! 1.0
 	GET_PAIR_XY(size w h)
@@ -2155,34 +2145,67 @@ OS-draw-brush-pattern: func [
 		h: either ( y + yy ) > h [ h - y ][ yy ]
 	]
 
+	;-- the block is drawn once, y-down, into a layer holding the tile, which the pattern owns and draws in each cell
+	lw: either w < F32_1 [F32_1][w]						;-- an empty tile still runs its block: errors, set-words
+	lh: either h < F32_1 [F32_1][h]
+	layer: CGLayerCreateWithContext ctx lw lh 0
+	if zero? layer [									;-- no layer (allocation failure): paints nothing
+		either brush? [OS-draw-fill-pen dc 0 yes no][OS-draw-pen dc 0 yes no]
+		exit
+	]
+	lctx: CGLayerGetContext layer
+	CGContextAddRect lctx F32_0 lh - h w h				;-- only the tile is drawn: the layer covers whole
+	CGContextClip lctx									;-- pixels, more than a fractional tile
+	CGContextTranslateCTM lctx F32_0 - x lh + y			;-- the tile's top-left at the layer's top-left
+	CGContextScaleCTM lctx F32_1 as float32! -1.0
+	draw-begin :pdc lctx null no yes
+	catch RED_THROWN_ERROR [parse-draw pdc block catch?]
+	draw-end :pdc lctx no no yes
+	if system/thrown <> 0 [CGLayerRelease layer re-throw]
+
 	wrap: tile
 	unless mode = null [wrap: symbol/resolve mode/symbol]
-	dc/pattern-mode: wrap
-	case [
-		any [wrap = flip-x wrap = flip-y] [w: w * (as float32! 2.0)]
-		wrap = flip-xy [w: w * (as float32! 2.0) h: h * (as float32! 2.0)]
-		true []
+	width: w
+	height: h
+	if any [wrap = flip-x wrap = flip-xy][width: w * (as float32! 2.0)]
+	if any [wrap = flip-y wrap = flip-xy][height: h * (as float32! 2.0)]
+	if all [w > F32_0 h > F32_0 any [width > w height > h]][	;-- a flip mode: the cell holds the tile and its mirror images
+		cell: CGLayerCreateWithContext ctx width height 0
+		unless zero? cell [
+			lctx: CGLayerGetContext cell
+			ty: height - lh
+			CGContextDrawLayerAtPoint lctx F32_0 ty layer		;-- the tile, at the top-left
+			if width > w [mirror-pattern-tile lctx layer width F32_0 as float32! -1.0 F32_1 ty]	;-- mirrored along x, at its right
+			if height > h [
+				mirror-pattern-tile lctx layer F32_0 height F32_1 as float32! -1.0 ty		;-- mirrored along y below it (both after an x mirror)
+				if width > w [mirror-pattern-tile lctx layer width F32_0 as float32! -1.0 F32_1 ty]	;-- then along y only
+			]
+		]
+		CGLayerRelease layer
+		layer: cell
+		lh: height
 	]
-
-	space: CGColorSpaceCreatePattern 0
-	CGContextSetFillColorSpace ctx space
-	CGColorSpaceRelease space
 
 	callbacks: as CGPatternCallbacks! :dc/pattern-ver
 	callbacks/version: 0
 	callbacks/drawPattern: as-integer :draw-pattern-callback
-	callbacks/releaseInfo: 0
+	callbacks/releaseInfo: as-integer :release-pattern-layer
 
-	width: w
-	height: h
-	dc/pattern-w: width
-	dc/pattern-h: height
-	rc/x: x
-	rc/y: y
+	rc/x: F32_0
+	rc/y: lh - height									;-- the cell in the layer's y-down space
 	rc/w: width
 	rc/h: height
-	m: CGAffineTransformMake F32_1 F32_0 F32_0 as float32! -1.0 F32_0 height
-	pattern: CGPatternCreate as int-ptr! dc rc m width height 0 yes callbacks
+	m: CGAffineTransformMake F32_1 F32_0 F32_0 F32_1 x h - lh - y	;-- the tile where the tile mode puts it
+	pattern: 0
+	if all [layer <> 0 width > F32_0 height > F32_0][pattern: CGPatternCreate as int-ptr! layer rc m width height 0 yes callbacks]
+	if zero? pattern [									;-- an empty tile (0 or negative size): paints nothing
+		CGLayerRelease layer							;-- no pattern owns it
+		either brush? [OS-draw-fill-pen dc 0 yes no][OS-draw-pen dc 0 yes no]
+		exit
+	]
+	space: CGColorSpaceCreatePattern 0
+	CGContextSetFillColorSpace ctx space
+	CGColorSpaceRelease space
 	either brush? [
 		dc/brush?: yes
 		CGContextSetFillPattern ctx pattern :alpha

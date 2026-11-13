@@ -738,6 +738,26 @@ tagSIZE: alias struct! [
 		CGPatternRelease: "CGPatternRelease" [
 			pattern		[integer!]
 		]
+		CGLayerCreateWithContext: "CGLayerCreateWithContext" [
+			ctx			[handle!]
+			w			[float32!]
+			h			[float32!]
+			info		[integer!]
+			return:		[integer!]
+		]
+		CGLayerGetContext: "CGLayerGetContext" [
+			layer		[integer!]
+			return:		[handle!]
+		]
+		CGLayerRelease: "CGLayerRelease" [
+			layer		[integer!]
+		]
+		CGContextDrawLayerAtPoint: "CGContextDrawLayerAtPoint" [
+			ctx			[handle!]
+			x			[float32!]
+			y			[float32!]
+			layer		[integer!]
+		]
 		CGContextConcatCTM: "CGContextConcatCTM" [
 			ctx			[handle!]
 			m			[CGAffineTransform! value]

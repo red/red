@@ -364,13 +364,9 @@ Red/System [
 					brush?			[logic!]
 					on-image?		[logic!]					;-- drawing on image?
 					rect-y			[float32!]
-					pattern-blk		[int-ptr!]
-					pattern-mode	[integer!]
 					pattern-ver		[integer!]
 					pattern-draw	[integer!]
 					pattern-release [integer!]
-					pattern-w		[float32!]
-					pattern-h		[float32!]
 					last-pt-x		[float32!]					;-- below used by shape
 					last-pt-y		[float32!]
 					control-x		[float32!]
