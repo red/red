@@ -1976,7 +1976,7 @@ OS-draw-line-width: func [
 	if w <= 0.0 [w: 1.0]
 	cnt: cairo_get_dash_count dc/cr
 	if cnt > 0 [										;-- dashes are in line-width units: rescale cairo's
-		pf: as float-ptr! system/stack/allocate cnt * 2
+		either cnt <= 256 [pf: as float-ptr! system/stack/allocate cnt * 2][pf: as float-ptr! allocate-virtual cnt * 8 no]
 		cairo_get_dash dc/cr pf null
 		n: cnt
 		while [n > 0][
@@ -1984,6 +1984,7 @@ OS-draw-line-width: func [
 			n: n - 1
 		]
 		cairo_set_dash dc/cr pf cnt 0.0
+		if cnt > 256 [free-virtual as int-ptr! pf]
 	]
 	dc/pen-width: w
 	cairo_set_line_width dc/cr w
@@ -2845,8 +2846,9 @@ OS-draw-line-pattern: func [
 		pf		[float-ptr!]
 ][
 	cnt: (as-integer end - start) / 16 + 1
+	dashes: null
 	if cnt > 0 [
-		dashes: as float-ptr! system/stack/allocate cnt * 2		;-- cairo keeps its own copy
+		either cnt <= 256 [dashes: as float-ptr! system/stack/allocate cnt * 2][dashes: as float-ptr! allocate-virtual cnt * 8 no]	;-- cairo keeps its own copy
 		pf: dashes
 		while [start <= end][
 			either zero? start/value [pf/1: 0.0001][pf/1: as float! start/value]
@@ -2854,8 +2856,9 @@ OS-draw-line-pattern: func [
 			pf: pf + 1
 			start: start + 1
 		]
-		cairo_set_dash dc/cr dashes cnt 0.0
 	]
+	cairo_set_dash dc/cr dashes cnt 0.0					;-- no values: a solid line
+	if cnt > 256 [free-virtual as int-ptr! dashes]
 ]
 
 GDK-draw-image: func [

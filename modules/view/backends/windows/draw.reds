@@ -483,15 +483,22 @@ update-pen-style: func [
 		style	[ptr-value!]
 		this	[this!]
 		ss		[ID2D1StrokeStyle]
+		heap	[int-ptr!]
 ][
+	heap: null
 	if cnt < 0 [										;-- a stroke style is immutable: carry its dashes over
 		cnt: 0
 		this: ctx/pen-style
 		unless null? this [
 			ss: as ID2D1StrokeStyle this/vtbl
 			cnt: ss/GetDashesCount this
-			dashes: as float32-ptr! system/stack/allocate cnt
-			ss/GetDashes this dashes cnt
+			if cnt > 0 [									;-- a solid style needs a null array, else no style is created
+				either cnt <= 256 [dashes: as float32-ptr! system/stack/allocate cnt][
+					heap: allocate-virtual cnt * 4 no
+					dashes: as float32-ptr! heap
+				]
+				ss/GetDashes this dashes cnt
+			]
 		]
 	]
 	release-pen-style ctx
@@ -507,6 +514,7 @@ update-pen-style: func [
 	d2d: as ID2D1Factory d2d-factory/vtbl
 	hr: d2d/CreateStrokeStyle d2d-factory prop dashes cnt :style
 	ctx/pen-style: as this! style/value
+	unless null? heap [free-virtual heap]
 ]
 
 OS-draw-pen: func [
@@ -1896,8 +1904,9 @@ OS-draw-line-pattern: func [
 		pf32	[float32-ptr!]
 ][
 	cnt: (as-integer end - start) / 16 + 1
+	arr: null
 	if cnt > 0 [
-		arr: as float32-ptr! system/stack/allocate cnt		;-- the stroke style keeps its own copy
+		either cnt <= 256 [arr: as float32-ptr! system/stack/allocate cnt][arr: as float32-ptr! allocate-virtual cnt * 4 no]	;-- the stroke style keeps its own copy
 		p: start
 		pf32: arr
 		while [p <= end][
@@ -1905,8 +1914,9 @@ OS-draw-line-pattern: func [
 			pf32: pf32 + 1
 			p: p + 1
 		]
-		update-pen-style ctx arr cnt
 	]
+	update-pen-style ctx arr cnt						;-- no values: a solid line
+	if cnt > 256 [free-virtual as int-ptr! arr]
 ]
 
 create-4p-matrix: func [

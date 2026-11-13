@@ -253,7 +253,7 @@ OS-draw-line-pattern: func [
 	cnt: (as-integer end - start) / 16 + 1
 	dashes: null
 	if cnt > 0 [
-		dashes: as float32-ptr! system/stack/allocate cnt
+		either cnt <= 256 [dashes: as float32-ptr! system/stack/allocate cnt][dashes: as float32-ptr! allocate-virtual cnt * 4 no]
 		pf: dashes
 		while [start <= end][
 			pf/1: as float32! start/value
@@ -262,6 +262,7 @@ OS-draw-line-pattern: func [
 		]
 	]
 	CGContextSetLineDash dc/raw as float32! 0.0 dashes cnt
+	if cnt > 256 [free-virtual as int-ptr! dashes]
 ]
 
 get-shape-center: func [
