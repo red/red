@@ -776,6 +776,8 @@ draw-text-box: func [
 		color	[red-tuple!]
 		pt		[red-point2D!]
 		w h		[float32!]
+		nsgc	[integer!]
+		pool	[integer!]
 ][
 	values: object/get-values tbox
 	str: as red-string! values + FACE_OBJ_TEXT
@@ -815,8 +817,19 @@ draw-text-box: func [
 		CG-set-color dc/raw get-tuple-color color yes
 		CGContextFillRect dc/raw cg-pt/x cg-pt/y w h
 	]
+	nsgc: objc_getClass "NSGraphicsContext"
+	pool: 0
+	if all [dc <> null dc/raw <> as int-ptr! objc_msgSend [objc_msgSend [nsgc sel_getUid "currentContext"] sel_getUid "graphicsPort"]][
+		pool: objc_msgSend [objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"] sel_getUid "init"]	;-- none is drained outside events
+		objc_msgSend [nsgc sel_getUid "saveGraphicsState"]		;-- the layout draws in the current AppKit context: an image, a pattern cell
+		objc_msgSend [nsgc sel_getUid "setCurrentContext:" objc_msgSend [nsgc sel_getUid "graphicsContextWithGraphicsPort:flipped:" dc/raw yes]]
+	]
 	objc_msgSend [layout sel_getUid "drawBackgroundForGlyphRange:atPoint:" idx len cg-pt/x cg-pt/y]
 	objc_msgSend [layout sel_getUid "drawGlyphsForGlyphRange:atPoint:" idx len cg-pt/x cg-pt/y]
+	if pool <> 0 [
+		objc_msgSend [nsgc sel_getUid "restoreGraphicsState"]
+		objc_msgSend [pool sel_getUid "drain"]
+	]
 ]
 
 OS-draw-text: func [
@@ -2109,18 +2122,12 @@ OS-draw-brush-pattern: func [
 		pt			[red-point2D!]
 		pdc			[draw-ctx! value]
 		tmp			[integer!]
-		pool		[integer!]
 ][
 	;-- CoreGraphics runs the block later in a callback, where no error may be thrown: run it once now
 	tmp: OS-image/CGBitmapContextCreate null 1 1 8 4 dc/colorspace 1
-	pool: objc_msgSend [objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"] sel_getUid "init"]	;-- none is drained outside events
-	objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "saveGraphicsState"]	;-- rich-text draws in the current AppKit context
-	objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "setCurrentContext:" objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "graphicsContextWithGraphicsPort:flipped:" tmp no]]
 	draw-begin :pdc as handle! tmp null no yes
 	catch RED_THROWN_ERROR [parse-draw pdc block catch?]
 	draw-end :pdc as handle! tmp no no yes
-	objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "restoreGraphicsState"]
-	objc_msgSend [pool sel_getUid "drain"]
 	OS-image/CGContextRelease tmp
 	if system/thrown <> 0 [re-throw]
 
