@@ -161,7 +161,6 @@ draw-begin: func [
 	grad/offset-on?: off
 	grad/focal-on?: off
 	grad/pattern-on?: off
-	grad/type: 0
 	grad/colors: null
 
 	grad: ctx/grad-brush
@@ -171,7 +170,6 @@ draw-begin: func [
 	grad/offset-on?: off
 	grad/focal-on?: off
 	grad/pattern-on?: off
-	grad/type: 0
 	grad/colors: null
 
 	ctx/font-attrs:		null
@@ -1319,6 +1317,7 @@ create-diamond-pattern: func [
 		tile-idx [integer!]
 		reverse? [logic!]
 ][
+	unless grad/on? [exit]
 	if upper-x > lower-x [t: lower-x lower-x: upper-x upper-x: t]
 	if upper-y > lower-y [t: lower-y lower-y: upper-y upper-y: t]
 	bound-x1: upper-x
@@ -3537,8 +3536,8 @@ OS-draw-state-pop: func [
 	if dc/grad-pen/pattern-on?   [cairo_pattern_destroy dc/grad-pen/pattern]
 	if dc/grad-brush/pattern-on? [cairo_pattern_destroy dc/grad-brush/pattern]
 	;-- Same for a gradient stops buffer allocated by the inner block.
-	if all [dc/grad-pen/colors <> null dc/grad-pen/colors <> state/grad-pen/colors][free as byte-ptr! dc/grad-pen/colors]
-	if all [dc/grad-brush/colors <> null dc/grad-brush/colors <> state/grad-brush/colors][free as byte-ptr! dc/grad-brush/colors]
+	if dc/grad-pen/colors <> state/grad-pen/colors [free as byte-ptr! dc/grad-pen/colors]
+	if dc/grad-brush/colors <> state/grad-brush/colors [free as byte-ptr! dc/grad-brush/colors]
 	free-shadow dc
 	free-clip-path dc
 	copy-memory (as byte-ptr! dc) + 4 as byte-ptr! state size? draw-state!
