@@ -649,6 +649,7 @@ OS-draw-brush-pattern: func [
 	mode	[red-word!]
 	block	[red-block!]
 	brush?	[logic!]
+	catch?	[logic!]
 ][
 
 ]

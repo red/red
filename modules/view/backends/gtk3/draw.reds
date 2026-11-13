@@ -4448,8 +4448,10 @@ OS-draw-brush-pattern: func [
 	mode		[red-word!]
 	block		[red-block!]
 	brush?		[logic!]
+	catch?		[logic!]
 	/local
 		surf	[handle!]
+		pdc		[draw-ctx! value]
 		crop	[handle!]
 		cr		[handle!]
 		x		[integer!]
@@ -4467,7 +4469,9 @@ OS-draw-brush-pattern: func [
 	height: y
 	surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 x y
 	cr: cairo_create surf
-	do-draw cr null block no no yes yes
+	draw-begin :pdc cr null no yes						;-- not do-draw: in face mode it swallows the error
+	catch RED_THROWN_ERROR [parse-draw pdc block catch?]
+	draw-end :pdc cr no no yes
 	cairo_destroy cr
 
 	either crop-1 = null [
@@ -4492,7 +4496,8 @@ OS-draw-brush-pattern: func [
 	pattern: make-brush-pattern crop width height mode-id
 	if crop <> surf [cairo_surface_destroy crop]
 	cairo_surface_destroy surf
-	set-brush-pattern dc pattern brush?
+	either system/thrown = 0 [set-brush-pattern dc pattern brush?][cairo_pattern_destroy pattern]	;-- no brush from a failed block
+	if system/thrown <> 0 [re-throw]					;-- an error inside the block: pass it on, surfaces freed
 ]
 
 OS-draw-shadow: func [

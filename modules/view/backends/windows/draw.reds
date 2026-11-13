@@ -2238,6 +2238,7 @@ OS-draw-brush-pattern: func [
 	mode	[red-word!]
 	block	[red-block!]
 	brush?	[logic!]
+	catch?	[logic!]
 	/local
 		dc		[ID2D1DeviceContext]
 		this	[this!]
@@ -2267,7 +2268,7 @@ OS-draw-brush-pattern: func [
 	OS-draw-state-push ctx :state
 	matrix2d/identity m
 	dc/SetTransform this :m			;-- set to identity matrix
-	parse-draw ctx block no
+	catch RED_THROWN_ERROR [parse-draw ctx block catch?]
 	n: ctx/clip-cnt - clip-n
 	loop n [OS-clip-end ctx]
 	OS-draw-state-pop ctx :state
@@ -2281,11 +2282,12 @@ OS-draw-brush-pattern: func [
 	;dc/BeginDraw this
 
 	GET_PAIR_XY(size x y)
-	_OS-draw-brush-bitmap ctx cthis x y crop-1 crop-2 mode brush?
+	if system/thrown = 0 [_OS-draw-brush-bitmap ctx cthis x y crop-1 crop-2 mode brush?]	;-- no brush from a failed block
 	cmd/Release cthis
 	this: old-bmp/value
 	unk: as IUnknown this/vtbl
 	unk/Release this			;-- refcnt decrement
+	if system/thrown <> 0 [re-throw]	;-- an error inside the block: pass it on, target and state restored
 ]
 
 OS-draw-grad-pen-old: func [

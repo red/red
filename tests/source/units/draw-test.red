@@ -117,6 +117,10 @@ do [if all [system/view value? 'image! datatype? get 'image!] [
 	--test-- "empty5" --assert image? draw copy i [pen bitmap e box 0x0 2x2]
 ===end-group===
 
+===start-group=== "draw errors"
+	--test-- "pattern-error1" --assert error? try [draw copy i [fill-pen pattern 2x2 [box 0x0] box 0x0 2x2]]
+===end-group===
+
 ;-- TODO: test more commands once the coordinate system mess is dealt with
 
 ]]

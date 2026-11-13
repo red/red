@@ -2520,8 +2520,10 @@ OS-draw-brush-pattern: func [
 	mode	[red-word!]
 	block	[red-block!]
 	brush?	[logic!]
+	catch?	[logic!]
 	/local
 		pat-image	[red-image!]
+		pdc			[draw-ctx! value]
 		bkg-alpha	[byte!]
 		p-alpha		[red-binary! value]
 		bin			[red-binary!]
@@ -2543,9 +2545,12 @@ OS-draw-brush-pattern: func [
 	s/tail: as cell! (p + len)
 	set-memory p #"^(FF)" len
 	pat-image/node: OS-image/make-image size/x size/y null bin null
-	do-draw null pat-image block no no no no
-	OS-draw-brush-bitmap ctx pat-image crop-1 crop-2 mode brush?
+	draw-begin :pdc null pat-image no no				;-- not do-draw: in face mode it swallows the error
+	catch RED_THROWN_ERROR [parse-draw pdc block catch?]
+	draw-end :pdc null no no no
+	if system/thrown = 0 [OS-draw-brush-bitmap ctx pat-image crop-1 crop-2 mode brush?]	;-- no brush from a failed block
 	OS-image/delete pat-image/node						;-- the texture brush has its own copy
+	if system/thrown <> 0 [re-throw]					;-- before the stack reset: a fired error sits on top
 	stack/top: as red-value! pat-image
 ]
 

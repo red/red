@@ -2090,6 +2090,7 @@ OS-draw-brush-pattern: func [
 	mode	[red-word!]
 	block	[red-block!]
 	brush?	[logic!]
+	catch?	[logic!]									;-- unused: the block runs later, in a CoreGraphics callback
 	/local
 		x xx		[float32!]
 		y yy		[float32!]

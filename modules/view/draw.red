@@ -521,7 +521,7 @@ Red/System [
 							][ cmd: cmd - 1 word: null ] 
 						]
 						DRAW_FETCH_VALUE(TYPE_BLOCK)
-						OS-draw-brush-pattern DC size crop-1 crop-2 word as red-block! cmd sym = fill-pen
+						OS-draw-brush-pattern DC size crop-1 crop-2 word as red-block! cmd sym = fill-pen catch?
 					]
 					mode = bitmap [
 						img: null
