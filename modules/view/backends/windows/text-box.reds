@@ -320,17 +320,13 @@ get-font-decoration: func [						;-- TEXT_UNDERLINE and TEXT_STRIKE flags of a f
 
 set-text-decoration: func [						;-- underlines and/or strikes out the whole text of a layout
 	layout	[this!]
-	text	[red-string!]
 	flags	[integer!]
 	/local
 		dl	[IDWriteTextLayout]
-		len	[integer!]
 ][
-	if any [zero? flags TYPE_OF(text) <> TYPE_STRING][exit]
-	len: adjust-index text 0 string/rs-length? text 1	;-- in UTF-16 units
 	dl: as IDWriteTextLayout layout/vtbl
-	if flags and TEXT_UNDERLINE <> 0 [dl/SetUnderline layout yes 0 len]
-	if flags and TEXT_STRIKE <> 0 [dl/SetStrikethrough layout yes 0 len]
+	if flags and TEXT_UNDERLINE <> 0 [dl/SetUnderline layout yes 0 7FFFFFFFh]	;-- DirectWrite clips the range to the text
+	if flags and TEXT_STRIKE <> 0 [dl/SetStrikethrough layout yes 0 7FFFFFFFh]
 ]
 
 OS-text-box-layout: func [
@@ -446,7 +442,7 @@ OS-text-box-layout: func [
 		if TYPE_OF(fcolor) = TYPE_TUPLE [
 			OS-text-box-color as handle! target as handle! layout 0 string/rs-length? str get-tuple-color fcolor
 		]
-		set-text-decoration layout str get-font-decoration font
+		set-text-decoration layout get-font-decoration font
 	]
 
 	styles: as red-block! values + FACE_OBJ_DATA

@@ -598,7 +598,7 @@ draw-text: func [									;-- BG?: paint a text-box face's color behind its text
 		]
 		set-line-spacing ctx/text-format null
 		layout: create-text-layout text ctx/text-format 0 0
-		set-text-decoration layout text ctx/font-decoration
+		set-text-decoration layout ctx/font-decoration
 		layout
 	]
 	color?: no
