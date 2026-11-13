@@ -975,9 +975,10 @@ Red/System [
 								either pos = cmd [
 									OS-draw-state-push DC :state
 									OS-set-clip DC as red-pair! start as red-pair! value rect? clip-mode
-									parse-draw DC as red-block! cmd catch?
+									catch RED_THROWN_ERROR [parse-draw DC as red-block! cmd catch?]
 									OS-clip-end DC
 									OS-draw-state-pop DC :state
+									if system/thrown <> 0 [re-throw]		;-- an error inside the block: pass it on, state restored
 								][
 									OS-set-clip DC as red-pair! start as red-pair! value rect? clip-mode
 								]
@@ -994,8 +995,9 @@ Red/System [
 								either pos = cmd [
 									OS-draw-state-push DC :state
 									OS-matrix-rotate DC sym as red-integer! start as red-pair! cmd - 1
-									parse-draw DC as red-block! cmd catch?
+									catch RED_THROWN_ERROR [parse-draw DC as red-block! cmd catch?]
 									OS-draw-state-pop DC :state
+									if system/thrown <> 0 [re-throw]
 								][
 									OS-matrix-rotate DC sym as red-integer! start as red-pair! cmd
 								]
@@ -1008,8 +1010,9 @@ Red/System [
 								either pos = cmd [
 									OS-draw-state-push DC :state
 									OS-matrix-scale DC sym as red-integer! start as red-pair! cmd - 1
-									parse-draw DC as red-block! cmd catch?
+									catch RED_THROWN_ERROR [parse-draw DC as red-block! cmd catch?]
 									OS-draw-state-pop DC :state
+									if system/thrown <> 0 [re-throw]
 								][
 									OS-matrix-scale DC sym as red-integer! start as red-pair! cmd
 								]
@@ -1022,8 +1025,9 @@ Red/System [
 								either pos = cmd [
 									OS-draw-state-push DC :state
 									OS-matrix-translate DC sym point
-									parse-draw DC as red-block! cmd catch?
+									catch RED_THROWN_ERROR [parse-draw DC as red-block! cmd catch?]
 									OS-draw-state-pop DC :state
+									if system/thrown <> 0 [re-throw]
 								][
 									OS-matrix-translate DC sym point
 								]
@@ -1037,8 +1041,9 @@ Red/System [
 								either pos = cmd [
 									OS-draw-state-push DC :state
 									OS-matrix-skew DC sym as red-integer! start as red-pair! cmd - 1
-									parse-draw DC as red-block! cmd catch?
+									catch RED_THROWN_ERROR [parse-draw DC as red-block! cmd catch?]
 									OS-draw-state-pop DC :state
+									if system/thrown <> 0 [re-throw]
 								][
 									OS-matrix-skew DC sym as red-integer! start as red-pair! cmd
 								]
@@ -1059,8 +1064,9 @@ Red/System [
 										as red-pair! start
 										as red-integer! value
 										as red-pair! cmd - 1
-									parse-draw DC as red-block! cmd catch?
+									catch RED_THROWN_ERROR [parse-draw DC as red-block! cmd catch?]
 									OS-draw-state-pop DC :state
+									if system/thrown <> 0 [re-throw]
 								][
 									OS-matrix-transform
 										DC
@@ -1073,8 +1079,9 @@ Red/System [
 							sym = _push [							;@@ push is a keyword in R/S
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
 								OS-draw-state-push DC :state
-								parse-draw DC as red-block! start catch?
+								catch RED_THROWN_ERROR [parse-draw DC as red-block! start catch?]
 								OS-draw-state-pop DC :state
+								if system/thrown <> 0 [re-throw]
 							]
 							sym = matrix [
 								DRAW_FETCH_OPT_TRANSFORM

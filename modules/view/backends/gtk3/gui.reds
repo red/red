@@ -3312,11 +3312,12 @@ OS-do-draw: func [
 	surf: cairo_image_surface_create_for_data as byte-ptr! data CAIRO_FORMAT_ARGB32 w h stride
 	cr: cairo_create surf
 	;; OLD: do-draw cr null cmds no yes yes yes
-	do-draw cr null cmds yes no no no
+	catch RED_THROWN_ERROR [do-draw cr null cmds yes no no no]
 	cairo_destroy cr
 	cairo_surface_destroy surf
 	;; USELESS NOW???: OS-image/post-transf OS-image/POST-ARGB-TO-ABGR
 	OS-image/unlock-bitmap image bitmap
+	if system/thrown = RED_THROWN_ERROR [re-throw]			;-- after the cleanup
 ]
 
 OS-draw-face: func [

@@ -2541,7 +2541,8 @@ OS-do-draw: func [
 ][
 	rc: make-rect IMAGE_WIDTH(img/size) IMAGE_HEIGHT(img/size) 0 0
 	ctx: OS-image/to-bitmap-ctx OS-image/to-cgimage img
-	do-draw ctx as red-image! rc cmds yes no no no
+	catch RED_THROWN_ERROR [do-draw ctx as red-image! rc cmds yes no no no]
+	if system/thrown = RED_THROWN_ERROR [OS-image/CGContextRelease as-integer ctx re-throw]	;-- image left as it was
 	OS-image/ctx-to-image img as-integer ctx
 ]
 
