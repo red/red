@@ -400,6 +400,7 @@ Red/System [
 					matrix			[tagMATRIX value]
 					colors			[int-ptr!]					;-- always on
 					colors-pos		[float32-ptr!]				;-- always on
+					shared?			[logic!]					;-- colors buffer belongs to an outer push level
 					count			[integer!]					;-- gradient stops count
 					zero-base?		[logic!]
 					offset-on?		[logic!]
@@ -503,6 +504,7 @@ Red/System [
 			matrix			[tagMATRIX value]
 			colors			[int-ptr!]					;-- always on
 			colors-pos		[float32-ptr!]				;-- always on
+			shared?			[logic!]					;-- colors buffer belongs to an outer push level
 			count			[integer!]					;-- gradient stops count
 			zero-base?		[logic!]
 			offset-on?		[logic!]

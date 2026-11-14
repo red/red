@@ -199,14 +199,8 @@ draw-end: func [
 		dc/utf8-buffer: null
 		dc/utf8-buffer-size: 0
 	]
-	if dc/grad-pen/on? [
-		free-gradient dc/grad-pen
-		dc/grad-pen/on?: off
-	]
-	if dc/grad-brush/on? [
-		free-gradient dc/grad-brush
-		dc/grad-brush/on?: off
-	]
+	free-gradient dc/grad-pen
+	free-gradient dc/grad-brush
 	free-shadow dc
 	if dc/clip-path <> null [
 		cairo_path_destroy dc/clip-path
@@ -394,13 +388,15 @@ track-clip-path: func [
 free-gradient: func [
 	grad		[gradient!]
 ][
+	grad/on?: off
 	grad/matrix-on?: off
 	if grad/pattern-on? [
 		cairo_pattern_destroy grad/pattern
 		grad/pattern-on?: off
 	]
-	if grad/type <> bitmap [
+	if grad/colors <> null [						;-- also kept by a solid, off or pattern brush
 		free as byte-ptr! grad/colors
+		grad/colors: null
 	]
 ]
 
@@ -3046,13 +3042,14 @@ OS-draw-grad-pen-old: func [
 		dc/pen?: yes
 		dc/grad-pen
 	]
-	if any [not grad/on? null? grad/colors][	;-- a pattern brush has no colors buffer
+	if any [null? grad/colors grad/shared?][	;-- none yet, or an outer push level's buffer
 		nums: 2 * MAX_COLORS
 		pc: as int-ptr! allocate nums * size? integer!
 		grad/colors: pc
 		grad/colors-pos: as float32-ptr! pc + MAX_COLORS
-		grad/on?: on
+		grad/shared?: no
 	]
+	grad/on?: on
 	grad/spread: _pad
 	grad/type: type
 	grad/count: 0
@@ -3193,13 +3190,14 @@ OS-draw-grad-pen: func [
 		dc/pen?: yes
 		dc/grad-pen
 	]
-	if any [not grad/on? null? grad/colors][	;-- a pattern brush has no colors buffer
+	if any [null? grad/colors grad/shared?][	;-- none yet, or an outer push level's buffer
 		nums: 2 * MAX_COLORS
 		pc: as int-ptr! allocate nums * size? integer!
 		grad/colors: pc
 		grad/colors-pos: as float32-ptr! pc + MAX_COLORS
-		grad/on?: on
+		grad/shared?: no
 	]
+	grad/on?: on
 	grad/spread: spread
 	grad/type: type
 	grad/count: 0
@@ -3520,6 +3518,8 @@ OS-draw-state-push: func [
 	if dc/grad-pen/pattern-on?   [cairo_pattern_reference dc/grad-pen/pattern]
 	if dc/grad-brush/pattern-on? [cairo_pattern_reference dc/grad-brush/pattern]
 	copy-memory as byte-ptr! state (as byte-ptr! dc) + 4 size? draw-state!
+	dc/grad-pen/shared?: yes						;-- the saved state owns the stops buffers
+	dc/grad-brush/shared?: yes
 	if dc/clip-path <> null [state/clip-path: clone-cairo-path dc/cr dc/clip-path]
 	state/shadows/next: clone-shadow-chain dc/shadows/next
 ]
