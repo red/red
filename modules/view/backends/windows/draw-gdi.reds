@@ -343,6 +343,15 @@ draw-state!: alias struct! [
 	brush?		[logic!]
 	a-pen?		[logic!]
 	a-brush?	[logic!]
+	grad-pen?	[logic!]
+	grad-fill?	[logic!]
+	GDI+?		[logic!]
+	anti-alias?	[logic!]
+	brush		[integer!]
+	brush-type	[brush-type!]
+	pen			[integer!]
+	pen-grad	[gradient! value]
+	fill-grad	[gradient! value]
 ]
 
 alloc-context: func [
@@ -465,7 +474,7 @@ update-gdiplus-pen: func [ctx [draw-ctx!] /local handle [integer!]][
 			OS-draw-line-cap ctx ctx/pen-cap
 		]
 	][
-		ctx/gp-pen-saved: ctx/gp-pen
+		if ctx/gp-pen <> 0 [ctx/gp-pen-saved: ctx/gp-pen]	;-- already off: keep the saved pen
 		ctx/gp-pen: 0
 	]
 ]
@@ -2283,11 +2292,7 @@ check-texture: func [
 		brush [integer!]
 ][
 	brush: 0
-	either pen? [
-		if ctx/gp-pen-type = BRUSH_TYPE_TEXTURE [
-			GdipGetPenBrushFill ctx/gp-pen :brush
-		]
-	][
+	unless pen? [							;-- a pen only hands out copies of its brush: moving one moves nothing
 		if ctx/gp-brush-type = BRUSH_TYPE_TEXTURE [
 			brush: ctx/gp-brush
 		]
@@ -2503,12 +2508,14 @@ OS-draw-brush-bitmap: func [
 	texture: 0
 	result: GdipCreateTexture2I OS-image/get-bitmap img/node wrap x y width height :texture
 	either brush? [
+		unless zero? ctx/gp-brush	[GdipDeleteBrush ctx/gp-brush]
 		ctx/brush?:         yes
 		ctx/gp-brush:       texture
 		ctx/gp-brush-type:  BRUSH_TYPE_TEXTURE
 		ctx/other/gradient-fill?: false
 	][
 		GdipSetPenBrushFill ctx/gp-pen texture
+		GdipDeleteBrush texture							;-- the pen keeps its own copy
 		ctx/gp-pen-type:    BRUSH_TYPE_TEXTURE
 		ctx/other/gradient-pen?: false
 	]
@@ -2678,8 +2685,26 @@ gradient-transform: func [
 		][
 			GdipSetPathGradientTransform brush gradient/matrix
 		]
+		if gradient = ctx/other/gradient-pen [GdipDeleteBrush brush]	;-- a copy of the pen's brush
 		gradient/transformed?: false
 	]
+]
+
+own-gradient: func [									;-- a push level's own copy of a gradient: transforms change it even inactive
+	gradient	[gradient!]
+	/local
+		p		[byte-ptr!]
+		m		[integer!]
+][
+	p: allocate 2 * MAX_COLORS * (size? integer!) + (MAX_GRADIENT_DATA * (size? tagPOINT))	;-- stops, then points
+	copy-memory p as byte-ptr! gradient/colors 2 * MAX_COLORS * (size? integer!)
+	copy-memory p + (2 * MAX_COLORS * (size? integer!)) as byte-ptr! gradient/data MAX_GRADIENT_DATA * (size? tagPOINT)
+	gradient/colors: as int-ptr! p						;-- pop frees it
+	gradient/colors-pos: as float32-ptr! gradient/colors + MAX_COLORS
+	gradient/data: as tagPOINT (gradient/colors + (2 * MAX_COLORS))
+	m: 0
+	unless zero? gradient/matrix [GdipCloneMatrix gradient/matrix :m]
+	gradient/matrix: m
 ]
 
 gradient-rotate: func [
@@ -2822,6 +2847,7 @@ save-brush: func [
 		ctx/gp-brush-type: BRUSH_TYPE_NORMAL
 	][
 		GdipSetPenBrushFill ctx/gp-pen brush
+		GdipDeleteBrush brush							;-- the pen keeps its own copy
 		ctx/gp-pen-type: BRUSH_TYPE_NORMAL
 	]
 ]
@@ -3271,8 +3297,8 @@ OS-draw-grad-pen-old: func [
 		_colors [int-ptr!]
 		_colors-pos [float32-ptr!]
 ][
-	_colors: ctx/other/gradient-pen/colors
-	_colors-pos: ctx/other/gradient-pen/colors-pos
+	_colors: as int-ptr! (ctx/other/edges + 2)		;-- scratch after the 2 points below, not a gradient's stops
+	_colors-pos: as float32-ptr! _colors + MAX_COLORS
 	x: offset/x
 	y: offset/y
 
@@ -3402,6 +3428,7 @@ OS-draw-grad-pen-old: func [
 		ctx/gp-brush: brush
 	][
 		GdipSetPenBrushFill ctx/gp-pen brush
+		GdipDeleteBrush brush							;-- the pen keeps its own copy
 	]
 ]
 
@@ -3879,6 +3906,23 @@ OS-draw-state-push: func [ctx [draw-ctx!] state [draw-state!] /local s][
 	state/brush?: ctx/brush?
 	state/a-pen?: ctx/alpha-pen?
 	state/a-brush?: ctx/alpha-brush?
+	state/grad-pen?: ctx/other/gradient-pen?
+	state/grad-fill?: ctx/other/gradient-fill?
+	state/GDI+?: ctx/other/GDI+?
+	state/anti-alias?: ctx/other/anti-alias?
+	state/brush-type: ctx/gp-brush-type
+	copy-memory as byte-ptr! state/pen-grad as byte-ptr! ctx/other/gradient-pen size? gradient!
+	copy-memory as byte-ptr! state/fill-grad as byte-ptr! ctx/other/gradient-fill size? gradient!
+	if ctx/other/gradient-pen/type <> GRADIENT_NONE [own-gradient ctx/other/gradient-pen]	;-- the block draws with copies of the gradients
+	if ctx/other/gradient-fill/type <> GRADIENT_NONE [own-gradient ctx/other/gradient-fill]	;-- set so far, of the fill brush and of the pen
+	state/brush: ctx/gp-brush
+	s: 0
+	unless zero? ctx/gp-brush [GdipCloneBrush ctx/gp-brush :s]
+	ctx/gp-brush: s
+	state/pen: either zero? ctx/gp-pen [ctx/gp-pen-saved][ctx/gp-pen]	;-- an off pen waits in gp-pen-saved
+	s: 0
+	GdipClonePen state/pen :s
+	either zero? ctx/gp-pen [ctx/gp-pen-saved: s][ctx/gp-pen: s]
 ]
 
 OS-draw-state-pop: func [ctx [draw-ctx!] state [draw-state!]][
@@ -3895,8 +3939,40 @@ OS-draw-state-pop: func [ctx [draw-ctx!] state [draw-state!]][
 	ctx/pen-join: state/pen-join
 	ctx/pen-width: state/pen-width
 	ctx/pen-cap: state/pen-cap
-	OS-draw-pen ctx state/pen-clr not state/pen? state/a-pen?
-	OS-draw-fill-pen ctx state/brush-clr not state/brush? state/a-brush?
+	either ctx/other/D2D? [
+		OS-draw-pen ctx state/pen-clr not state/pen? state/a-pen?
+		OS-draw-fill-pen ctx state/brush-clr not state/brush? state/a-brush?
+	][
+		ctx/pen?: state/pen?						;-- all the inputs of the drawing mode first,
+		ctx/pen-color: state/pen-clr
+		ctx/alpha-pen?: state/a-pen?
+		ctx/brush?: state/brush?
+		ctx/brush-color: state/brush-clr
+		ctx/alpha-brush?: state/a-brush?
+		ctx/other/anti-alias?: state/anti-alias?
+		ctx/other/GDI+?: no							;-- then the plain GDI pen and brush where a setter can switch to GDI,
+		unless ctx/other/anti-alias? [update-modes ctx]
+		ctx/other/GDI+?: state/GDI+?				;-- and the mode the outer level drew with
+	]
+	unless zero? ctx/gp-brush [GdipDeleteBrush ctx/gp-brush]	;-- the block's copies out, the outer level's back
+	ctx/gp-brush: state/brush
+	ctx/gp-brush-type: state/brush-type
+	GdipDeletePen either zero? ctx/gp-pen [ctx/gp-pen-saved][ctx/gp-pen]
+	either state/pen? [
+		ctx/gp-pen: state/pen
+		ctx/gp-pen-saved: 0
+	][
+		ctx/gp-pen: 0
+		ctx/gp-pen-saved: state/pen
+	]
+	ctx/other/gradient-pen?: state/grad-pen?		;-- the next shape rebuilds the gradient
+	ctx/other/gradient-fill?: state/grad-fill?
+	if ctx/other/gradient-pen/colors <> state/pen-grad/colors [FREE_REENTRANT(ctx/other/gradient-pen/colors)]
+	if ctx/other/gradient-pen/matrix <> state/pen-grad/matrix [GdipDeleteMatrix ctx/other/gradient-pen/matrix]
+	copy-memory as byte-ptr! ctx/other/gradient-pen as byte-ptr! state/pen-grad size? gradient!
+	if ctx/other/gradient-fill/colors <> state/fill-grad/colors [FREE_REENTRANT(ctx/other/gradient-fill/colors)]
+	if ctx/other/gradient-fill/matrix <> state/fill-grad/matrix [GdipDeleteMatrix ctx/other/gradient-fill/matrix]
+	copy-memory as byte-ptr! ctx/other/gradient-fill as byte-ptr! state/fill-grad size? gradient!
 ]
 
 OS-matrix-reset: func [

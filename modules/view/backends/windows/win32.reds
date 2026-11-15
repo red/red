@@ -2851,11 +2851,26 @@ BITMAPINFO32: alias struct! [					;-- BITMAPINFOHEADER, no color table (BI_RGB 3
 			brush		[integer!]
 			return:		[integer!]
 		]
-        GdipGetPenBrushFill: "GdipGetPenBrushFill" [
+		GdipGetPenBrushFill: "GdipGetPenBrushFill" [
 			pen			[integer!]
 			brush		[int-ptr!]
 			return:		[integer!]
-        ]
+		]
+		GdipClonePen: "GdipClonePen" [
+			pen			[integer!]
+			clone		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipCloneBrush: "GdipCloneBrush" [
+			brush		[integer!]
+			clone		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipCloneMatrix: "GdipCloneMatrix" [
+			matrix		[integer!]
+			clone		[int-ptr!]
+			return:		[integer!]
+		]
 		GdipDrawImageRectRectI: "GdipDrawImageRectRectI" [
 			graphics	[integer!]
 			image		[integer!]
