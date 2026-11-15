@@ -350,6 +350,7 @@ draw-state!: alias struct! [
 	brush		[integer!]
 	brush-type	[brush-type!]
 	pen			[integer!]
+	pen-type	[brush-type!]
 	pen-grad	[gradient! value]
 	fill-grad	[gradient! value]
 ]
@@ -3911,6 +3912,7 @@ OS-draw-state-push: func [ctx [draw-ctx!] state [draw-state!] /local s][
 	state/GDI+?: ctx/other/GDI+?
 	state/anti-alias?: ctx/other/anti-alias?
 	state/brush-type: ctx/gp-brush-type
+	state/pen-type: ctx/gp-pen-type
 	copy-memory as byte-ptr! state/pen-grad as byte-ptr! ctx/other/gradient-pen size? gradient!
 	copy-memory as byte-ptr! state/fill-grad as byte-ptr! ctx/other/gradient-fill size? gradient!
 	if ctx/other/gradient-pen/type <> GRADIENT_NONE [own-gradient ctx/other/gradient-pen]	;-- the block draws with copies of the gradients
@@ -3957,6 +3959,7 @@ OS-draw-state-pop: func [ctx [draw-ctx!] state [draw-state!]][
 	unless zero? ctx/gp-brush [GdipDeleteBrush ctx/gp-brush]	;-- the block's copies out, the outer level's back
 	ctx/gp-brush: state/brush
 	ctx/gp-brush-type: state/brush-type
+	ctx/gp-pen-type: state/pen-type
 	GdipDeletePen either zero? ctx/gp-pen [ctx/gp-pen-saved][ctx/gp-pen]
 	either state/pen? [
 		ctx/gp-pen: state/pen
