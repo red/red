@@ -27,11 +27,12 @@ send-event-os: routine [event [event!] queued? [logic!] return: [logic!]][
 
 send-event: function [
 	"Sends a synthetic event! into the active GUI event loop"
-	event	[event!]
+	evt	[event! block!]
 	/no-wait "Post asynchronously to the OS queue (return without waiting) instead of dispatching synchronously"
 	return:	[logic!]						;-- TRUE if injected, FALSE if the target has no live handle or the type isn't OS-injectable
 ][
-	send-event-os event to logic! no-wait
+	if block? evt [evt: make event! evt]
+	send-event-os evt to logic! no-wait
 ]
 
 face?: function [
