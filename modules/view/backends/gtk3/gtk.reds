@@ -175,6 +175,14 @@ GdkEventConfigure!: alias struct! [
 	height		[integer!]
 ]
 
+GdkEventWindowState!: alias struct! [
+	type		[integer!]
+	window		[handle!]
+	send_event	[byte!]
+	changed		[integer!]
+	state		[integer!]
+]
+
 GdkEventScroll!: alias struct! [
 	type		[integer!]
 	window		[handle!]
@@ -327,6 +335,14 @@ window-move!: alias struct! [
 	GDK_TOUCHPAD_GESTURE_MASK:     16777216
 	GDK_TABLET_PAD_MASK:           33554432
 	;;GDK_ALL_EVENTS_MASK:           fffffffeh
+]
+
+#enum GdkWindowState! [
+	GDK_WINDOW_STATE_WITHDRAWN:		1
+	GDK_WINDOW_STATE_ICONIFIED:		2
+	GDK_WINDOW_STATE_MAXIMIZED:		4
+	GDK_WINDOW_STATE_FULLSCREEN:	16
+	GDK_WINDOW_STATE_FOCUSED:		128
 ]
 
 GtkAllocation!: alias struct! [
@@ -1248,6 +1264,10 @@ GPtrArray!: alias struct! [
 			window		[handle!]
 			return:		[handle!]
 		]
+		gdk_window_get_state: "gdk_window_get_state" [
+			window		[handle!]
+			return:		[integer!]
+		]
 		gdk_window_get_device_position: "gdk_window_get_device_position" [
 			window		[handle!]
 			device		[handle!]
@@ -1590,6 +1610,12 @@ GPtrArray!: alias struct! [
 			parent		[handle!]
 		]
 		gtk_window_iconify: "gtk_window_iconify" [
+			window		[handle!]
+		]
+		gtk_window_maximize: "gtk_window_maximize" [
+			window		[handle!]
+		]
+		gtk_window_unmaximize: "gtk_window_unmaximize" [
 			window		[handle!]
 		]
 		gtk_window_close: "gtk_window_close" [

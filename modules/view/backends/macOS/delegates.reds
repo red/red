@@ -1075,6 +1075,8 @@ win-did-resize: func [
 		pt	[red-point2D!]
 		v	[integer!]
 		rc	[NSRect! value]
+		type [integer!]
+		z	[logic!]
 ][
 	make-event self 0 EVT_SIZING
 	v: objc_msgSend [self sel_getUid "contentView"]
@@ -1090,6 +1092,78 @@ win-did-resize: func [
 		sz/x: as-integer rc/w
 		sz/y: as-integer rc/h
 	]
+	if all [
+		2 <> objc_getAssociatedObject self RedZoomedKey	;-- 2: in full screen mode or a switch
+		0 = (FFh and objc_msgSend [self sel_getUid "isMiniaturized"])
+	][
+		z: win-zoomed? self
+		if z <> (0 <> objc_getAssociatedObject self RedZoomedKey) [	;-- zoomed or back: no AppKit notification
+			objc_setAssociatedObject self RedZoomedKey as-integer z OBJC_ASSOCIATION_ASSIGN
+			type: EVT_RESTORE
+			if z [type: EVT_MAXIMIZE]
+			make-event self 0 type
+		]
+	]
+]
+
+win-will-enter-fullscreen: func [						;-- no zoom report until back from full screen mode
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	notif	[integer!]
+][
+	objc_setAssociatedObject self RedZoomedKey 2 OBJC_ASSOCIATION_ASSIGN
+]
+
+win-exit-fullscreen: func [								;-- zoom reports again, from the state found
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	notif	[integer!]
+	/local
+		z	[logic!]
+][
+	z: win-zoomed? self
+	objc_setAssociatedObject self RedZoomedKey as-integer z OBJC_ASSOCIATION_ASSIGN
+]
+
+win-zoomed?: func [										;-- zoomed (maximized), not in full screen mode
+	w		[integer!]
+	return:	[logic!]
+	/local
+		mask [integer!]
+][
+	mask: objc_msgSend [w sel_getUid "styleMask"]
+	all [
+		mask and NSResizableWindowMask <> 0				;-- a fixed size window always reads zoomed
+		mask and NSFullScreenWindowMask = 0
+		0 <> (FFh and objc_msgSend [w sel_getUid "isZoomed"])
+	]
+]
+
+win-did-miniaturize: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	notif	[integer!]
+][
+	make-event self 0 EVT_MINIMIZE
+]
+
+win-did-deminiaturize: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	notif	[integer!]
+	/local
+		type [integer!]
+		z	[logic!]
+][
+	z: win-zoomed? self
+	objc_setAssociatedObject self RedZoomedKey as-integer z OBJC_ASSOCIATION_ASSIGN	;-- not tracked while minimized
+	type: EVT_RESTORE
+	if z [type: EVT_MAXIMIZE]
+	make-event self 0 type
 ]
 
 win-live-resize: func [

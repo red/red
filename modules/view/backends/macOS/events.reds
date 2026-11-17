@@ -548,6 +548,8 @@ OS-send-event: func [
 		mods	[integer!]
 		pk		[red-integer!]
 		synth	[synth-event!]
+		word	[red-word!]
+		bits	[integer!]
 ][
 	;-- NOTE: `queued?` (/no-wait) is not yet honored on this backend: every branch below dispatches
 	;-- synchronously (make-event + native actuation run before this returns), whereas the Windows
@@ -567,6 +569,30 @@ OS-send-event: func [
 	if TYPE_OF(hd) <> TYPE_HANDLE [return false]
 	view: hd/value
 	if zero? view [return false]
+
+	if evt/type >= EVT_MINIMIZE [						;-- window state events, carried out at once
+		word: as red-word! get-node-facet obj/ctx FACE_OBJ_TYPE
+		if window <> symbol/resolve word/symbol [return false]
+		bits: get-flags as red-block! get-node-facet obj/ctx FACE_OBJ_FLAGS
+		switch evt/type [
+			EVT_MINIMIZE [
+				if bits and FACET_FLAGS_NO_MIN <> 0 [return false]	;-- no button: a user could not do it either
+				objc_msgSend [view sel_getUid "miniaturize:" view]
+			]
+			EVT_MAXIMIZE [
+				if any [bits and FACET_FLAGS_RESIZE = 0 bits and FACET_FLAGS_NO_MAX <> 0][return false]
+				unless win-zoomed? view [objc_msgSend [view sel_getUid "zoom:" view]]
+			]
+			default [									;-- EVT_RESTORE: normal size, in front, focused
+				objc_msgSend [view sel_getUid "deminiaturize:" view]
+				if win-zoomed? view [objc_msgSend [view sel_getUid "zoom:" view]]
+				objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
+				objc_msgSend [view sel_getUid "makeKeyAndOrderFront:" view]
+				OS-show-window view						;-- focus on its selected face
+			]
+		]
+		return true
+	]
 
 	flags: evt/flags									;-- synthetic flags: low word = key codepoint, high bits = View EVT_FLAG_*
 	;-- keep the modifier keys and the buttons held during the event (dragging requires the button

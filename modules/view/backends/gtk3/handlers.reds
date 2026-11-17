@@ -814,6 +814,27 @@ window-configure-event: func [
 	EVT_DISPATCH
 ]
 
+window-state-event: func [								;-- minimized or maximized changed, not while the
+	[cdecl]												;-- window maps, hides or is in full screen mode;
+	evbox		[handle!]								;-- Wayland never reports a window minimized
+	event		[GdkEventWindowState!]
+	widget		[handle!]
+	return:		[integer!]
+	/local
+		type	[integer!]
+][
+	if all [
+		event/changed and (GDK_WINDOW_STATE_ICONIFIED or GDK_WINDOW_STATE_MAXIMIZED) <> 0
+		(event/changed or event/state) and (GDK_WINDOW_STATE_WITHDRAWN or GDK_WINDOW_STATE_FULLSCREEN) = 0
+	][
+		type: EVT_RESTORE
+		if event/state and GDK_WINDOW_STATE_MAXIMIZED <> 0 [type: EVT_MAXIMIZE]
+		if event/state and GDK_WINDOW_STATE_ICONIFIED <> 0 [type: EVT_MINIMIZE]
+		make-event widget 0 type
+	]
+	EVT_DISPATCH
+]
+
 window-size-allocate: func [
 	[cdecl]
 	evbox		[handle!]

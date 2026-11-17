@@ -813,6 +813,9 @@ OS-send-event: func [
 		vals	[red-value!]
 		wd		[red-word!]
 		ftype	[integer!]
+		bits	[integer!]
+		wstate	[integer!]
+		gdkwin	[handle!]
 ][
 	;-- NOTE: `queued?` (/no-wait) is not yet honored on this backend: every branch below dispatches
 	;-- synchronously (make-event + native actuation run before this returns), whereas the Windows
@@ -835,6 +838,39 @@ OS-send-event: func [
 	vals:  get-face-values widget
 	wd:    as red-word! vals + FACE_OBJ_TYPE
 	ftype: symbol/resolve wd/symbol						;-- face type (button/check/field/...)
+
+	if evt/type >= EVT_MINIMIZE [						;-- window state events, carried out at once
+		if ftype <> window [return false]
+		bits: get-flags as red-block! vals + FACE_OBJ_FLAGS
+		gdkwin: gtk_widget_get_window widget
+		wstate: 0
+		unless null? gdkwin [wstate: gdk_window_get_state gdkwin]
+		switch evt/type [
+			EVT_MINIMIZE [
+				if bits and FACET_FLAGS_NO_MIN <> 0 [return false]	;-- no button: a user could not do it either
+				gtk_window_iconify widget
+			]
+			EVT_MAXIMIZE [
+				if any [bits and FACET_FLAGS_RESIZE = 0 bits and FACET_FLAGS_NO_MAX <> 0][return false]
+				gtk_window_maximize widget
+			]
+			default [									;-- EVT_RESTORE: normal size, in front, focused
+				either wayland-display? [
+					if wstate and (GDK_WINDOW_STATE_FOCUSED or GDK_WINDOW_STATE_FULLSCREEN) = 0 [
+						gtk_widget_hide widget			;-- Wayland has no request to bring a window
+						gtk_widget_show widget			;-- back, a new mapping does
+					]
+				][
+					gtk_window_present widget			;-- also brings back a minimized window
+				]
+				if wstate and (GDK_WINDOW_STATE_MAXIMIZED or GDK_WINDOW_STATE_FULLSCREEN) = GDK_WINDOW_STATE_MAXIMIZED [
+					gtk_window_unmaximize widget		;-- after the new mapping
+				]
+				set-selected-focus widget
+			]
+		]
+		return true
+	]
 
 	flags: evt/flags									;-- synthetic flags: low word = key codepoint, high bits = View EVT_FLAG_*
 	;-- keep the modifier keys and the buttons held during the event (dragging requires the button
@@ -1299,6 +1335,7 @@ connect-widget-events: func [
 			gobj_signal_connect(widget "focus-in-event" :focus-in-event widget)
 			gobj_signal_connect(widget "focus-out-event" :focus-out-event widget)
 			gobj_signal_connect(widget "configure-event" :window-configure-event widget)
+			gobj_signal_connect(widget "window-state-event" :window-state-event widget)
 			evbox: GET-CONTAINER(widget)
 			gobj_signal_connect(evbox "draw" :base-draw evbox)
 		]

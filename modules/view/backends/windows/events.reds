@@ -645,11 +645,66 @@ make-event: func [
 	state
 ]
 
-;-- Phase 3: send a synthetic `make event!` value into the OS loop (user-level automation).
-;-- We synthesize the Win32 message and Send/Post it to the target face's HWND, so it rides
-;-- the normal WndProc -> make-event -> awake path. Returns FALSE if the target has no live
-;-- handle or the event type isn't an OS-injectable one (click/select/change/... are
-;-- synthesized by View *from* these raw events).
+set-window-state: func [								;-- minimize, maximize or restore (normal size, in front, focused)
+	hWnd	[handle!]
+	type	[integer!]
+][
+	switch type [
+		EVT_MINIMIZE [SendMessage hWnd WM_SYSCOMMAND SC_MINIMIZE 0]
+		EVT_MAXIMIZE [SendMessage hWnd WM_SYSCOMMAND SC_MAXIMIZE 0]
+		default [
+			if (GetWindowLong hWnd GWL_STYLE) and (WS_MINIMIZE or WS_MAXIMIZE) <> 0 [
+				ShowWindow hWnd SW_SHOWNORMAL			;-- normal size, even if minimized from maximized
+			]
+			unless face-set? hWnd [exit]				;-- closed by an actor of the restore
+			SetForegroundWindow hWnd
+			set-selected-focus hWnd
+		]
+	]
+]
+
+set-geometry-facet: func [								;-- a window's face/offset (WM_MOVE) or face/size (WM_SIZE) from
+	hWnd	[handle!]									;-- the message's lParam; returns the lParam its event carries
+	values	[red-value!]
+	msg		[integer!]
+	lParam	[integer!]
+	return:	[integer!]
+	/local
+		offset	[red-point2D!]
+		type	[integer!]
+		pos		[integer!]
+		x y xx yy [integer!]
+][
+	xx: WIN32_LOWORD(lParam)
+	yy: WIN32_HIWORD(lParam)
+	type: FACE_OBJ_SIZE
+	if msg = WM_MOVE [
+		x: 0
+		y: 0
+		pos: GetWindowLong hWnd wc-offset - 16			;-- get border size
+		either zero? pos [
+			window-border-info? hWnd :x :y null null
+			SetWindowLong hWnd wc-offset - 16 x << 16 or (y and FFFFh)
+		][
+			x: WIN32_HIWORD(pos)
+			y: WIN32_LOWORD(pos)
+		]
+		SetWindowLong hWnd wc-offset - 8 lParam
+		xx: xx + x
+		yy: yy + y
+		type: FACE_OBJ_OFFSET
+	]
+	offset: as red-point2D! values + type
+	offset/header: TYPE_POINT2D
+	offset/x: dpi-unscale as float32! xx
+	offset/y: dpi-unscale as float32! yy
+	if all [
+		type = FACE_OBJ_SIZE
+		SIZE_FACET_PAIR?(hWnd)
+	][as-pair offset]
+	yy << 16 or (xx and FFFFh)
+]
+
 OS-send-event: func [
 	evt		[red-event!]
 	queued?	[logic!]
@@ -681,6 +736,8 @@ OS-send-event: func [
 		pt	   [tagPOINT value]
 		pk	   [red-integer!]
 		saved-keys [integer!]
+		word   [red-word!]
+		style  [integer!]
 ][
 	if null? evt/msg [return false]						;-- needs a target face (synthetic extras node)
 	node: as node!   evt/msg
@@ -693,6 +750,19 @@ OS-send-event: func [
 	hd: as red-handle! block/rs-head state
 	if TYPE_OF(hd) <> TYPE_HANDLE [return false]
 	hWnd: as handle! hd/value
+
+	if evt/type >= EVT_MINIMIZE [						;-- window state events
+		word: as red-word! get-node-facet obj/ctx FACE_OBJ_TYPE
+		if window <> symbol/resolve word/symbol [return false]
+		style: GetWindowLong hWnd GWL_STYLE
+		if any [										;-- no button: a user could not do it either
+			all [evt/type = EVT_MINIMIZE style and WS_MINIMIZEBOX = 0]
+			all [evt/type = EVT_MAXIMIZE style and WS_MAXIMIZEBOX = 0]
+		][return false]
+		if queued? [return null <> PostMessage hWnd WM_WINDOW_STATE evt/type 0]	;-- false: the queue is full
+		set-window-state hWnd evt/type
+		return true
+	]
 
 	flags:  evt/flags
 	wParam: 0
@@ -1383,6 +1453,8 @@ WndProc: func [
 		rt	   [ID2D1HwndRenderTarget]
 		handle [handle!]
 		rc	   [RECT_STRUCT]
+		rcv	   [RECT_STRUCT value]
+		ptv	   [tagPOINT value]
 		values [red-value!]
 		font   [red-object!]
 		parent [red-object!]
@@ -1407,7 +1479,6 @@ WndProc: func [
 		range  [float!]
 		flt	   [float!]
 		flags  [integer!]
-		miniz? [logic!]
 		font?  [logic!]
 		dark?  [logic!]
 		x xx   [integer!]
@@ -1434,6 +1505,27 @@ WndProc: func [
 				pt/y: winpos/y - pt/y - WIN32_HIWORD(pos)
 				update-layered-window hWnd null pt winpos -1
 			]
+			if all [type = window winpos/flags and SWP_STATECHANGED <> 0][	;-- reported before WM_SIZE and WM_MOVE
+				flags: GetWindowLong hWnd GWL_STYLE		;-- (DefWindowProc): their actors may change it again
+				res: EVT_MINIMIZE
+				if flags and WS_MINIMIZE = 0 [			;-- the face gets its new size and offset first
+					GetClientRect hWnd rcv
+					set-geometry-facet hWnd values WM_SIZE rcv/bottom << 16 or (rcv/right and FFFFh)
+					ptv/x: 0
+					ptv/y: 0
+					ClientToScreen hWnd ptv
+					set-geometry-facet hWnd values WM_MOVE ptv/y << 16 or (ptv/x and FFFFh)
+					res: EVT_RESTORE
+					if flags and WS_MAXIMIZE <> 0 [res: EVT_MAXIMIZE]
+				]
+				if null? current-msg [init-current-msg]
+				current-msg/hWnd: hWnd
+				make-event current-msg 0 res
+			]
+		]
+		WM_WINDOW_STATE [
+			set-window-state hWnd wParam
+			return 0
 		]
 		WM_MOVE
 		WM_SIZE [
@@ -1457,45 +1549,15 @@ WndProc: func [
 			if type = window [
 				if null? current-msg [init-current-msg]
 				if wParam <> SIZE_MINIMIZED [
-					miniz?: no
-					type: either msg = WM_MOVE [
-						if all [						;@@ MINIMIZED window, @@ find a better way to detect it
-							WIN32_HIWORD(lParam) < -9999
-							WIN32_LOWORD(lParam) < -9999
-						][miniz?: yes]
-						FACE_OBJ_OFFSET
-					][FACE_OBJ_SIZE]
-					if miniz? [return 0]
+					if all [							;@@ MINIMIZED window, @@ find a better way to detect it
+						msg = WM_MOVE
+						WIN32_HIWORD(lParam) < -9999
+						WIN32_LOWORD(lParam) < -9999
+					][return 0]
 
-					xx: WIN32_LOWORD(lParam)
-					yy: WIN32_HIWORD(lParam)
-					x: 0 y: 0
-					res: either msg = WM_MOVE [
-						pos: GetWindowLong hWnd wc-offset - 16	;-- get border size
-						either zero? pos [
-							window-border-info? hWnd :x :y null null
-							SetWindowLong hWnd wc-offset - 16 x << 16 or (y and FFFFh)
-						][
-							x: WIN32_HIWORD(pos)
-							y: WIN32_LOWORD(pos)
-						]
-						SetWindowLong hWnd wc-offset - 8 lParam
-						xx: xx + x
-						yy: yy + y
-						EVT_MOVE
-					][EVT_SIZE]
-
-					offset: as red-point2D! values + type
-					offset/header: TYPE_POINT2D
-					offset/x: dpi-unscale as float32! xx
-					offset/y: dpi-unscale as float32! yy
-					if all [
-						type = FACE_OBJ_SIZE
-						SIZE_FACET_PAIR?(hwnd)
-					][as-pair offset]
-
+					res: either msg = WM_MOVE [EVT_MOVE][EVT_SIZE]
 					current-msg/hWnd: hWnd
-					current-msg/lParam: yy << 16 or (xx and FFFFh)
+					current-msg/lParam: set-geometry-facet hWnd values msg lParam
 					make-event current-msg 0 res
 
 					values: values + FACE_OBJ_STATE

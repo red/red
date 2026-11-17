@@ -83,6 +83,7 @@ Red/System [
 #define VERTRES				10
 
 #define SW_HIDE				0
+#define SW_SHOWNORMAL		1
 #define SW_SHOW				5
 #define SW_SHOWNA			8
 #define SW_SHOWDEFAULT		10
@@ -312,6 +313,8 @@ Red/System [
 #define WM_SYSKEYUP			0105h
 #define WM_COMMAND 			0111h
 #define WM_SYSCOMMAND		0112h
+#define SC_MINIMIZE			F020h
+#define SC_MAXIMIZE			F030h
 #define WM_TIMER			0113h
 #define WM_HSCROLL			0114h
 #define WM_VSCROLL			0115h
@@ -349,6 +352,7 @@ Red/System [
 #define WM_PASTE			0302h
 #define WM_CLEAR			0303h
 #define WM_THEMECHANGED		031Ah
+#define WM_WINDOW_STATE		0402h						;-- WM_USER + 2: a window state change queued by send-event/no-wait
 
 #define WM_CAP_DRIVER_CONNECT		040Ah
 #define WM_CAP_DRIVER_DISCONNECT	040Bh
@@ -461,6 +465,7 @@ Red/System [
 #define SWP_NOACTIVATE		0010h
 #define SWP_SHOWWINDOW		0040h
 #define SWP_HIDEWINDOW		0080h
+#define SWP_STATECHANGED	8000h						;-- undocumented: minimized, maximized or restored
 
 #define BK_TRANSPARENT		1
 #define BK_OPAQUE			2

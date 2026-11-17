@@ -25,6 +25,7 @@ Red/System [
 #define NSClosableWindowMask        2
 #define NSMiniaturizableWindowMask  4
 #define NSResizableWindowMask       8
+#define NSFullScreenWindowMask		4000h
 #define NSIconWindowMask            64
 #define NSMiniWindowMask            128
 
@@ -171,6 +172,7 @@ Red/System [
 #define RedCameraImageKey		4000FFF4h
 #define RedSecureFieldKey		4000FFF5h
 #define RedPairSizeKey			4000FFF6h
+#define RedZoomedKey			4000FFF9h		;-- zoom state last reported (AppKit sends no zoom notification)
 #define RedTimerKey				4000FFFAh
 #define RedFieldEditorKey		4000FFFBh
 #define RedAllOverFlagKey		4000FFFCh

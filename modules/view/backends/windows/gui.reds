@@ -1200,6 +1200,7 @@ get-selected-handle: func [
 		values [red-value!]
 		handle [handle!]
 ][
+	unless face-set? hWnd [return null]					;-- closed meanwhile, by an actor
 	values: get-face-values hWnd
 	handle: null
 	if values <> null [
@@ -1645,6 +1646,14 @@ OS-show-window: func [
 	/local
 		face	[red-object!]
 ][
+	if all [										;-- an open window is refreshed, not raised (#5776)
+		IsWindowVisible as handle! hWnd
+		0 = GetWindowLong as handle! hWnd OFFSET_REVEALED
+	][
+		UpdateWindow as handle! hWnd
+		unless win8+? [update-layered-window as handle! hWnd null null null -1]
+		exit
+	]
 	if any [										;-- balance capture on a genuine presentation only:
 		not IsWindowVisible as handle! hWnd			;--   a fresh window (make-view left it hidden),
 		0 <> GetWindowLong as handle! hWnd OFFSET_REVEALED	;-- or THIS window revealed by change-visible

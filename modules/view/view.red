@@ -725,6 +725,9 @@ system/view: context [
 		resize			on-resize
 		moving			on-moving
 		resizing		on-resizing
+		minimize		on-minimize
+		maximize		on-maximize
+		restore			on-restore
 		zoom			on-zoom
 		pan				on-pan
 		rotate			on-rotate
@@ -1239,7 +1242,7 @@ request-dir: function [
 ]
 
 set-focus: function [
-	"Sets the focus on the argument face"
+	"Sets the focus on the argument face (a window is restored and brought to the front)"
 	face [object!]
 	/after	"Focus the next focusable face"
 	/before "Focus the previous focusable face"
@@ -1249,9 +1252,17 @@ set-focus: function [
 		if after [from: next from]
 		set-focus apply 'get-focusable [from /back before]
 	][
-		p: face/parent
-		while [p/type <> 'window][p: p/parent]
-		p/selected: face
+		either face/type = 'window [
+			unless face/visible? [
+				face/visible?: yes
+				unless system/view/auto-sync? [show face]
+			]
+			send-event make event! compose [type: 'restore face: (face)]
+		][
+			p: face/parent
+			while [p/type <> 'window][p: p/parent]
+			p/selected: face
+		]
 	]
 ]
 

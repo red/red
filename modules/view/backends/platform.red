@@ -174,6 +174,9 @@ system/view/platform: context [
 				EVT_TIME
 				EVT_DRAWING
 				EVT_SCROLL
+				EVT_MINIMIZE							;-- window state events
+				EVT_MAXIMIZE
+				EVT_RESTORE
 			]
 			
 			#enum event-flag! [
@@ -359,6 +362,9 @@ system/view/platform: context [
 			_time:			word/load "time"
 			_drawing:		word/load "drawing"
 			_scroll:		word/load "scroll"
+			_minimize:		word/load "minimize"
+			_maximize:		word/load "maximize"
+			_restore:		word/load "restore"
 			_ratio:			word/load "ratio"
 
 			_vertical:		word/load "vertical"
@@ -446,6 +452,9 @@ system/view/platform: context [
 					EVT_ROTATE		 [_rotate]
 					EVT_TWO_TAP		 [_two-tap]
 					EVT_PRESS_TAP	 [_press-tap]
+					EVT_MINIMIZE	 [_minimize]
+					EVT_MAXIMIZE	 [_maximize]
+					EVT_RESTORE		 [_restore]
 				]
 			]
 			
@@ -492,6 +501,9 @@ system/view/platform: context [
 					sym = _rotate/symbol		[sym: EVT_ROTATE]
 					sym = _two-tap/symbol		[sym: EVT_TWO_TAP]
 					sym = _press-tap/symbol		[sym: EVT_PRESS_TAP]
+					sym = _minimize/symbol		[sym: EVT_MINIMIZE]
+					sym = _maximize/symbol		[sym: EVT_MAXIMIZE]
+					sym = _restore/symbol		[sym: EVT_RESTORE]
 					true [
 						fire [TO_ERROR(script not-event-type) word]
 					]
