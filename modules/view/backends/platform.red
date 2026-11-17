@@ -749,18 +749,20 @@ system/view/platform: context [
 		yes
 	]
 
-	refresh-screens: has [svs spec screen][
+	refresh-screens: has [svs spec screen pos win target][
 		svs: system/view/screens
 		foreach spec fetch-all-screens [
-			either svs/1 [
-				screen: svs/1
+			pos: svs									;-- find the display's face by its handle
+			while [all [pos/1 pos/1/state/1 <> spec/4]][pos: next pos]
+			either pos/1 [
+				insert svs screen: take pos
 				screen/offset: spec/1
 				screen/size:   to-pair spec/2 / spec/3
 				screen/data:   spec/3
 				screen/state/1: spec/4
 				
 			][
-				append svs make face! [
+				insert svs make face! [
 					type:	'screen
 					offset: spec/1
 					size:	to-pair spec/2 / spec/3
@@ -771,8 +773,16 @@ system/view/platform: context [
 			]
 			svs: next svs
 		]
-		unless empty? svs [								;-- clean up screens for removed displays
-			foreach screen svs [clear screen/pane]
+		unless any [empty? svs head? svs][				;-- windows of removed displays go to the first screen
+			target: system/view/screens/1
+			foreach screen svs [
+				foreach win head screen/pane [set-quiet in win 'parent target]
+				insert target/pane copy/part head screen/pane screen/pane	;-- windows before the pane's index (GUI console) stay before it
+				set-quiet in target 'pane skip target/pane (index? screen/pane) - 1
+				append target/pane screen/pane			;-- the others after the screen's own windows
+				modify screen/pane 'owned none			;-- so clearing it does not destroy the windows
+				clear head screen/pane
+			]
 			clear svs
 		]
 	]
