@@ -1265,7 +1265,7 @@ set-focus: function [
 				face/visible?: yes
 				unless system/view/auto-sync? [show face]
 			]
-			send-event make event! compose [type: 'restore face: (face)]
+			send face 'restore
 		][
 			p: face/parent
 			while [p/type <> 'window][p: p/parent]

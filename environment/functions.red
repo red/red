@@ -357,6 +357,24 @@ suffix?: function [
 	][to file! path]
 ]
 
+send: function [
+	target [object! port! email!]	"NB: only object! is currently supported"
+	msg								"Message to send"
+	/no-wait						"Do not block on sending"
+][
+	either object? target [
+		if face? target [
+			either word? msg [msg: compose [type: (msg) face: (target)]][
+				unless block? msg [cause-error 'script 'invalid-arg [msg]]
+			]
+			put msg 'face target
+			apply 'send-event [msg /no-wait]
+		]
+	][
+		;TBD
+	]
+]
+
 scan: func [
 	"Returns the guessed type of the first serialized value from the input"
 	buffer  [binary! string!] "Input UTF-8 buffer or string"
