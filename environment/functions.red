@@ -363,12 +363,14 @@ send: function [
 	/no-wait						"Do not block on sending"
 ][
 	either object? target [
-		if face? target [
-			either word? msg [msg: compose [type: (msg) face: (target)]][
-				unless block? msg [cause-error 'script 'invalid-arg [msg]]
+		#if find config/modules 'view [
+			if face? target [
+				either word? msg [msg: compose [type: (msg) face: (target)]][
+					unless block? msg [cause-error 'script 'invalid-arg [msg]]
+				]
+				put msg 'face target
+				apply 'send-event [msg /no-wait]
 			]
-			put msg 'face target
-			apply 'send-event [msg /no-wait]
 		]
 	][
 		;TBD
