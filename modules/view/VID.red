@@ -806,7 +806,7 @@ system/view/VID: context [
 							face/type = 'progress
 							face/size/y > face/size/x
 						][dir: 'x]
-						face/offset/:dir: face/offset/:dir + (face/size/:dir - h / 2)
+						face/offset/:dir: face/offset/:dir + opt-as-integer round/floor face/size/:dir - h / 2.0
 						face/size/:dir: h
 					]
 				]
