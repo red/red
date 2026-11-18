@@ -32,6 +32,13 @@ send-event: function [
 	return:	[logic!]						;-- TRUE if injected, FALSE if the target has no live handle or the type isn't OS-injectable
 ][
 	if block? evt [evt: make event! evt]
+	unless find [minimize maximize restore] evt/type [	;-- window state events keep their own rules
+		face: evt/face
+		while [face][									;-- disabled, or inside a disabled face (a panel, a window
+			unless face/enabled? [return false]			;-- under a modal one): a user could not act on it either
+			face: face/parent
+		]
+	]
 	send-event-os evt to logic! no-wait
 ]
 
