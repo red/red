@@ -404,9 +404,16 @@ OS-text-box-layout: func [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
 	][
-		parse-text-styles as handle! nsfont as handle! ts styles as red-string! values + FACE_OBJ_TEXT catch?
+		catch RED_THROWN_ERROR [
+			parse-text-styles as handle! nsfont as handle! ts styles as red-string! values + FACE_OBJ_TEXT catch?
+		]
 	]
 
 	objc_msgSend [ts sel_getUid "endEditing"]
+	if system/thrown <> 0 [							;-- a Draw error in the data, the storage closed:
+		bool: as red-logic! (block/rs-tail state) - 1	;-- the layout is redone at its next use
+		bool/value: true
+		re-throw
+	]
 	layout
 ]

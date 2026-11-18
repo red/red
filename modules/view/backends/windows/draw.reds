@@ -329,7 +329,8 @@ start-draw: func [
 			unless font-clr? [		;-- use system's setting
 				ctx/font-color: GetSysColor COLOR_WINDOWTEXT
 			]
-			draw-text ctx :pos as red-string! get-face-obj hWnd no	;-- over the background and image above
+			catch RED_THROWN_ERROR [draw-text ctx :pos as red-string! get-face-obj hWnd no yes]	;-- over the background and image above
+			system/thrown: 0							;-- a Draw error in its data is reported, the paint goes on
 			ctx/font-color: 0
 		]
 	]
@@ -564,6 +565,7 @@ draw-text: func [									;-- BG?: paint a text-box face's color behind its text
 	pos		[red-pair!]
 	text	[red-string!]
 	bg?		[logic!]
+	catch?	[logic!]
 	return:	[logic!]
 	/local
 		this	[this!]
@@ -574,6 +576,7 @@ draw-text: func [									;-- BG?: paint a text-box face's color behind its text
 		pen		[this!]
 		obj		[red-object!]
 		values	[red-value!]
+		type	[red-word!]
 		size	[red-pair!]
 		color	[red-tuple!]
 		bg		[ptr-value!]
@@ -591,8 +594,9 @@ draw-text: func [									;-- BG?: paint a text-box face's color behind its text
 	dc: as ID2D1DeviceContext this/vtbl
 
 	layout: either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
-		release?: no
-		OS-text-box-layout as red-object! text as render-target! ctx/target 0 yes
+		type: as red-word! (object/get-values as red-object! text) + FACE_OBJ_TYPE
+		release?: rich-text <> symbol/resolve type/symbol	;-- only a rich-text face keeps its layout
+		OS-text-box-layout as red-object! text as render-target! ctx/target 0 catch?
 	][
 		release?: yes
 		if null? ctx/text-format [
@@ -649,7 +653,7 @@ OS-draw-text: func [
 	catch?	[logic!]
 	return:	[logic!]
 ][
-	draw-text ctx pos text yes
+	draw-text ctx pos text yes catch?
 ]
 
 OS-draw-shape-beginpath: func [

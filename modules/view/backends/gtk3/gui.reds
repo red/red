@@ -3222,7 +3222,8 @@ OS-to-image: func [
 						pos/header: TYPE_PAIR
 						pos/x: 0
 						pos/y: 0
-						draw-text-box cr :pos face 0 no yes
+						catch RED_THROWN_ERROR [draw-text-box cr :pos face 0 no yes]
+						system/thrown: 0						;-- a Draw error in its data is reported
 						cairo_destroy cr
 						cairo_surface_flush surf
 						pixbuf: gdk_pixbuf_get_from_surface surf 0 0 sx sy

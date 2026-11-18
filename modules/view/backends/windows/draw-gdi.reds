@@ -87,7 +87,8 @@ draw-begin-d2d: func [
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) = TYPE_STRING [
 		point2D/make-at as red-value! :pos F32_0 F32_0
-		OS-draw-text-d2d ctx pos as red-string! get-face-obj hWnd yes
+		catch RED_THROWN_ERROR [OS-draw-text-d2d ctx pos as red-string! get-face-obj hWnd yes]
+		system/thrown: 0							;-- a Draw error in its data is reported, the paint goes on
 	]
 ]
 

@@ -1665,7 +1665,8 @@ draw-rect: func [
 		sym = rich-text [
 			pos/header: TYPE_POINT2D
 			pos/x: F32_0 pos/y: F32_0
-			draw-text-box null as red-pair! :pos get-face-obj self yes
+			catch RED_THROWN_ERROR [draw-text-box null as red-pair! :pos get-face-obj self yes]
+			system/thrown: 0							;-- a Draw error in its data is reported, never thrown through AppKit
 		]
 		true []
 	]

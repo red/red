@@ -550,10 +550,15 @@ OS-text-box-layout: func [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
 	][
-		parse-text-styles target as handle! lc styles text catch?
+		catch RED_THROWN_ERROR [parse-text-styles target as handle! lc styles text catch?]
 	]
 	pango_layout_set_attributes layout attrs
 	pango_attr_list_unref attrs
+	if system/thrown <> 0 [							;-- a Draw error in the data, the attributes freed:
+		bool: as red-logic! (block/rs-tail state) - 1	;-- the layout is redone at its next use
+		bool/value: true
+		re-throw
+	]
 	tabs: as red-integer! values + FACE_OBJ_EXT1
 	ttype: TYPE_OF(tabs)
 	either any [ttype = TYPE_INTEGER ttype = TYPE_FLOAT][

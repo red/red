@@ -450,7 +450,16 @@ OS-text-box-layout: func [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
 	][
-		parse-text-styles as int-ptr! target as handle! layout styles str catch?
+		catch RED_THROWN_ERROR [parse-text-styles as int-ptr! target as handle! layout styles str catch?]
+		if system/thrown <> 0 [							;-- a Draw error in the data: the backdrops it queued
+			vec: target/styles							;-- are dropped (the next text would draw them), a base
+			if vec <> null [vector/rs-clear vec]		;-- face's layout is freed (its face keeps none), a
+			either null? pval [release-com-object as int-ptr! layout][	;-- rich-text's redone at its next use
+				bool: as red-logic! pval + 3
+				bool/value: true
+			]
+			re-throw
+		]
 	]
 	layout
 ]

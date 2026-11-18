@@ -114,6 +114,7 @@ Red/System [
 			/local
 				base   [red-value!]
 				silent [red-logic!]
+				saved  [red-value!]
 		][
 			cycles/reset
 			silent: as red-logic! #get system/view/silent?
@@ -123,11 +124,13 @@ Red/System [
 			]
 			
 			base: block/rs-head cmds
+			saved: stack/top
 			cmds: as red-block! stack/push as red-value! cmds
 			unless cycle? [cmds/head: (as-integer cmd - base) >> 4]
 			assert cmds/head >= 0
 			either catch? [
 				report cat id as red-value! cmds null null
+				stack/top: saved						;-- its cells dropped: a face paint has no frame to unwind them
 				throw RED_THROWN_ERROR
 			][
 				fire [cat id cmds]

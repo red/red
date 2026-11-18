@@ -362,7 +362,8 @@ base-draw: func [
 		sym = rich-text [
 			pos/header: TYPE_PAIR
 			pos/x: 0 pos/y: 0
-			draw-text-box cr :pos get-face-obj widget 0 no yes
+			catch RED_THROWN_ERROR [draw-text-box cr :pos get-face-obj widget 0 no yes]
+			system/thrown: 0							;-- a Draw error in its data is reported, never thrown through GTK
 		]
 		true []
 	]
