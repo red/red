@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   Linux-Red-Tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Run Linux-x86 Tests
     steps:
     - name: Checkout
@@ -22,7 +22,7 @@ jobs:
         path: quick-test/quick-test.log
 
   Linux-RS-Tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Run Linux-RS Tests
     steps:
     - name: Checkout
