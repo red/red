@@ -738,6 +738,7 @@ OS-send-event: func [
 		saved-keys [integer!]
 		word   [red-word!]
 		style  [integer!]
+		saved  [tagMSG]
 ][
 	if null? evt/msg [return false]						;-- needs a target face (synthetic extras node)
 	node: as node!   evt/msg
@@ -847,8 +848,13 @@ OS-send-event: func [
 				or EVT_FLAG_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MID_DOWN or EVT_FLAG_AUX_DOWN
 			)
 		]
-		process m										;-- stays live across the whole dispatch: a special key's
-		inject-key-flags: saved-keys					;-- EVT_KEY_DOWN + forced EVT_KEY both read it (do-events masks it)
+		if (process m) >= EVT_DISPATCH [				;-- stays live across the whole dispatch: a special key's
+			saved: current-msg							;-- EVT_KEY_DOWN + forced EVT_KEY both read it (do-events masks it)
+			current-msg: m								;-- then deliver to the widget as do-events does, so that a native one
+			DispatchMessage m							;-- reacts (text typed, button clicked); no TranslateMessage: it
+			current-msg: saved							;-- would queue a WM_CHAR for a key-down, an event not asked for
+		]
+		inject-key-flags: saved-keys
 	]
 	true
 ]
