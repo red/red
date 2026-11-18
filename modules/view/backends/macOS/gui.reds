@@ -2458,7 +2458,6 @@ OS-to-image: func [
 			rect/left: 0 rect/top: 0 rect/right: 7F800000h rect/bottom: 7F800000h
 			bmp: CGWindowListCreateImage as NSRect! rect 1 0 0		;-- INF
 			ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
-			objc_msgSend [bmp sel_getUid "retain"]
 		]
 		type = camera [
 			view: as-integer face-handle? face
@@ -2477,7 +2476,7 @@ OS-to-image: func [
 					cview: objc_msgSend [view sel_getUid "contentView"]
 					rc2: objc_msgSend_rect [cview sel_getUid "frame"]
 					h: rc/h - rc2/h
-					rc/y: rc/y - h
+					rc/y: (as float32! screen-size-y) - (rc/y + rc/h)	;-- window top, top-left origin (CGWindowListCreateImage)
 					rc/h: h
 					id: objc_msgSend [view sel_getUid "windowNumber"]
 					;-- title
@@ -2508,10 +2507,9 @@ OS-to-image: func [
 					bmp3: OS-image/combine-image bmp bmp2 0
 
 					ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp3
-					;CGImageRelease bmp
+					CGImageRelease bmp
 					;CGImageRelease bmp2
 					objc_msgSend [img sel_release]
-					objc_msgSend [bmp3 sel_getUid "retain"]
 				][
 					rc: objc_msgSend_rect [view sel_getUid "bounds"]
 					rep: objc_msgSend [view sel_getUid "bitmapImageRepForCachingDisplayInRect:" rc/x rc/y rc/w rc/h]
