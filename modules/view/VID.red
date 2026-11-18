@@ -800,7 +800,7 @@ system/view/VID: context [
 						pane-size: max pane-size face/offset + face/size
 						if opts/now? [do-actor face none 'time]
 					]
-					if h: select system/view/metrics/fixed-heights face/type [
+					if all [face/parent h: select system/view/metrics/fixed-heights face/type][	;-- not for a style definition
 						dir: 'y
 						if all [
 							face/type = 'progress
