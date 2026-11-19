@@ -4,20 +4,24 @@ on:
   push:
     branches:
       - "**"
-      - "!ai-review/fix/**"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  # AI-based review on the Linux self-hosted runner. Advisory: it reads the
+  # pushed range, writes its report to runner.temp, uploads the ai-review
+  # artifact, and notifies Telegram. Authentication: the reviewer prefers the
+  # Vercel AI Gateway via the AI_GATEWAY_API_KEY secret; when the secret is not
+  # configured the script unsets it so the reviewer falls back to credentials
+  # saved on the runner machine (see the CLI's authentication docs).
   review:
     name: Review pushed diff
-    runs-on: [self-hosted, Windows, X64, codex-review]
+    runs-on: [self-hosted, Linux, X64, codex-review]
     continue-on-error: true
-    # Backstop only. A job-level timeout is treated as a hard failure that
-    # continue-on-error cannot suppress, so the review step enforces its own
-    # shorter deadline and exits cleanly instead.
+    # Backstop only; the review step enforces its own shorter deadline and
+    # exits cleanly instead (see the comment in review-push.sh).
     timeout-minutes: 90
     outputs:
       has_issues: ${{ steps.run_review.outputs.has_issues }}
@@ -32,36 +36,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run Codex review
+      - name: Run AI review
         id: run_review
-        shell: pwsh
+        shell: bash
         continue-on-error: true
-        timeout-minutes: 65
         env:
           REVIEW_BEFORE: ${{ github.event.before }}
           REVIEW_SHA: ${{ github.sha }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+          # Bearer token for the custom provider (CLI settings.json
+          # on the runner reads it via auth.bearer.env). Never stored on the
+          # runner machine; add it with `gh secret set CUSTOM_API_KEY`.
+          CUSTOM_API_KEY: ${{ secrets.CUSTOM_API_KEY }}
+          # Reasoning effort for the reviewer (low/medium/high/...); set the
+          # repository variable REVIEW_EFFORT to override, empty = the model's
+          # default.
+          REVIEW_EFFORT: ${{ vars.REVIEW_EFFORT }}
         run: |
-          # Enforce the review deadline here: a timeout imposed by the runner
-          # (job- or step-level) is a hard cancellation that would fail the
-          # workflow despite continue-on-error. Run the review as a child
-          # process, and kill its whole tree if it overruns, then exit 0.
-          $reviewTimeoutMinutes = 55
-          $scriptPath = Join-Path (Get-Location).Path ".github/scripts/codex-review-push.ps1"
-          $review = Start-Process -FilePath (Get-Process -Id $PID).Path `
-            -ArgumentList @("-NoProfile", "-File", $scriptPath) `
-            -WorkingDirectory (Get-Location).Path -NoNewWindow -PassThru
-          if (-not $review.WaitForExit($reviewTimeoutMinutes * 60 * 1000)) {
-            Write-Host "Codex review exceeded the ${reviewTimeoutMinutes}-minute deadline; killing it and letting the workflow pass."
-            try { $review.Kill($true) } catch { Write-Host "Unable to kill the review process tree: $_" }
-            if ($env:GITHUB_OUTPUT) {
-              Add-Content -Path $env:GITHUB_OUTPUT -Value "has_issues=false" -Encoding utf8
-            }
-          }
-          else {
-            Write-Host "Codex review finished with exit code $($review.ExitCode); any failure was advisory and ignored."
-          }
-          exit 0
+          bash .github/scripts/review-push.sh
 
       - name: Upload review log
         if: always()
@@ -70,35 +63,25 @@ jobs:
         with:
           name: ai-review
           path: |
-            ${{ runner.temp }}/codex-review-output.md
-            ${{ runner.temp }}/codex-review-last-message.md
-            ${{ runner.temp }}/codex-review-transcript.txt
+            ${{ runner.temp }}/review-output.md
+            ${{ runner.temp }}/review-last-message.md
+            ${{ runner.temp }}/review-transcript.txt
           if-no-files-found: ignore
 
       - name: Send Telegram review report
         if: steps.run_review.outputs.has_issues == 'true'
         continue-on-error: true
-        shell: pwsh
+        shell: bash
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          $shortSha = $env:GITHUB_SHA.Substring(0, [Math]::Min(12, $env:GITHUB_SHA.Length))
-          $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
-          $message = @"
-          AI review found issues.
-
-          Repository: $env:GITHUB_REPOSITORY
-          Branch: $env:GITHUB_REF_NAME
-          Commit: $shortSha
-          Range: ${{ steps.run_review.outputs.range_label }}
-          Run: $runUrl
-
-          Reply to this message with:
-          @Red_Code_Review_bot fix it
-          "@
-
-          .\.github\scripts\send-telegram-review.ps1 `
-            -ReviewPath "${{ steps.run_review.outputs.review_output_path }}" `
-            -MessageText $message
+          shortSha="${GITHUB_SHA:0:12}"
+          runUrl="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          message="$(printf 'AI review found issues.\n\nRepository: %s\nBranch: %s\nCommit: %s\nRange: %s\nRun: %s' \
+            "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" "$shortSha" \
+            "${{ steps.run_review.outputs.range_label }}" "$runUrl")"
+          bash .github/scripts/send-telegram-review.sh \
+            "${{ steps.run_review.outputs.review_output_path }}" \
+            "$message"
           exit 0
