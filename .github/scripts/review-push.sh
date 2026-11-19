@@ -1,20 +1,15 @@
 #!/usr/bin/env bash
 # AI-based code review for pushes, run by .github/workflows/ai-review.yml on the
 # Linux self-hosted runner. Resolves the pushed range, temporarily appends review
-# guidance to AGENTS.md, asks the AI reviewer to review the diff, and writes
-# advisory outputs. Always exits 0; the review is a backstop and must never fail
-# the workflow.
+# guidance to AGENTS.md, runs `codex exec review` on the diff, and writes advisory
+# outputs. Always exits 0; the review is a backstop and must never fail the
+# workflow. Authentication uses the codex login on the runner machine (CODEX_HOME).
 #
 # Inputs (env):
 #   REVIEW_BEFORE    github.event.before
 #   REVIEW_SHA       github.sha
 #   DEFAULT_BRANCH   github.event.repository.default_branch
-#   AI_GATEWAY_API_KEY  optional; when set, the reviewer uses the Vercel AI
-#                       Gateway (the recommended credential source for
-#                       scripts/CI). When empty it is unset so it falls back to
-#                       credentials saved on the runner machine.
-#   REVIEW_BIN       optional; path to the reviewer binary
-#                    (default: ~/.local/bin/fx, then `fx` on PATH).
+#   REVIEW_BIN       optional; path to the codex binary (default: `codex` on PATH).
 #
 # Outputs (GITHUB_OUTPUT):
 #   has_issues, review_output_path, transcript_path, last_message_path, range_label
@@ -126,12 +121,21 @@ function test_review_has_issues() {
         '^[[:space:]]*i found no (findings|issues|actionable issues|actionable findings)\.?+[[:space:]]*$'
         'i did not (identify|find) (a|an|any)?[[:space:]]*(discrete|concrete|actionable|introduced|new|clear)?[[:space:]]*(bug|issue|regression|finding|findings|bugs|issues|regressions)'
         '(the patch|this patch|the change|this change|the changes|this update)[[:space:]].*(no|not any|without)[[:space:]]+((evident|obvious|functional|actionable)[[:space:]]+)*(regressions?|issues?|findings?|bugs?)'
+        '(the patch|this patch|the change|this change|the changes|this update|the updated iteration)[[:space:]].*does not introduce (any|an|a)[[:space:]]+((evident|obvious|functional|actionable|correctness)[[:space:]]+)*(regressions?|issues?|bugs?)'
     )
     for pattern in "${clean_patterns[@]}"; do
         if printf '%s\n' "$text" | grep -Eqim1 "$pattern"; then
             return 1
         fi
     done
+
+    # A specific clean shape: a fix now matches its target, has no downstream
+    # references, and introduces no regressions.
+    if printf '%s\n' "$text" | grep -Eiq 'now matches|matches' && \
+       printf '%s\n' "$text" | grep -Eiq 'no downstream references' && \
+       printf '%s\n' "$text" | grep -Eiq 'does not introduce (any|an|a)[[:space:]]+((evident|obvious|functional|actionable|correctness)[[:space:]]+)*(regressions?|issues?|bugs?)'; then
+        return 1
+    fi
 
     return 1
 }
@@ -157,26 +161,17 @@ output_root="${RUNNER_TEMP:-$(pwd)}"
 review_output_path="$output_root/review-output.md"
 transcript_output_path="$output_root/review-transcript.txt"
 last_message_output_path="$output_root/review-last-message.md"
-json_output_path="$output_root/review-response.json"
 
 : "${REVIEW_BEFORE:-}"
 : "${REVIEW_SHA:-}"
 default_branch="${DEFAULT_BRANCH:-}"
 
-# Unset an empty gateway key so the reviewer falls back to credentials saved on
-# the machine (VERCEL_OIDC_TOKEN -> AI_GATEWAY_API_KEY -> login -> saved API key).
-[ -n "${AI_GATEWAY_API_KEY:-}" ] || unset AI_GATEWAY_API_KEY || true
-export FX_AUTO_UPGRADE="${FX_AUTO_UPGRADE:-0}" # deterministic CI runs: no background self-update
-
 review_bin="${REVIEW_BIN:-}"
-if [ -z "$review_bin" ] && [ -x "$HOME/.local/bin/fx" ]; then
-    review_bin="$HOME/.local/bin/fx"
+if [ -z "$review_bin" ]; then
+    review_bin="$(command -v codex 2>/dev/null || true)"
 fi
 if [ -z "$review_bin" ]; then
-    review_bin="$(command -v fx 2>/dev/null || true)"
-fi
-if [ -z "$review_bin" ]; then
-    log "Reviewer binary not found; skipping review."
+    log "codex binary not found; skipping review."
     write_output "has_issues" "false"
     write_output "review_output_path" "$review_output_path"
     write_output "transcript_path" "$transcript_output_path"
@@ -245,7 +240,7 @@ cat >>"$agents_path" <<'GUIDANCE'
 # Automated AI Review Guidance
 
 - Do not run nested AI or reviewer CLI commands during automated review.
-- In particular, do not run `fx`, `fx ask`, or commands that invoke another model/API client.
+- In particular, do not run `codex`, `codex exec`, or commands that invoke another model/API client.
 - Use ordinary read-only repository inspection commands such as `git diff`, `git show`, `rg`, and `cat` when needed.
 - Do not modify any files.
 - End your final response with exactly one machine-readable verdict line: `AI_REVIEW_HAS_ISSUES: true` or `AI_REVIEW_HAS_ISSUES: false`.
@@ -254,10 +249,7 @@ GUIDANCE
 
 base_branch=""
 if [ "$single_commit_mode" -eq 1 ]; then
-    range_instructions="Review the repository changes introduced by commit $head_sha.
-
-- Run \`git show $head_sha\` to see the change, and inspect surrounding code with read-only commands (git log, git show, ls, cat, grep) as needed.
-- Do not modify any files."
+    : # Reviewing HEAD commit only; codex --commit handles the range.
 else
     base_branch="review-base-$short_head"
     git branch --force "$base_branch" "$base_sha" >/dev/null 2>&1 || {
@@ -270,59 +262,21 @@ else
         write_output "range_label" "$range_label"
         exit 0
     }
-    range_instructions="Review the repository changes in the git range $range_label.
-
-- Run \`git diff $base_sha $head_sha\` to see the changes, and inspect surrounding code with read-only commands (git log, git show, ls, cat, grep) as needed.
-- Do not modify any files."
 fi
 
-# Review standards, inlined. The point is to suppress noise in an advisory
-# review, not to enumerate every possible rule.
-review_standards=$(cat <<'STANDARDS'
-You are acting as a reviewer for a proposed code change made by another engineer.
-
-The criteria below are defaults, not the final word. More specific guidance you encounter (in a developer message, a user message, a project file such as AGENTS.md, or elsewhere in this system message) overrides these general instructions.
-
-Decide whether an issue is worth flagging using these criteria:
-1. It meaningfully impacts accuracy, performance, security, or maintainability.
-2. It is discrete and actionable, not a general codebase issue or a bundle of issues.
-3. Fixing it does not demand more rigor than the surrounding code follows.
-4. It was introduced in the reviewed range (do not flag pre-existing bugs).
-5. The author would likely fix it if made aware.
-6. It does not rely on unstated assumptions about the codebase or the author's intent.
-7. Speculation is not enough: identify the specific parts provably affected.
-8. It is clearly not an intentional choice by the author.
-
-Report every qualifying finding, not just the first. If none qualifies, prefer no findings. Review the diff independently and deduplicate findings by changed location and defect/remedy. Do not omit ordinary findings or invent findings solely because a rubric exists.
-
-Output the report as Markdown (not inline PR comments), one section per finding:
-
-### [P1] <short imperative title, 80 chars or fewer>
-
-<body: brief Markdown explaining why it is a problem; cite files/lines/functions; name the scenarios or inputs that trigger it, and note when its severity depends on them>
-
-Tag each title with a priority: [P0] blocking (only for universal issues that do not depend on assumptions about inputs), [P1] urgent, [P2] normal, [P3] nice-to-have. If there are no findings, state exactly: `No findings.`
-
-Convey severity accurately without overstating it. Write each finding so the author can grasp it immediately without close reading. Keep the tone matter-of-fact: neither accusatory nor excessively positive; it should read as a helpful AI assistant suggestion, not a human reviewer. Avoid filler praise and unhelpful phrasing such as `Great job ...` or `Thanks for ...`. Ignore style, formatting, typos, documentation, and other nits when forming the verdict. Do not generate a PR fix.
-STANDARDS
-)
-
-prompt=$(cat <<PROMPT
-$range_instructions
-
-$review_standards
-
-End your final response with exactly one machine-readable verdict line: \`AI_REVIEW_HAS_ISSUES: true\` or \`AI_REVIEW_HAS_ISSUES: false\`.
-Use \`true\` only when the review contains concrete, actionable findings with file/line evidence. Use \`false\` for clean reviews, uncertainty, summaries, and non-actionable observations.
-PROMPT
-)
-
-# Reasoning effort override for models that support it (REVIEW_EFFORT:
-# low|medium|high|...; empty = the model's default). Also settable persistently
-# on the machine via `fx config set effort <level>`.
+# Reasoning effort override (REVIEW_EFFORT: low|medium|high|...; empty = the
+# model's default), passed to codex as a config override.
 effort_args=()
 if [ -n "${REVIEW_EFFORT:-}" ]; then
-    effort_args=(--effort "$REVIEW_EFFORT")
+    effort_args=(-c "model_reasoning_effort=$REVIEW_EFFORT")
+fi
+
+# codex review takes either --base <branch> or --commit <sha>.
+range_args=()
+if [ "$single_commit_mode" -eq 1 ]; then
+    range_args=(--commit "$head_sha")
+else
+    range_args=(--base "$base_branch")
 fi
 
 # Enforce the review deadline here: a runner-imposed timeout is a hard
@@ -331,38 +285,37 @@ fi
 # so the step ends even if it ignores SIGTERM: the step is guaranteed to finish
 # within the deadline + 60s.
 review_timeout_seconds="${REVIEW_TIMEOUT_SECONDS:-3300}"
-log "Running review for $range_label (deadline: ${review_timeout_seconds}s)."
-timeout --kill-after=60 "$review_timeout_seconds" "$review_bin" ask --json --no-save --auto \
-    ${effort_args[@]+"${effort_args[@]}"} --timeout 300 "$prompt" \
-    >"$json_output_path" 2>"$transcript_output_path"
+log "Running codex review for $range_label (deadline: ${review_timeout_seconds}s)."
+timeout --kill-after=60 "$review_timeout_seconds" "$review_bin" exec review \
+    ${effort_args[@]+"${effort_args[@]}"} ${range_args[@]+"${range_args[@]}"} \
+    -o "$last_message_output_path" \
+    >"$transcript_output_path" 2>&1
 review_exit_code=$?
-log "Reviewer finished with exit code $review_exit_code; any failure is advisory and ignored."
+log "codex finished with exit code $review_exit_code; any failure is advisory and ignored."
 
-# Extract the review text from the structured output. Handle every mid-flight
-# failure (provider outage, deadline SIGTERM/SIGKILL, partial/invalid JSON)
-# with a concise advisory line instead of dumping raw JSON into the report.
-# Every path below keeps the review advisory: the script always exits 0.
+# Read the review from the file codex wrote with -o. Handle mid-flight failures
+# (provider outage, deadline SIGTERM/SIGKILL) with a concise advisory line
+# instead of dumping the raw transcript into the report. Every path below keeps
+# the review advisory: the script always exits 0.
 review_text=""
-review_error=""
-if jq -es . "$json_output_path" >/dev/null 2>&1; then
-    review_text="$(jq -er '.final_output // .output // empty' "$json_output_path" 2>/dev/null || true)"
-    review_error="$(jq -er '.error // empty' "$json_output_path" 2>/dev/null || true)"
+if [ -f "$last_message_output_path" ]; then
+    review_text="$(cat "$last_message_output_path" 2>/dev/null || true)"
 fi
 
 if [ -z "$review_text" ]; then
-    if [ -n "$review_error" ]; then
-        review_text="Reviewer produced no output (error: $review_error). See review-transcript.txt for details."
-    elif [ "$review_exit_code" -eq 124 ] || [ "$review_exit_code" -eq 137 ]; then
+    if [ "$review_exit_code" -eq 124 ] || [ "$review_exit_code" -eq 137 ]; then
         review_text="Review was terminated at the ${review_timeout_seconds}s deadline before producing output. See review-transcript.txt for partial progress."
-    elif [ -s "$json_output_path" ]; then
-        # stdout was produced but is not valid JSON (unexpected CLI output);
-        # keep it verbatim for debugging rather than discarding it.
-        review_text="$(cat "$json_output_path" 2>/dev/null || true)"
+    elif [ -s "$transcript_output_path" ]; then
+        # codex ran but wrote no final message; keep a short note and preserve
+        # the transcript for debugging.
+        review_text="codex produced no final review message. See review-transcript.txt for details."
     fi
 fi
 [ -n "$review_text" ] || review_text="Reviewer produced no output."
 
-printf '%s\n' "$review_text" >"$last_message_output_path"
+# Leave last_message_output_path as codex wrote it; this script only reads it.
+# The report below carries any fallback text, so the artifact stays faithful
+# to the tool's raw final message.
 
 if test_review_has_issues "$review_text"; then
     has_issues=true

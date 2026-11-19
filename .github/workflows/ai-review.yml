@@ -10,12 +10,10 @@ permissions:
   contents: read
 
 jobs:
-  # AI-based review on the Linux self-hosted runner. Advisory: it reads the
-  # pushed range, writes its report to runner.temp, uploads the ai-review
-  # artifact, and notifies Telegram. Authentication: the reviewer prefers the
-  # Vercel AI Gateway via the AI_GATEWAY_API_KEY secret; when the secret is not
-  # configured the script unsets it so the reviewer falls back to credentials
-  # saved on the runner machine (see the CLI's authentication docs).
+  # AI-based review on the Linux self-hosted runner using `codex exec review`.
+  # Advisory: it reads the pushed range, writes its report to runner.temp,
+  # uploads the ai-review artifact, and notifies Telegram. Authentication uses
+  # the codex login already configured on the runner machine (CODEX_HOME).
   review:
     name: Review pushed diff
     runs-on: [self-hosted, Linux, X64, codex-review]
@@ -44,14 +42,9 @@ jobs:
           REVIEW_BEFORE: ${{ github.event.before }}
           REVIEW_SHA: ${{ github.sha }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
-          # Bearer token for the custom provider (CLI settings.json
-          # on the runner reads it via auth.bearer.env). Never stored on the
-          # runner machine; add it with `gh secret set CUSTOM_API_KEY`.
-          CUSTOM_API_KEY: ${{ secrets.CUSTOM_API_KEY }}
-          # Reasoning effort for the reviewer (low/medium/high/...); set the
+          # Reasoning effort for codex (low/medium/high/...); set the
           # repository variable REVIEW_EFFORT to override, empty = the model's
-          # default.
+          # default. Authentication comes from the runner's codex login.
           REVIEW_EFFORT: ${{ vars.REVIEW_EFFORT }}
         run: |
           bash .github/scripts/review-push.sh
