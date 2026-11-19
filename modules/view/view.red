@@ -609,7 +609,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 			if any [series? :old object? :old][modify old 'owned none]
 			if any [series? :new object? :new][modify new 'owned reduce [self word]]
 
-			if all [block? state handle? state/1][ 
+			if block? state [								;-- also a state made by GDI+ Draw alone (no scaled font)
 				system/view/platform/update-font self (index? word) - 1
 				update-font-faces self
 			]
