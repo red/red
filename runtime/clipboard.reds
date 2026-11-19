@@ -688,6 +688,8 @@ clipboard: context [
 				str 		[c-string!]
 				strlen 		[integer!]
 				img			[handle!]
+				image		[red-image!]
+				len			[integer!]
 		][
 			clipboard: gtk_clipboard_get gdk_atom_intern_static_string "CLIPBOARD"
 			switch TYPE_OF(data) [
@@ -698,9 +700,16 @@ clipboard: context [
 					gtk_clipboard_set_text clipboard str strlen
 				]
 				TYPE_IMAGE	[
-					img: OS-image/to-pixbuf as red-image! data
-					if img <> null [
-						gtk_clipboard_set_image clipboard img
+					;-- a zero-sized image would overwrite the clipboard with the
+					;-- internal 1x1 placeholder pixbuf; skip it as the old
+					;-- null-pixbuf check did
+					image: as red-image! data
+					len: IMAGE_WIDTH(image/size) * IMAGE_HEIGHT(image/size)
+					if len > 0 [
+						img: OS-image/to-pixbuf image
+						if img <> null [
+							gtk_clipboard_set_image clipboard img
+						]
 					]
 				]
 				TYPE_NONE	[gtk_clipboard_clear clipboard]
