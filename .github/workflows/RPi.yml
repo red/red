@@ -6,6 +6,7 @@ jobs:
   Build-RPi-Tests:
     runs-on: ubuntu-24.04
     name: Build RPi Tests
+    timeout-minutes: 45
     steps:
     - name: Checkout
       uses: actions/checkout@v6
@@ -24,13 +25,14 @@ jobs:
   Run-tests-ARM:
     runs-on: ubuntu-24.04-arm
     needs: Build-RPi-Tests
+    timeout-minutes: 45
 
     steps:
     - name: Install 32bit libs
       run: |
         sudo dpkg --add-architecture armhf
-        sudo apt update
-        sudo apt install libc6:armhf libgdk-pixbuf-2.0-0:armhf libssl3t64:armhf libcurl4t64:armhf
+        sudo apt-get -o Acquire::Retries=5 update
+        sudo apt-get -o Acquire::Retries=5 install -y libc6:armhf libgdk-pixbuf-2.0-0:armhf libssl3t64:armhf libcurl4t64:armhf
         sudo ln -s /lib/arm-linux-gnueabihf/libcrypto.so.3 /lib/arm-linux-gnueabihf/libcrypto.so.1.1
 
     - name: Retrieve tests
