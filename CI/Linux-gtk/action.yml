@@ -11,19 +11,21 @@ runs:
   using: 'composite'
   steps:
     - name: Set up Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
 
     # The image is only rebuilt when its Dockerfile changes. On every other run
     # the layers (including the apt install of GTK3/Xvfb) are restored from the
     # GitHub Actions cache, so the Ubuntu mirrors are not touched at all.
     - name: Build image
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: ${{ github.action_path }}
         load: true
         tags: ci-linux-gtk:local
         cache-from: type=gha,scope=ci-linux-gtk
-        cache-to: type=gha,scope=ci-linux-gtk
+        # A cache export failure (e.g. the cache service throttling) must not
+        # fail the step: the image is built and loaded regardless.
+        cache-to: type=gha,scope=ci-linux-gtk,ignore-error=true
 
     - name: Run command
       shell: bash
