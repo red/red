@@ -691,12 +691,56 @@ system/view/platform: context [
 				assert false
 			]
 
+			drop-font-state: func [								;-- the font forgets its native state block
+				font	[red-object!]
+				/local
+					state [red-block!]
+			][
+				state: as red-block! (object/get-values font) + FONT_OBJ_STATE
+				ownership/unbind as red-value! state			;-- bound by make: would keep it and its records alive
+				state/header: TYPE_NONE
+			]
+
+			get-font-state: func [								;-- the font's native state block, null if none or another font's
+				font	[red-object!]
+				return: [red-block!]
+				/local
+					state [red-block!]
+					owner [red-object!]
+			][
+				state: as red-block! (object/get-values font) + FONT_OBJ_STATE
+				if TYPE_OF(state) <> TYPE_BLOCK [return null]
+				if state/head > 0 [
+					owner: (as red-object! block/rs-head state) - 1	;-- set by make-font-state
+					if all [TYPE_OF(owner) = TYPE_OBJECT owner/ctx = font/ctx][return state]
+				]
+				drop-font-state font							;-- copied from another font (make, copy): dropped, not freed
+				null
+			]
+
+			make-font-state: func [								;-- the font's new native state block, for SIZE values
+				font	[red-object!]
+				size	[integer!]
+				return: [red-block!]
+				/local
+					state [red-block!]
+			][
+				state: as red-block! (object/get-values font) + FONT_OBJ_STATE
+				block/make-at state size + 1
+				copy-cell as red-value! font ALLOC_TAIL(state)	;-- its owner, before the head: copies leave it out
+				state/head: 1
+				state
+			]
+
 			link-font-to-face: func [
 				face	[red-object!]
 				font	[red-object!]
 				/local
 					parent	[red-block!]
 					found	[red-value!]
+					face1	[red-object!]
+					font1	[red-object!]
+					own?	[logic!]
 			][
 				if any [
 					face = null
@@ -705,11 +749,16 @@ system/view/platform: context [
 				][exit]
 
 				parent: as red-block! (object/get-values font) + FONT_OBJ_PARENT
-				either TYPE_OF(parent) = TYPE_BLOCK [
+				own?: no
+				if TYPE_OF(parent) = TYPE_BLOCK [
 					parent/head: 0
-				][
-					parent: block/make-at parent 4
+					face1: as red-object! block/rs-head parent
+					if all [not block/rs-tail? parent TYPE_OF(face1) = TYPE_OBJECT][
+						font1: as red-object! (object/get-values face1) + FACE_OBJ_FONT
+						own?: all [TYPE_OF(font1) = TYPE_OBJECT font1/ctx = font/ctx]
+					]
 				]
+				unless own? [block/make-at parent 4]			;-- its own faces only: an empty list or another font's may be shared by `copy`
 				found: block/find parent as red-value! face null no no yes no null null no no no no
 				if TYPE_OF(found) = TYPE_NONE [block/rs-append parent as red-value! face]
 				parent/head: block/rs-length? parent

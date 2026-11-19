@@ -1897,11 +1897,11 @@ OS-draw-font: func [
 		hFont  [handle!]
 ][
 	vals: object/get-values font
-	state: as red-block! vals + FONT_OBJ_STATE
+	state: get-font-state font
 	color: as red-tuple! vals + FONT_OBJ_COLOR
 
 	hFont: null
-	if TYPE_OF(state) = TYPE_BLOCK [
+	if state <> null [
 		handle: as red-handle! (block/rs-head state) + 2
 		if TYPE_OF(handle) = TYPE_HANDLE [hFont: as handle! handle/value]
 	]

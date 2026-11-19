@@ -693,10 +693,8 @@ update-base-text: func [
 		v-align [integer!]
 		h-align [integer!]
 		clr		[integer!]
-		handle	[red-handle!]
 		values	[red-value!]
 		color	[red-tuple!]
-		state	[red-block!]
 		rect	[RECT_STRUCT_FLOAT32 value]
 		gdiclr 	[integer!]
 		default-color 	[logic!]
@@ -720,15 +718,8 @@ update-base-text: func [
 		values: object/get-values font
 		color: as red-tuple! values + FONT_OBJ_COLOR
 
-		state: as red-block! values + FONT_OBJ_STATE
-		either TYPE_OF(state) = TYPE_BLOCK [
-			handle: as red-handle! block/rs-head state
-			if TYPE_OF(handle) = TYPE_HANDLE [
-				hFont: handle/value
-			]
-		][
-			hFont: as-integer make-font get-face-obj hWnd font
-		]
+		hFont: as-integer get-font-handle font 0
+		if zero? hFont [hFont: as-integer make-font get-face-obj hWnd font]	;-- none yet, or only the unscaled one (GDI+ Draw's)
 		if TYPE_OF(color) = TYPE_TUPLE [
 			clr: get-tuple-color color
 			default-color: no

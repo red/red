@@ -129,9 +129,9 @@ OS-make-font: func [
 		0												;-- DEFAULT_PITCH
 		name
 
-	blk: as red-block! values + FONT_OBJ_STATE
-	either TYPE_OF(blk) <> TYPE_BLOCK [
-		block/make-at blk 3
+	blk: get-font-state font
+	either null? blk [
+		blk: make-font-state font 3
 		either scaling? [
 			h: handle/make-in blk as-integer hFont handle/CLASS_FONT
 			if hFont <> null [h/extID: externals/store hFont font-ext-type]
@@ -162,8 +162,6 @@ set-font: func [
 	values [red-value!]
 	/local
 		font   [red-object!]
-		state  [red-block!]
-		handle [red-handle!]
 		hFont  [handle!]
 ][
 	font: as red-object! values + FACE_OBJ_FONT
@@ -171,14 +169,9 @@ set-font: func [
 		SendMessage hWnd WM_SETFONT as-integer default-font 0
 		exit
 	]
-	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 	
-	hFont: as handle! either TYPE_OF(state) = TYPE_BLOCK [
-		handle: as red-handle! block/rs-head state
-		handle/value
-	][
-		make-font face font
-	]
+	hFont: get-font-handle font 0
+	if null? hFont [hFont: make-font face font]		;-- none yet, or only the unscaled one (GDI+ Draw's)
 	link-font-to-face face font
 	SendMessage hWnd WM_SETFONT as-integer hFont 0
 ]
@@ -191,8 +184,8 @@ get-font-handle-slot: func [
 		state [red-block!]
 		h	  [red-handle!]
 ][
-	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
-	if TYPE_OF(state) = TYPE_BLOCK [
+	state: get-font-state font
+	if state <> null [
 		h: (as red-handle! block/rs-head state) + idx
 		if TYPE_OF(h) = TYPE_HANDLE [return h]
 	]
@@ -231,7 +224,6 @@ delete-font: func [h [handle!]][DeleteObject h]
 free-font: func [
 	font [red-object!]
 	/local
-		state [red-block!]
 		h	  [red-handle!]
 		hFont [handle!]
 		h2	  [handle!]
@@ -246,7 +238,7 @@ free-font: func [
 		if h <> null [
 			this: as this! h/value
 			either h/extID >= 0 [
-				h/extID: externals/remove h/extID yes
+				externals/replace h/extID null			;-- released; the GC frees the record (a copied font may hold its ID)
 			][
 				COM_SAFE_RELEASE(obj this)
 			]
@@ -259,18 +251,14 @@ free-font: func [
 		hFont: get-font-handle font n
 		if hFont <> null [
 			assert hFont <> h2
-			DeleteObject hFont
 			h: get-font-handle-slot font n
-			h/extID: externals/remove h/extID no
+			externals/replace h/extID null				;-- DeleteObject (delete-font); the GC frees the record
 			h2: hFont
 			free?: yes
 		]
 		n: 2
 	]
-	if free? [
-		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
-		state/header: TYPE_NONE
-	]
+	if free? [drop-font-state font]
 ]
 
 update-font: func [

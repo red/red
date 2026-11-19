@@ -432,7 +432,13 @@ link-sub-to-parent: function ["Internal Use Only" face [object!] type [word!] ol
 		if found: find/same head parent face [remove found]
 	]
 	if object? new [
-		unless all [parent: in new 'parent block? get parent][
+		unless all [								;-- its own faces only: an empty list or another one's
+			parent: in new 'parent					;-- may be shared by `copy`
+			block? parent: get parent
+			not empty? head parent
+			object? f: first head parent
+			same? new get in f type
+		][
 			new/parent: make block! 4
 		]
 		unless find/same head new/parent face [
@@ -441,10 +447,10 @@ link-sub-to-parent: function ["Internal Use Only" face [object!] type [word!] ol
 	]
 ]
 
-update-font-faces: function ["Internal Use Only" parent [block! none!]][
-	if block? parent [
+update-font-faces: function ["Internal Use Only" font [object!]][
+	if block? parent: font/parent [
 		foreach f head parent [
-			if f/state [
+			if all [f/state same? f/font font][			;-- not another font's face (list shared by `copy`)
 				system/reactivity/check/only f 'font
 				f/state/2: f/state/2 or 00080000h		;-- (1 << ((index? in f 'font) - 1))
 				if block? f/draw [						;-- force a redraw in case the font in draw block
@@ -605,7 +611,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 
 			if all [block? state handle? state/1][ 
 				system/view/platform/update-font self (index? word) - 1
-				update-font-faces parent
+				update-font-faces self
 			]
 		]
 	]
@@ -617,7 +623,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 			not find [remove clear take] action
 		][
 			system/view/platform/update-font self (index? word) - 1
-			update-font-faces parent
+			update-font-faces self
 		]
 	]	
 ]
@@ -645,6 +651,7 @@ para!: object [
 			block? parent
 		][
 			foreach f head parent [
+				unless same? f/para self [continue]			;-- another para's face (list shared by `copy`)
 				system/reactivity/check/only f 'para
 				system/view/platform/update-para f (index? word) - 1 ;-- sets f/state flag too
 				if all [f/state f/state/1][show f]

@@ -302,7 +302,7 @@ free-pango-attrs: func [
 
 mark-font: func [hFont [handle!]][]
 
-delete-font: func [h [handle!]][pango_attr_list_unref h]
+delete-font: func [h [handle!]][if h <> null [pango_attr_list_unref h]]	;-- null: already released by free-font
 
 make-font: func [
 	face		[red-object!]
@@ -310,7 +310,6 @@ make-font: func [
 	return:		[handle!]
 	/local
 		attrs	[handle!]
-		values	[red-value!]
 		blk		[red-block!]
 		h		[red-handle!]
 ][
@@ -318,10 +317,9 @@ make-font: func [
 		return null
 	]
 	attrs: create-pango-attrs face font
-	values: object/get-values font
-	blk: as red-block! values + FONT_OBJ_STATE
-	either TYPE_OF(blk) <> TYPE_BLOCK [
-		block/make-at blk 2
+	blk: get-font-state font
+	either null? blk [
+		blk: make-font-state font 2
 		h: handle/make-in blk as-integer attrs handle/CLASS_FONT
 		none/make-in blk
 	][
@@ -341,8 +339,8 @@ get-font-handle-slot: func [
 		state [red-block!]
 		h	  [red-handle!]
 ][
-	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
-	if TYPE_OF(state) = TYPE_BLOCK [
+	state: get-font-state font
+	if state <> null [
 		h: (as red-handle! block/rs-head state) + idx
 		if TYPE_OF(h) = TYPE_HANDLE [return h]
 	]
@@ -377,17 +375,12 @@ get-font: func [
 free-font: func [
 	font		[red-object!]
 	/local
-		state	[red-block!]
 		h		[red-handle!]
-		hFont	[handle!]
 ][
 	h: get-font-handle-slot font 0
 	if h <> null [
-		hFont: as handle! h/value
-		pango_attr_list_unref hFont
-		h/extID: externals/remove h/extID no
-		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
-		state/header: TYPE_NONE
+		externals/replace h/extID null				;-- unref (delete-font); the GC frees the record (a copied font may hold its ID)
+		drop-font-state font
 	]
 ]
 

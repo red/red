@@ -106,9 +106,9 @@ make-font: func [
 		hFont <> null
 	]
 
-	blk: as red-block! values + FONT_OBJ_STATE
-	either TYPE_OF(blk) <> TYPE_BLOCK [
-		block/make-at blk 2
+	blk: get-font-state font
+	either null? blk [
+		blk: make-font-state font 1
 		handle/make-in blk as-integer hFont handle/CLASS_FONT
 	][
 		int: as red-integer! block/rs-head blk
@@ -128,8 +128,8 @@ get-font-handle: func [
 		state  [red-block!]
 		int	   [red-integer!]
 ][
-	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
-	if TYPE_OF(state) = TYPE_BLOCK [
+	state: get-font-state font
+	if state <> null [
 		int: as red-integer! block/rs-head state
 		if TYPE_OF(int) = TYPE_HANDLE [
 			return as handle! int/value
@@ -155,14 +155,10 @@ get-font: func [
 free-font: func [
 	font [red-object!]
 	/local
-		state [red-block!]
 		hFont [handle!]
 ][
 	hFont: get-font-handle font 0
-	if hFont <> null [
-		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
-		state/header: TYPE_NONE
-	]
+	if hFont <> null [drop-font-state font]
 ]
 
 update-font: func [

@@ -2289,9 +2289,9 @@ create-text-format: func [
 	either TYPE_OF(font) = TYPE_OBJECT [
 		save?: yes
 		values: object/get-values font
-		blk: as red-block! values + FONT_OBJ_STATE
-		if TYPE_OF(blk) <> TYPE_BLOCK [
-			block/make-at blk 3
+		blk: get-font-state font
+		if null? blk [
+			blk: make-font-state font 3
 			loop 3 [none/make-in blk]
 		]
 
