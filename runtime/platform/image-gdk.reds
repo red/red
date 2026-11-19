@@ -51,6 +51,10 @@ OS-image: context [
 				height		[integer!]
 				return:		[handle!]
 			]
+			gdk_pixbuf_fill: "gdk_pixbuf_fill" [
+				pixbuf 		[handle!]
+				pixel 		[integer!]
+			]
 			gdk_pixbuf_new_subpixbuf: "gdk_pixbuf_new_subpixbuf" [
 				pixbuf 		[handle!]
 				x			[integer!]
@@ -469,9 +473,13 @@ OS-image: context [
 			;-- bails out on it and leaves the previous cairo source in place, so an
 			;-- empty bitmap would paint with whatever was set before.
 			;-- Hand out a 1x1 transparent placeholder so no NULL ever escapes.
+			;-- gdk_pixbuf_new() leaves the pixels uninitialized, so fill it with
+			;-- an all-zero (fully transparent) pixel, else the placeholder would
+			;-- paint with arbitrary garbage when scaled to the full face.
 			;-- The pixels are deliberately NOT copied back: the image buffer is
 			;-- zero-sized, so revert() would write past its end.
 			pixbuf: gdk_pixbuf_new 0 yes 8 1 1
+			gdk_pixbuf_fill pixbuf 0
 		][
 			pixbuf: gdk_pixbuf_new 0 yes 8 w h
 			buf: gdk_pixbuf_get_pixels pixbuf
