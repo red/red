@@ -101,11 +101,12 @@ function test_review_has_issues() {
         [ "$verdict" = "true" ] && return 0 || return 1
     fi
 
+    # Strong signals: an actual finding entry (a prioritised list item or
+    # bracketed tag). Codex renders findings this way, so these are trusted
+    # ahead of any prose.
     local issue_patterns=(
         '^[[:space:]]*-[[:space:]]*\[(P[0-9]|S[0-9]|critical|high|medium|low|bug|security|performance|correctness)\]'
         '^[[:space:]]*\[(P[0-9]|S[0-9]|critical|high|medium|low|bug|security|performance|correctness)\]'
-        '^[[:space:]]*(critical|high|medium|low|warning|error|bug|security|correctness|performance)[[:space:]]*:'
-        '^[[:space:]]*(finding|issue)[[:space:]]+[0-9]+[[:space:]]*:'
     )
     local pattern
     for pattern in "${issue_patterns[@]}"; do
@@ -136,6 +137,19 @@ function test_review_has_issues() {
        printf '%s\n' "$text" | grep -Eiq 'does not introduce (any|an|a)[[:space:]]+((evident|obvious|functional|actionable|correctness)[[:space:]]+)*(regressions?|issues?|bugs?)'; then
         return 1
     fi
+
+    # Weak signals, checked last: bare `Correctness:` / `Finding 1:` prose. Codex
+    # writes section headings and summary prose in this shape even for a clean
+    # review, so a match only counts when no clean statement above ruled it out.
+    local weak_issue_patterns=(
+        '^[[:space:]]*(critical|high|medium|low|warning|error|bug|security|correctness|performance)[[:space:]]*:'
+        '^[[:space:]]*(finding|issue)[[:space:]]+[0-9]+[[:space:]]*:'
+    )
+    for pattern in "${weak_issue_patterns[@]}"; do
+        if printf '%s\n' "$text" | grep -Eqim1 "$pattern"; then
+            return 0
+        fi
+    done
 
     return 1
 }
@@ -279,16 +293,35 @@ else
     range_args=(--base "$base_branch")
 fi
 
+# A force-push makes the base commit unreachable from the new tip, so codex's
+# --base mode falls back to the merge base and can hide content the force-push
+# discarded (the report would still be labelled before..after). Point the
+# reviewer at the explicit range in that case.
+review_prompt_args=()
+if [ "$single_commit_mode" -eq 0 ] && test_git_commit "$base_sha" && \
+   ! git merge-base --is-ancestor "$base_sha" "$head_sha" 2>/dev/null; then
+    log "Force-push detected: $base_sha is not an ancestor of $head_sha; reviewing the explicit diff."
+    review_prompt_args=("Review exactly the changes introduced by this push. Run: git diff $base_sha $head_sha and base the review on that diff. The push rewrote history (the previous tip is not an ancestor of HEAD), so a merge-base diff would hide changes that the force-push discarded.")
+fi
+
+# Drop any previous report: a reused output directory (local runs without
+# RUNNER_TEMP) would otherwise let a failed or timed-out run publish stale
+# findings under the current commit.
+rm -f "$last_message_output_path" 2>/dev/null || true
+
 # Enforce the review deadline here: a runner-imposed timeout is a hard
 # cancellation that continue-on-error cannot suppress, so wrap the reviewer in
 # `timeout` and always exit 0. --kill-after upgrades TERM to SIGKILL 60s later
 # so the step ends even if it ignores SIGTERM: the step is guaranteed to finish
-# within the deadline + 60s.
+# within the deadline + 60s. --ephemeral keeps sessions out of CODEX_HOME, so
+# repeated reviews do not accumulate state on the self-hosted runner.
 review_timeout_seconds="${REVIEW_TIMEOUT_SECONDS:-3300}"
 log "Running codex review for $range_label (deadline: ${review_timeout_seconds}s)."
 timeout --kill-after=60 "$review_timeout_seconds" "$review_bin" exec review \
+    --ephemeral \
     ${effort_args[@]+"${effort_args[@]}"} ${range_args[@]+"${range_args[@]}"} \
     -o "$last_message_output_path" \
+    ${review_prompt_args[@]+"${review_prompt_args[@]}"} \
     >"$transcript_output_path" 2>&1
 review_exit_code=$?
 log "codex finished with exit code $review_exit_code; any failure is advisory and ignored."
