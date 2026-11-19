@@ -1,0 +1,43 @@
+# PROBE ONLY - not wired into any workflow yet.
+#
+# Same 32-bit Red/View (GTK3 + Xvfb) environment as CI/Linux-gtk/Dockerfile,
+# but on Debian 12 (bookworm) i386 instead of Ubuntu 18.04 (bionic).
+#
+# Note: bookworm ships OpenSSL 3 (libcrypto.so.3) and has no libssl1.1.
+# That is fine here - on x86 Linux the runtime hashes through the kernel
+# AF_ALG interface (see runtime/crypto.reds) and never dlopens libcrypto.
+FROM alpine:3.20 AS rebol-fetch
+
+RUN set -eux; \
+    for attempt in 1 2 3; do \
+        if wget -q -O /rebol https://static.red-lang.org/tmp/rebol; then break; fi; \
+        echo "rebol download failed (attempt $attempt), retrying..."; \
+        sleep 3; \
+    done; \
+    test -s /rebol; \
+    chmod +x /rebol
+
+FROM i386/debian:12-slim
+
+ENV DISPLAY=:0 \
+    DEBIAN_FRONTEND=noninteractive
+
+RUN set -eux; \
+    ok=0; \
+    for attempt in 1 2 3; do \
+        if apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 \
+                   -o APT::Update::Error-Mode=any update \
+        && apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -y install \
+                   ca-certificates libcurl4 libgtk-3-0 xvfb; then \
+            ok=1; break; \
+        fi; \
+        echo "apt failed (attempt $attempt), retrying..."; \
+        sleep 5; \
+    done; \
+    test "$ok" = 1; \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=rebol-fetch /rebol /bin/rebol
+COPY entrypoint.sh /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

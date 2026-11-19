@@ -6,6 +6,7 @@ jobs:
   Linux-Red-Tests:
     runs-on: ubuntu-24.04
     name: Run Linux-x86 Tests
+    timeout-minutes: 45
     steps:
     - name: Checkout
       uses: actions/checkout@v6
@@ -24,6 +25,7 @@ jobs:
   Linux-RS-Tests:
     runs-on: ubuntu-24.04
     name: Run Linux-RS Tests
+    timeout-minutes: 45
     steps:
     - name: Checkout
       uses: actions/checkout@v6

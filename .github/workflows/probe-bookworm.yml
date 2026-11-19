@@ -1,0 +1,85 @@
+name: Probe Debian 12
+
+# Probe: builds the bookworm variants of both CI images and runs the real test
+# suites inside them. Deliberately NOT triggered by ordinary pushes - only when
+# the probe files themselves change, or manually from the Actions tab.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'CI/Linux-32/Dockerfile.bookworm'
+      - 'CI/Linux-gtk/Dockerfile.bookworm'
+      - '.github/workflows/probe-bookworm.yml'
+
+jobs:
+  probe-rs:
+    runs-on: ubuntu-24.04
+    name: Probe Red/System on bookworm i386
+    timeout-minutes: 45
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Set up Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build image
+      uses: docker/build-push-action@v6
+      with:
+        context: CI/Linux-32
+        file: Dockerfile.bookworm
+        load: true
+        tags: probe-rs:bookworm
+
+    - name: Inspect runtime
+      run: |
+        docker run --rm probe-rs:bookworm "cat /etc/os-release | head -2; ldd --version | head -1"
+
+    - name: Run Red/System tests
+      run: |
+        docker run --rm \
+          -v "$GITHUB_WORKSPACE:/github/workspace" \
+          -w /github/workspace \
+          probe-rs:bookworm "rebol -qws system/tests/run-all.r --batch"
+
+    - uses: actions/upload-artifact@v7
+      if: failure()
+      with:
+        name: probe-rs-log
+        path: quick-test/quick-test.log
+
+  probe-view:
+    runs-on: ubuntu-24.04
+    name: Probe Red/View on bookworm i386
+    timeout-minutes: 45
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Set up Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build image
+      uses: docker/build-push-action@v6
+      with:
+        context: CI/Linux-gtk
+        file: Dockerfile.bookworm
+        load: true
+        tags: probe-view:bookworm
+
+    - name: Inspect runtime
+      run: |
+        docker run --rm probe-view:bookworm "cat /etc/os-release | head -2; dpkg -l libgtk-3-0 xvfb | tail -3"
+
+    - name: Run Red/View tests
+      run: |
+        docker run --rm \
+          -v "$GITHUB_WORKSPACE:/github/workspace" \
+          -w /github/workspace \
+          probe-view:bookworm "/sbin/start-stop-daemon --start --quiet --background --exec /usr/bin/Xvfb && sleep 3 && rebol -qws tests/run-all.r --batch"
+
+    - uses: actions/upload-artifact@v7
+      if: failure()
+      with:
+        name: probe-view-log
+        path: quick-test/quick-test.log

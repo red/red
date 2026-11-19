@@ -1,12 +1,42 @@
 name: Run on x86
-description: Run a shell command in an Ubuntu 18.04 x86 container
+description: Run a shell command in an Ubuntu 18.04 i386 container
+
 inputs:
   command:
     description: 'Command to run'
     required: true
     default: 'lsb_release -a'
+
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  args:
-    - ${{ inputs.command }}
+  using: 'composite'
+  steps:
+    - name: Set up Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # The image is only rebuilt when its Dockerfile changes. On every other run
+    # the layers are restored from the GitHub Actions cache, so building costs
+    # a couple of seconds and needs no network access.
+    - name: Build image
+      uses: docker/build-push-action@v6
+      with:
+        context: ${{ github.action_path }}
+        load: true
+        tags: ci-linux-32:local
+        cache-from: type=gha,scope=ci-linux-32
+        cache-to: type=gha,scope=ci-linux-32
+
+    - name: Run command
+      shell: bash
+      env:
+        CI_IMAGE: ci-linux-32:local
+        CI_COMMAND: ${{ inputs.command }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$RUNNER_TEMP/ci-home"
+        docker run --rm \
+          -v "$GITHUB_WORKSPACE:/github/workspace" \
+          -v "$RUNNER_TEMP/ci-home:/github/home" \
+          -w /github/workspace \
+          -e HOME=/github/home \
+          -e CI=true \
+          "$CI_IMAGE" "$CI_COMMAND"
