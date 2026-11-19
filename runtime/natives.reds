@@ -2919,7 +2919,7 @@ natives: context [
 			src: binary/rs-head arg
 			srclen: binary/rs-length? arg
 		]
-		buflen: srclen + 32
+		buflen: srclen >> 11 + srclen + 32			;-- above deflate's stored blocks overhead
 
 		sym: symbol/resolve method/symbol
 		loop 2 [	;-- try again in case fails the first time

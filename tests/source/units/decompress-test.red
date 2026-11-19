@@ -94,6 +94,19 @@ Red [
 		--assert data = to string! decompress decompress compress compress data 'zlib 'zlib 'zlib 'zlib
 		--assert data = to string! decompress decompress decompress compress compress compress data 'zlib 'zlib 'zlib 'zlib 'zlib 'zlib
 
+	--test-- "stored, fixed and dynamic blocks"
+		random/seed 1
+		dc-text: make binary! 120000
+		loop 20000 [append dc-text random/only ["red " "blue " "green " "draw " "view " "parse " "series " "block "]]
+		dc-rnd: make binary! 70000
+		loop 70000 [append dc-rnd random 255]
+		foreach dc-data reduce [#{} #{41} dc-text dc-rnd rejoin [dc-text dc-rnd dc-text]][
+			foreach dc-m [deflate zlib gzip][--assert dc-data = decompress compress dc-data dc-m dc-m]
+		]
+		--assert 20000 > length? compress dc-text 'deflate		;-- long matches
+		--assert 2 = (3 and shift first compress dc-text 'deflate 1)	;-- first block: dynamic codes
+		--assert 70100 > length? compress dc-rnd 'deflate		;-- stored blocks
+
 	--test-- "no padding byte after a byte-aligned end"
 		dc-data: #{FFFEFDFCFBFA}
 		--assert #{FBFFEFEF9FDFBF00} = compress dc-data 'deflate
