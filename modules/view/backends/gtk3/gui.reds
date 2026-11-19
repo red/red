@@ -3029,6 +3029,7 @@ OS-destroy-view: func [
 		values	[red-value!]
 		obj		[red-object!]
 		flags	[integer!]
+		sym		[integer!]
 ][
 	handle: face-handle? face
 	if null? handle [exit]
@@ -3042,8 +3043,9 @@ OS-destroy-view: func [
 	obj: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 
+	sym: get-widget-symbol handle
 	free-handles handle no
-	remove-tab-page handle
+	if sym <> window [remove-tab-page handle]			;-- free-handles destroys a window
 ]
 
 OS-update-facet: func [
