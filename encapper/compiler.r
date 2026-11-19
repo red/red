@@ -593,7 +593,7 @@ red: context [
 					attempt [idx: get-word-index/with name ctx]
 				][
 					repend blk [
-						pick [get-word/push-local word/push-local] get-word? original
+						pick [word/get-local word/push-local] get-word? original	;-- a get-word step: its value
 						either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
 						idx
 					]

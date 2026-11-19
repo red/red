@@ -422,4 +422,55 @@ Red [
 
 ===end-group===
 
+===start-group=== "get-word steps on context words"
+
+	gws-b: [x y z]
+	gws-o: context [
+		idx: 2
+		key: 'b
+		blk: [[a] [b] [c]]
+		mp:  make map! [a 1 b 2]
+		str: "abc"
+		step:	   func [][blk/:idx]
+		deep:	   func [][blk/:idx/1]
+		global:	   func [][gws-b/:idx]
+		in-map:	   func [][mp/:key]
+		in-string: func [][str/:idx]
+		set-step:  func [v][blk/:idx: v]
+		set-map:   func [v][mp/:key: v]
+	]
+	gws-d: make gws-o [idx: 3]
+
+	--test-- "getword-step-1"
+		--assert [b] = gws-o/step
+		--assert 'b = gws-o/deep
+		--assert 'y = gws-o/global
+
+	--test-- "getword-step-2"
+		--assert 2 = gws-o/in-map
+		--assert #"b" = gws-o/in-string
+
+	--test-- "getword-step-3"
+		--assert [q] = gws-o/set-step [q]
+		--assert [[a] [q] [c]] = gws-o/blk
+		--assert 9 = gws-o/set-map 9
+		--assert 9 = gws-o/mp/b
+		--assert 2 = length? gws-o/mp
+
+	--test-- "getword-step-4"						;-- copy made at compile time
+		--assert [c] = gws-d/step
+
+	--test-- "getword-step-5"						;-- in a context's body
+		context [
+			idx: 2
+			blk: [x y z]
+			--assert 'y = blk/:idx
+			blk/:idx: 'w
+			--assert [x w z] = blk
+		]
+
+	unset [gws-b gws-o gws-d]
+
+===end-group===
+
 ~~~end-file~~~
