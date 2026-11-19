@@ -2875,6 +2875,7 @@ GDK-draw-image: func [
 		saved	[cairo_matrix_t! value]
 ][
 	if any [
+		null? image
 		width = 0
 		height = 0
 	][exit]

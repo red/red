@@ -312,8 +312,17 @@ image: context [
 		dst		[red-value!]
 		format	[integer!]
 		return: [red-value!]
+		/local
+			w	[integer!]
+			h	[integer!]
 	][
-		if zero? image/size [fire [TO_ERROR(access bad-media)]]
+		;-- no image format can store a zero width or height. size packs both
+		;-- fields into one integer, so `zero? image/size` only caught the 0x0
+		;-- case and let 0xN / Nx0 through to the backend, where GDI+ refuses
+		;-- them and gdk-pixbuf would be handed a NULL pixbuf.
+		w: IMAGE_WIDTH(image/size)
+		h: IMAGE_HEIGHT(image/size)
+		if any [zero? w zero? h][fire [TO_ERROR(access bad-media)]]
 		if TYPE_OF(dst) = TYPE_NONE [dst: stack/push*]
 		OS-image/encode image dst format
 	]

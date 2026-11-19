@@ -462,9 +462,21 @@ OS-image: context [
 		node: as img-node! (as series! image/node/value) + 1
 		w: IMAGE_WIDTH(image/size)
 		h: IMAGE_HEIGHT(image/size)
-		pixbuf: gdk_pixbuf_new 0 yes 8 w h
-		buf: gdk_pixbuf_get_pixels pixbuf
-		revert as byte-ptr! node/buffer w * 4 buf gdk_pixbuf_get_rowstride pixbuf w h 4
+		either any [w <= 0 h <= 0][
+			;-- gdk-pixbuf has no zero-sized pixbuf: gdk_pixbuf_new() asserts and
+			;-- returns NULL, and that NULL then leaks into every GTK call as a
+			;-- stream of "GDK_IS_PIXBUF" criticals. Worse, gdk_cairo_set_source_pixbuf()
+			;-- bails out on it and leaves the previous cairo source in place, so an
+			;-- empty bitmap would paint with whatever was set before.
+			;-- Hand out a 1x1 transparent placeholder so no NULL ever escapes.
+			;-- The pixels are deliberately NOT copied back: the image buffer is
+			;-- zero-sized, so revert() would write past its end.
+			pixbuf: gdk_pixbuf_new 0 yes 8 1 1
+		][
+			pixbuf: gdk_pixbuf_new 0 yes 8 w h
+			buf: gdk_pixbuf_get_pixels pixbuf
+			revert as byte-ptr! node/buffer w * 4 buf gdk_pixbuf_get_rowstride pixbuf w h 4
+		]
 		pixbuf
 	]
 
