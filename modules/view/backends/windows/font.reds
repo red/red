@@ -147,7 +147,10 @@ OS-make-font: func [
 		]
 	][
 		h: as red-handle! block/rs-head blk
-		either scaling? [OS-make-font face font no][h: h + 2]
+		value: as red-value! h + 2						;-- the unscaled font
+		either scaling? [
+			if TYPE_OF(value) <> TYPE_HANDLE [OS-make-font face font no]	;-- kept when already made (GDI+ Draw)
+		][h: h + 2]
 		h: handle/make-at as red-value! h as-integer hFont handle/CLASS_FONT
 		if hFont <> null [h/extID: externals/store hFont font-ext-type]
 	]

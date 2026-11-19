@@ -719,7 +719,7 @@ update-base-text: func [
 		color: as red-tuple! values + FONT_OBJ_COLOR
 
 		hFont: as-integer get-font-handle font 0
-		if zero? hFont [hFont: as-integer make-font get-face-obj hWnd font]	;-- none yet, or only the unscaled one (GDI+ Draw's)
+		if zero? hFont [hFont: as-integer make-font null font]	;-- none yet, or only the unscaled one (GDI+ Draw's); not linked: hWnd can be the desktop's (measuring)
 		if TYPE_OF(color) = TYPE_TUPLE [
 			clr: get-tuple-color color
 			default-color: no
