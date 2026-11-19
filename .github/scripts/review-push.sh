@@ -101,12 +101,15 @@ function test_review_has_issues() {
         [ "$verdict" = "true" ] && return 0 || return 1
     fi
 
-    # Strong signals: an actual finding entry (a prioritised list item or
-    # bracketed tag). Codex renders findings this way, so these are trusted
-    # ahead of any prose.
+    # Strong signals: an actual finding entry — a prioritised list item, a
+    # bracketed tag, or a numbered "Finding 1:" block. Codex renders findings in
+    # these shapes, so they are trusted ahead of any clean prose: a scoped
+    # sentence such as "the patch does not introduce regressions in fast-forward
+    # pushes" must not swallow a real finding.
     local issue_patterns=(
         '^[[:space:]]*-[[:space:]]*\[(P[0-9]|S[0-9]|critical|high|medium|low|bug|security|performance|correctness)\]'
         '^[[:space:]]*\[(P[0-9]|S[0-9]|critical|high|medium|low|bug|security|performance|correctness)\]'
+        '^[[:space:]]*(finding|issue)[[:space:]]+[0-9]+[[:space:]]*:'
     )
     local pattern
     for pattern in "${issue_patterns[@]}"; do
@@ -138,12 +141,11 @@ function test_review_has_issues() {
         return 1
     fi
 
-    # Weak signals, checked last: bare `Correctness:` / `Finding 1:` prose. Codex
-    # writes section headings and summary prose in this shape even for a clean
-    # review, so a match only counts when no clean statement above ruled it out.
+    # Weak signal, checked last: a bare `Correctness:` / `Security:` prose
+    # heading. Codex writes section headings in this shape even for a clean
+    # review, so it only counts when no clean statement above ruled it out.
     local weak_issue_patterns=(
         '^[[:space:]]*(critical|high|medium|low|warning|error|bug|security|correctness|performance)[[:space:]]*:'
-        '^[[:space:]]*(finding|issue)[[:space:]]+[0-9]+[[:space:]]*:'
     )
     for pattern in "${weak_issue_patterns[@]}"; do
         if printf '%s\n' "$text" | grep -Eqim1 "$pattern"; then
@@ -261,9 +263,22 @@ cat >>"$agents_path" <<'GUIDANCE'
 - Use `AI_REVIEW_HAS_ISSUES: true` only when the review contains concrete, actionable findings with file/line evidence. Use `false` for clean reviews, uncertainty, summaries, and non-actionable observations.
 GUIDANCE
 
+# A force-push leaves the previous tip unreachable from the new one, so codex's
+# --base mode falls back to the merge base and can hide content the force-push
+# discarded (the report would still be labelled before..after). codex rejects
+# --base together with a custom prompt, so this path passes the prompt only.
+force_push=0
+if [ "$single_commit_mode" -eq 0 ] && test_git_commit "$base_sha" && \
+   ! git merge-base --is-ancestor "$base_sha" "$head_sha" 2>/dev/null; then
+    force_push=1
+    log "Force-push detected: $base_sha is not an ancestor of $head_sha."
+fi
+
 base_branch=""
 if [ "$single_commit_mode" -eq 1 ]; then
     : # Reviewing HEAD commit only; codex --commit handles the range.
+elif [ "$force_push" -eq 1 ]; then
+    : # No base branch: the review prompt carries the explicit before..after range.
 else
     base_branch="review-base-$short_head"
     git branch --force "$base_branch" "$base_sha" >/dev/null 2>&1 || {
@@ -285,23 +300,16 @@ if [ -n "${REVIEW_EFFORT:-}" ]; then
     effort_args=(-c "model_reasoning_effort=$REVIEW_EFFORT")
 fi
 
-# codex review takes either --base <branch> or --commit <sha>.
+# codex review takes exactly one target: --commit <sha>, --base <branch>, or a
+# custom prompt. --base and the positional prompt are mutually exclusive.
 range_args=()
+review_prompt_args=()
 if [ "$single_commit_mode" -eq 1 ]; then
     range_args=(--commit "$head_sha")
+elif [ "$force_push" -eq 1 ]; then
+    review_prompt_args=("Review exactly the changes introduced by this push. Run: git diff $base_sha $head_sha and base the review on that diff. The push rewrote history (the previous tip is not an ancestor of HEAD), so a merge-base diff would hide changes that the force-push discarded.")
 else
     range_args=(--base "$base_branch")
-fi
-
-# A force-push makes the base commit unreachable from the new tip, so codex's
-# --base mode falls back to the merge base and can hide content the force-push
-# discarded (the report would still be labelled before..after). Point the
-# reviewer at the explicit range in that case.
-review_prompt_args=()
-if [ "$single_commit_mode" -eq 0 ] && test_git_commit "$base_sha" && \
-   ! git merge-base --is-ancestor "$base_sha" "$head_sha" 2>/dev/null; then
-    log "Force-push detected: $base_sha is not an ancestor of $head_sha; reviewing the explicit diff."
-    review_prompt_args=("Review exactly the changes introduced by this push. Run: git diff $base_sha $head_sha and base the review on that diff. The push rewrote history (the previous tip is not an ancestor of HEAD), so a merge-base diff would hide changes that the force-push discarded.")
 fi
 
 # Drop any previous report: a reused output directory (local runs without
