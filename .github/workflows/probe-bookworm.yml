@@ -27,7 +27,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: CI/Linux-32
-        file: Dockerfile.bookworm
+        file: CI/Linux-32/Dockerfile.bookworm
         load: true
         tags: probe-rs:bookworm
 
@@ -63,7 +63,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: CI/Linux-gtk
-        file: Dockerfile.bookworm
+        file: CI/Linux-gtk/Dockerfile.bookworm
         load: true
         tags: probe-view:bookworm
 
