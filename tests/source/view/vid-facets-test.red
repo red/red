@@ -54,6 +54,23 @@ system/view/VID/GUI-rules/active?: no
 		p: layout [text "x" bold italic]
 		--assert not none? find to-block p/pane/1/font/style 'bold
 		--assert not none? find to-block p/pane/1/font/style 'italic
+	--test-- "font-weight integer"
+		p: layout [text "x" font-weight 350]      --assert p/pane/1/font/weight = 350
+	--test-- "font-weight names"
+		p: layout [text "x" font-weight Light]    --assert p/pane/1/font/weight = 300
+		p: layout [text "x" font-weight regular]  --assert p/pane/1/font/weight = 400
+		p: layout [text "x" font-weight Medium]   --assert p/pane/1/font/weight = 500
+		p: layout [text "x" font-weight SemiBold] --assert p/pane/1/font/weight = 600
+		p: layout [text "x" font-weight Bold]     --assert p/pane/1/font/weight = 700
+	--test-- "font-weight bold is not the bold style"
+		p: layout [text "x" font-weight bold]     --assert none? p/pane/1/font/style
+	--test-- "font-weight from a word"
+		w: 600
+		p: layout [text "x" font-weight w]        --assert p/pane/1/font/weight = 600
+	--test-- "font-weight then another keyword"
+		p: layout [text "x" font-weight light bold]
+		--assert p/pane/1/font/weight = 300
+		--assert not none? find to-block p/pane/1/font/style 'bold
 ===end-group===
 
 ===start-group=== "alignment & paragraph"

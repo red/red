@@ -79,6 +79,8 @@ system/view/VID: context [
 		size	system/view/fonts/size
 	]
 	
+	font-weights: [light 300 regular 400 medium 500 semibold 600 bold 700]	;-- names `font-weight` accepts
+	
 	opts-proto: object [
 		type: offset: size: size-x: text: color: enabled?: visible?: selected: image: 
 		rate: font: flags: options: para: data: extra: actors: draw: now?: init: none
@@ -337,6 +339,11 @@ system/view/VID: context [
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec)
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec)
 				| 'font-color (add-flag opts 'font 'color pre-load fetch-argument color! spec)
+				| 'font-weight (
+					weight: select/skip font-weights spec/2 2
+					either weight [spec: next spec][weight: fetch-argument integer! spec]
+					add-flag opts 'font 'weight weight
+				)
 				| 'options	  (add-option opts fetch-argument block! spec)
 				| 'loose	  (add-option opts compose [drag-on: 'down] add-bounds opts back spec)
 				| 'all-over   (set-flag opts 'all-over)
