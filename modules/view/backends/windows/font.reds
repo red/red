@@ -20,6 +20,60 @@ make-font: func [
 	OS-make-font face font yes
 ]
 
+get-gdi-face: func [									;-- GDI face of the font DirectWrite matches in a family for a weight
+	name	[c-string!]									;-- family name
+	weight	[int-ptr!]									;-- weight asked, set to the face's weight
+	italic? [logic!]
+	lf		[tagLOGFONT]								;-- filled with the face found
+	return: [c-string!]									;-- face name, `name` if DirectWrite does not know the family
+	/local
+		factory [IDWriteFactory]
+		coll	[IDWriteFontCollection]
+		family	[IDWriteFontFamily]
+		interop [IDWriteGdiInterop]
+		unk		[IUnknown]
+		ptr		[com-ptr! value]
+		list	[this!]
+		this	[this!]
+		dwfont	[this!]
+		obj		[this!]
+		idx		[integer!]
+		found	[integer!]
+		style	[integer!]
+][
+	factory: as IDWriteFactory dwrite-factory/vtbl
+	if 0 <> factory/GetSystemFontCollection dwrite-factory :ptr no [return name]
+	list: ptr/value
+	coll: as IDWriteFontCollection list/vtbl
+	idx: 0
+	found: 0
+	style: either italic? [2][0]						;-- DWRITE_FONT_STYLE_ITALIC: 2
+	if all [
+		zero? coll/FindFamilyName list name :idx :found
+		found <> 0
+		zero? coll/GetFontFamily list idx :ptr
+	][
+		this: ptr/value
+		family: as IDWriteFontFamily this/vtbl
+		if zero? family/GetFirstMatchingFont this weight/value 5 style :ptr [	;-- DWRITE_FONT_STRETCH_NORMAL: 5
+			dwfont: ptr/value
+			if zero? factory/GetGdiInterop dwrite-factory :ptr [
+				obj: ptr/value
+				interop: as IDWriteGdiInterop obj/vtbl
+				if zero? interop/ConvertFontToLOGFONT obj dwfont lf :found [
+					name: as c-string! :lf/lfFaceName
+					weight/value: lf/lfWeight
+				]
+				COM_SAFE_RELEASE(unk obj)
+			]
+			COM_SAFE_RELEASE(unk dwfont)
+		]
+		COM_SAFE_RELEASE(unk this)
+	]
+	COM_SAFE_RELEASE(unk list)
+	name
+]
+
 OS-make-font: func [
 	face		[red-object!]
 	font		[red-object!]
@@ -45,6 +99,7 @@ OS-make-font: func [
 		under?	[logic!]
 		strike? [logic!]
 		hFont	[handle!]
+		lf		[tagLOGFONT value]
 ][
 	values: object/get-values font
 	
@@ -111,6 +166,11 @@ OS-make-font: func [
 			]
 			style: style + 1
 		]
+	]
+	len: get-font-weight font 0
+	if len > 0 [
+		weight: len
+		unless winxp? [name: get-gdi-face name :weight italic? lf]
 	]
 	
 	hFont: CreateFont
@@ -272,6 +332,7 @@ update-font: func [
 		FONT_OBJ_NAME
 		FONT_OBJ_SIZE
 		FONT_OBJ_STYLE
+		FONT_OBJ_WEIGHT
 		FONT_OBJ_ANGLE
 		FONT_OBJ_ANTI-ALIAS? [
 			free-font font
@@ -346,6 +407,7 @@ OS-request-font: func [
 				word/make-at _italic as red-value! style
 			]
 		]
+		set-font-weight font logfont/lfWeight
 	][
 		font/header: TYPE_NONE
 	]

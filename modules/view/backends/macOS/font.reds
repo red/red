@@ -10,6 +10,56 @@ Red/System [
 	}
 ]
 
+ns-font-weight: func [								;-- NSFontWeightTrait value of a weight from 100 to 900
+	weight	[integer!]
+	return: [float!]
+][
+	switch weight + 50 / 100 [
+		0 1 [-0.8]
+		2	[-0.6]
+		3	[-0.4]
+		4	[0.0]
+		5	[0.23]
+		6	[0.3]
+		7	[0.4]
+		8	[0.56]
+		default [0.62]
+	]
+]
+
+font-weight?: func [								;-- weight from 100 to 900 of an NSFont's face
+	nsfont	[integer!]
+	return: [integer!]
+	/local
+		traits	[int-ptr!]
+		num		[int-ptr!]
+		w		[float!]
+		d		[float!]
+		best	[float!]
+		weight	[integer!]
+		n		[integer!]
+][
+	traits: CTFontCopyTraits nsfont
+	num: CFDictionaryGetValue traits NSFontWeightTrait
+	w: 0.0
+	unless null? num [CFNumberGetValue num 6 as int-ptr! :w]	;-- kCFNumberFloat64Type
+	CFRelease as-integer traits
+	best: 9.0
+	weight: 400
+	n: 100
+	until [
+		d: (ns-font-weight n) - w
+		if d < 0.0 [d: 0.0 - d]
+		if d < best [
+			best: d
+			weight: n
+		]
+		n: n + 100
+		n > 900
+	]
+	weight
+]
+
 make-font: func [
 	face	[red-object!]
 	font	[red-object!]
@@ -29,6 +79,13 @@ make-font: func [
 		sym		[integer!]
 		name	[c-string!]
 		traits	[integer!]
+		weight	[integer!]
+		w		[float!]
+		w-num	[integer!]
+		t-num	[integer!]
+		dict	[integer!]
+		attrs	[integer!]
+		desc	[integer!]
 		manager [integer!]
 		method	[c-string!]
 		hFont	[handle!]
@@ -73,6 +130,8 @@ make-font: func [
 			style: style + 1
 		]
 	]
+	weight: get-font-weight font 0
+	if weight > 0 [traits: traits and NSItalicFontMask]	;-- the weight replaces `bold`
 
 	temp/x: size
 	str: as red-string! values + FONT_OBJ_NAME
@@ -104,6 +163,25 @@ make-font: func [
 			]
 		]
 		hFont <> null
+	]
+	if weight > 0 [										;-- the family's face closest to the weight
+		w: ns-font-weight weight
+		w-num: CFNumberCreate 0 6 as int-ptr! :w		;-- kCFNumberFloat64Type
+		t-num: CFNumberCreate 0 3 :traits				;-- kCFNumberSInt32Type, NSItalicFontMask = NSFontItalicTrait
+		dict: objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
+		dict: objc_msgSend [dict sel_getUid "initWithObjectsAndKeys:" w-num NSFontWeightTrait t-num NSFontSymbolicTrait 0]
+		sym: objc_msgSend [hFont sel_getUid "familyName"]
+		attrs: objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
+		attrs: objc_msgSend [attrs sel_getUid "initWithObjectsAndKeys:" sym NSFontFamilyAttribute dict NSFontTraitsAttribute 0]
+		desc: objc_msgSend [objc_getClass "NSFontDescriptor" sel_getUid "alloc"]
+		desc: objc_msgSend [desc sel_getUid "initWithFontAttributes:" attrs]
+		sym: objc_msgSend [objc_getClass "NSFont" sel_getUid "fontWithDescriptor:size:" desc temp/x]
+		if sym <> 0 [hFont: as handle! sym]
+		objc_msgSend [desc sel_getUid "release"]
+		objc_msgSend [attrs sel_getUid "release"]
+		objc_msgSend [dict sel_getUid "release"]
+		CFRelease w-num
+		CFRelease t-num
 	]
 
 	blk: get-font-state font
@@ -169,6 +247,7 @@ update-font: func [
 		FONT_OBJ_NAME
 		FONT_OBJ_SIZE
 		FONT_OBJ_STYLE
+		FONT_OBJ_WEIGHT
 		FONT_OBJ_ANGLE
 		FONT_OBJ_ANTI-ALIAS? [
 			free-font font

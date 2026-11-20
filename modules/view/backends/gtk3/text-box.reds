@@ -321,6 +321,11 @@ create-pango-attrs-no-color: func [
 				style: style + 1
 			]
 		]
+		len: get-gtk-weight font
+		if len > 0 [
+			attr: pango_attr_weight_new len
+			pango_attr_list_change list attr			;-- replaces `bold` weight
+		]
 	][
 		attr: pango_attr_family_new default-font-name
 		pango_attr_list_insert list attr

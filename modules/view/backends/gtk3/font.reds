@@ -50,6 +50,21 @@ create-default-attrs: func [
 	list
 ]
 
+get-gtk-weight: func [							;-- the font's weight as GTK3 CSS can set it: 100 to 900, by hundreds
+	font	[red-object!]							;-- (also used for Pango, so widgets are measured as drawn)
+	return: [integer!]								;-- 0 if the font has none
+	/local
+		w	[integer!]
+][
+	w: get-font-weight font 0
+	if w > 0 [
+		w: w + 50 / 100 * 100
+		if w < 100 [w: 100]
+		if w > 900 [w: 900]
+	]
+	w
+]
+
 ;-- create css styles
 ;-- `anti-alias` need to be set by cairo
 create-css: func [
@@ -159,6 +174,8 @@ create-css: func [
 			style: style + 1
 		]
 	]
+	len: get-gtk-weight font
+	if len > 0 [g_string_append_printf [css { font-weight: %d;} len]]
 	if any [underline? strike?][
 		g_string_append css either strike? [
 			" text-decoration-line: line-through;"
@@ -290,6 +307,11 @@ create-pango-attrs: func [
 			style: style + 1
 		]
 	]
+	len: get-gtk-weight font
+	if len > 0 [
+		attr: pango_attr_weight_new len
+		pango_attr_list_change list attr				;-- replaces `bold` weight
+	]
 	list
 ]
 
@@ -394,6 +416,7 @@ update-font: func [
 		FONT_OBJ_NAME
 		FONT_OBJ_SIZE
 		FONT_OBJ_STYLE
+		FONT_OBJ_WEIGHT
 		FONT_OBJ_ANGLE
 		FONT_OBJ_ANTI-ALIAS? [
 			if TYPE_OF(font) = TYPE_OBJECT [
@@ -642,6 +665,8 @@ create-pango-font: func [
 				style: style + 1
 			]
 		]
+		len: get-gtk-weight font
+		if len > 0 [pango_font_description_set_weight hFont len]
 	]
 	hFont
 ]

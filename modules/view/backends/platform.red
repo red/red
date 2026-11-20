@@ -106,6 +106,7 @@ system/view/platform: context [
 				FONT_OBJ_NAME
 				FONT_OBJ_SIZE
 				FONT_OBJ_STYLE
+				FONT_OBJ_WEIGHT
 				FONT_OBJ_ANGLE
 				FONT_OBJ_COLOR
 				FONT_OBJ_ANTI-ALIAS?
@@ -762,6 +763,27 @@ system/view/platform: context [
 				found: block/find parent as red-value! face null no no yes no null null no no no no
 				if TYPE_OF(found) = TYPE_NONE [block/rs-append parent as red-value! face]
 				parent/head: block/rs-length? parent
+			]
+
+			get-font-weight: func [								;-- the font's weight if it has one, else `weight`
+				font	[red-object!]
+				weight	[integer!]
+				return: [integer!]
+				/local
+					int [red-integer!]
+			][
+				int: as red-integer! (object/get-values font) + FONT_OBJ_WEIGHT
+				if any [TYPE_OF(int) <> TYPE_INTEGER int/value <= 0][return weight]
+				either int/value > 999 [999][int/value]			;-- 999: highest DirectWrite weight
+			]
+
+			set-font-weight: func [								;-- sets a weight that the font's `style` cannot give
+				font	[red-object!]
+				weight	[integer!]
+			][
+				if all [weight > 0 weight <> 400 weight <> 700][
+					integer/make-at (object/get-values font) + FONT_OBJ_WEIGHT weight
+				]
 			]
 
 			adjust-index: func [

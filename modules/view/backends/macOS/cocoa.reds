@@ -379,6 +379,11 @@ tagSIZE: alias struct! [
 			valuePtr	[int-ptr!]
 			return:		[logic!]
 		]
+		CFDictionaryGetValue: "CFDictionaryGetValue" [
+			dict		[int-ptr!]
+			key			[integer!]
+			return:		[int-ptr!]
+		]
 		CFRunLoopGetCurrent: "CFRunLoopGetCurrent" [
 			return:		[int-ptr!]
 		]
@@ -444,6 +449,10 @@ tagSIZE: alias struct! [
 		NSDefaultRunLoopMode: "NSDefaultRunLoopMode" [integer!]
 		NSModalPanelRunLoopMode: "NSModalPanelRunLoopMode" [integer!]
 		NSFontAttributeName: "NSFontAttributeName" [integer!]
+		NSFontFamilyAttribute: "NSFontFamilyAttribute" [integer!]
+		NSFontTraitsAttribute: "NSFontTraitsAttribute" [integer!]
+		NSFontWeightTrait: "NSFontWeightTrait" [integer!]
+		NSFontSymbolicTrait: "NSFontSymbolicTrait" [integer!]
 		NSParagraphStyleAttributeName: "NSParagraphStyleAttributeName" [integer!]
 		NSForegroundColorAttributeName: "NSForegroundColorAttributeName" [integer!]
 		NSBackgroundColorAttributeName: "NSBackgroundColorAttributeName" [integer!]
@@ -485,6 +494,10 @@ tagSIZE: alias struct! [
 			descent		[float32-ptr!]
 			leading		[float32-ptr!]
 			return:		[float!]
+		]
+		CTFontCopyTraits: "CTFontCopyTraits" [
+			font		[integer!]
+			return:		[int-ptr!]
 		]
 		CGRectContainsPoint: "CGRectContainsPoint" [
 			x			[float32!]

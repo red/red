@@ -1351,7 +1351,7 @@ IDWriteFactory: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	GetSystemFontCollection			[integer!]
+	GetSystemFontCollection			[function! [this [this!] collection [com-ptr!] update? [logic!] return: [integer!]]]
 	CreateCustomFontCollection		[integer!]
 	RegisterFontCollectionLoader	[integer!]
 	UnregisterFontCollectionLoader	[integer!]
@@ -1365,13 +1365,46 @@ IDWriteFactory: alias struct! [
 	UnregisterFontFileLoader		[integer!]
 	CreateTextFormat				[CreateTextFormat*]
 	CreateTypography				[integer!]
-	GetGdiInterop					[integer!]
+	GetGdiInterop					[function! [this [this!] interop [com-ptr!] return: [integer!]]]
 	CreateTextLayout				[CreateTextLayout*]
 	CreateGdiCompatibleTextLayout	[integer!]
 	CreateEllipsisTrimmingSign		[integer!]
 	CreateTextAnalyzer				[integer!]
 	CreateNumberSubstitution		[integer!]
 	CreateGlyphRunAnalysis			[integer!]
+]
+
+IDWriteFontCollection: alias struct! [
+	QueryInterface					[QueryInterface!]
+	AddRef							[AddRef!]
+	Release							[Release!]
+	GetFontFamilyCount				[integer!]
+	GetFontFamily					[function! [this [this!] index [integer!] family [com-ptr!] return: [integer!]]]
+	FindFamilyName					[function! [this [this!] name [c-string!] index [int-ptr!] exists [int-ptr!] return: [integer!]]]
+	GetFontFromFontFace				[integer!]
+]
+
+IDWriteFontFamily: alias struct! [
+	QueryInterface					[QueryInterface!]
+	AddRef							[AddRef!]
+	Release							[Release!]
+	GetFontCollection				[integer!]
+	GetFontCount					[integer!]
+	GetFont							[integer!]
+	GetFamilyNames					[integer!]
+	GetFirstMatchingFont			[function! [this [this!] weight [integer!] stretch [integer!] style [integer!] font [com-ptr!] return: [integer!]]]
+	GetMatchingFonts				[integer!]
+]
+
+IDWriteGdiInterop: alias struct! [
+	QueryInterface					[QueryInterface!]
+	AddRef							[AddRef!]
+	Release							[Release!]
+	CreateFontFromLOGFONT			[integer!]
+	ConvertFontToLOGFONT			[function! [this [this!] font [this!] logfont [tagLOGFONT] system? [int-ptr!] return: [integer!]]]
+	ConvertFontFaceToLOGFONT		[integer!]
+	CreateFontFaceFromHdc			[integer!]
+	CreateBitmapRenderTarget		[integer!]
 ]
 
 IDWriteRenderingParams: alias struct! [
@@ -2344,6 +2377,7 @@ create-text-format: func [
 				w: w + 1
 			]
 		]
+		weight: get-font-weight font weight
 	][
 		save?: no
 		int: as red-integer! #get system/view/fonts/size

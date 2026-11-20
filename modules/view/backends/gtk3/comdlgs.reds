@@ -213,6 +213,7 @@ OS-request-font: func [
 				word/make-at _italic as red-value! style
 			]
 		]
+		set-font-weight font pango_font_description_get_weight fd
 	][
 		font/header: TYPE_NONE
 	]

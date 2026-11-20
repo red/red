@@ -463,6 +463,7 @@ OS-request-font: func [
 				word/make-at _italic as red-value! style
 			]
 		]
+		set-font-weight font font-weight? nsfont
 		if pool <> 0 [objc_msgSend [pool sel_release]]
 	][
 		font/header: TYPE_NONE
