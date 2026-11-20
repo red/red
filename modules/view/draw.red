@@ -1157,6 +1157,7 @@ Red/System [
 				cycles/reset							;-- a fired error left the blocks being parsed on it
 				either catch? [system/thrown: 0][re-throw]
 			]
+			if system/thrown = 1 [system/thrown: 0]		;-- silent mode: the draw is abandoned, nothing left pending
 		]
 
 		parse-text-styles: func [
