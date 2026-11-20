@@ -1995,7 +1995,7 @@ OS-make-view: func [
 			class: "RedWindow"
 			if bits and FACET_FLAGS_MODAL <> 0 [
 				obj: objc_msgSend [NSApp sel_getUid "mainWindow"]
-				if obj <> 0 [vector/rs-append-int active-wins obj]
+				vector/rs-append-int active-wins obj		;-- 0 if none: [parent modal] pairs stay aligned
 			]
 		]
 		sym = tab-panel [
