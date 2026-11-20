@@ -115,10 +115,12 @@ Red/System [
 				base   [red-value!]
 				silent [red-logic!]
 				saved  [red-value!]
+				draw?  [logic!]
 		][
+			draw?: cycles/top <> cycles/bottom			;-- a Draw block is being parsed
 			cycles/reset
 			silent: as red-logic! #get system/view/silent?
-			if all [TYPE_OF(silent) = TYPE_LOGIC silent/value][
+			if all [TYPE_OF(silent) = TYPE_LOGIC silent/value any [catch? draw?]][	;-- not for a text metric (no draw): raised as usual
 				if catch? [throw RED_THROWN_ERROR]		;-- unreported, its catcher clears it as for a reported error:
 				throw 1									;-- a stale system/thrown would abort the caller (window creation)
 			]
