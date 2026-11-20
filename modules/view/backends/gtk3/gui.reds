@@ -409,7 +409,6 @@ get-text-size: func [
 	/local
 		values	[red-value!]
 		font	[red-object!]
-		state	[red-block!]
 		hFont	[handle!]
 		text	[c-string!]
 		len		[integer!]
@@ -419,8 +418,7 @@ get-text-size: func [
 	font: as red-object! values + FACE_OBJ_FONT
 	hFont: null
 	if TYPE_OF(font) = TYPE_OBJECT [
-		state: as red-block! values + FONT_OBJ_STATE
-		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
+		hFont: get-font-handle font 0
 		if null? hFont [hFont: make-font null font]
 	]
 	if null? hFont [hFont: default-attrs]
