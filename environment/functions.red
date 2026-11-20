@@ -365,11 +365,11 @@ send: function [
 	either object? target [
 		#if find config/modules 'view [
 			if face? target [
-				either word? msg [msg: compose [type: (msg) face: (target)]][
+				either word? msg [msg: compose [type: (to lit-word! msg) face: (target)]][
 					unless block? msg [cause-error 'script 'invalid-arg [msg]]
 				]
-				put msg 'face target
-				apply 'send-event [msg /no-wait]
+				put msg to-set-word 'face target
+				apply 'send-event [msg /no-wait no-wait]
 			]
 		]
 	][
