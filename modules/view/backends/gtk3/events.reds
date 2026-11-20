@@ -816,6 +816,7 @@ OS-send-event: func [
 		bits	[integer!]
 		wstate	[integer!]
 		gdkwin	[handle!]
+		active?	[logic!]
 ][
 	;-- NOTE: `queued?` (/no-wait) is not yet honored on this backend: every branch below dispatches
 	;-- synchronously (make-event + native actuation run before this returns), whereas the Windows
@@ -899,27 +900,34 @@ OS-send-event: func [
 	switch evt/type [
 		EVT_LEFT_DOWN	[
 			make-event widget mods EVT_LEFT_DOWN
+			if widget <> face-handle? obj [return true]		;-- freed by its actors: no control left
 			if ftype = button [gtk_widget_set_state_flags widget GTK_STATE_FLAG_ACTIVE no]	;-- show the button pressed
 		]
 		EVT_LEFT_UP		[
 			make-event widget mods EVT_LEFT_UP
+			if widget <> face-handle? obj [return true]		;-- freed by its actors: no control left
+			active?: face-enabled? obj					;-- not if it or a parent is disabled (facets), by its actors too
+			g_object_ref widget							;-- pinned while the activation's actors run, as GTK does
 			case [
 				ftype = button [
-					button-clicked widget widget					;-- fire the native click -> on-click
+					if active? [button-clicked widget widget]		;-- fire the native click -> on-click
 					gtk_widget_unset_state_flags widget GTK_STATE_FLAG_ACTIVE	;-- release the pressed look
 				]
-				any [ftype = check ftype = toggle ftype = radio][	;-- toggle -> "toggled" -> button-toggled -> on-change
+				all [active? any [ftype = check ftype = toggle ftype = radio]][	;-- toggle -> "toggled" -> button-toggled -> on-change
 					either gtk_toggle_button_get_active widget [
 						gtk_toggle_button_set_active widget no
 					][	gtk_toggle_button_set_active widget yes ]
 				]
 				true [0]
 			]
+			g_object_unref widget						;-- if they closed the face, its widget is freed here
 		]
 		EVT_MIDDLE_DOWN	[make-event widget mods EVT_MIDDLE_DOWN]
 		EVT_MIDDLE_UP	[make-event widget mods EVT_MIDDLE_UP]
 		EVT_RIGHT_DOWN	[make-event widget mods EVT_RIGHT_DOWN]
 		EVT_RIGHT_UP	[make-event widget mods EVT_RIGHT_UP]
+		EVT_AUX_DOWN	[make-event widget mods EVT_AUX_DOWN]
+		EVT_AUX_UP		[make-event widget mods EVT_AUX_UP]
 		EVT_OVER		[make-event widget mods EVT_OVER]
 		EVT_DBL_CLICK	[make-event widget (mods or EVT_FLAG_DBL_CLICK) EVT_LEFT_DOWN]	;-- make-event maps the DBL flag -> EVT_DBL_CLICK
 		EVT_KEY_DOWN	[special-key: 0  make-event widget ((flags and FFFFh) or mods) EVT_KEY_DOWN]	;-- low word = key codepoint
@@ -927,6 +935,7 @@ OS-send-event: func [
 		EVT_KEY			[
 			special-key: 0  unicode-cp: 0
 			make-event widget ((flags and FFFFh) or mods) EVT_KEY	;-- BMP char; supplementary planes need unicode-cp
+			if widget <> face-handle? obj [return true]		;-- freed by its actors: no control left
 			if ftype = field [gtk-entry-append-char widget flags and FFFFh]	;-- also fill the native entry
 		]
 		EVT_WHEEL		[
@@ -937,9 +946,10 @@ OS-send-event: func [
 			scroll/delta_y:   either TYPE_OF(pk) = TYPE_INTEGER [as float! (0 - pk/value)][-1.0]
 			g_object_set_qdata widget red-event-id as handle! scroll
 			make-event widget mods EVT_WHEEL
+			if widget <> face-handle? obj [return true]		;-- freed by its actors: no control left
 			g_object_set_qdata widget red-event-id null
 		]
-		default			[return false]					;-- aux & others not OS-injectable on GTK yet
+		default			[return false]					;-- not OS-injectable
 	]
 	true
 ]

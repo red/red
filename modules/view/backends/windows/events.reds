@@ -831,6 +831,7 @@ OS-send-event: func [
 	]
 	if wmsg = WM_MOUSEMOVE [last-mouse-pt: -1]			;-- the repeat filter breaking the #4342 feedback loop must
 														;-- not swallow an injected motion: the caller asked for it
+	if any [wmsg = WM_MOUSEMOVE wmsg = WM_LBUTTONUP][wParam: wParam or 8000h]	;-- a bit no MK_ flag uses: sent (see `process`)
 	either queued? [
 		PostMessage hWnd wmsg wParam lParam				;-- async: post to the OS queue (fires under a live message pump)
 	][													;-- (async key modifiers fall back to physical state; see key-extra-keys)
@@ -1938,12 +1939,18 @@ process: func [
 		flags  [integer!]
 		word   [red-word!]
 		over?  [logic!]
+		sent?  [logic!]
 ][
 	flags: (decode-down-flags msg/wParam) or check-extra-keys yes
 	hWnd: msg/hWnd
 	switch msg/msg [
 		WM_MOUSEMOVE [
 			lParam: msg/lParam
+			if msg/wParam and 8000h <> 0 [				;-- injected (OS-send-event), not the real pointer: always
+				msg/wParam: msg/wParam xor 8000h		;-- reported and handed to the widget as a real one, but the
+				if IsWindowEnabled hWnd [make-event msg flags EVT_OVER]	;-- face under the real pointer stays tracked:
+				return EVT_DISPATCH						;-- no exit tracking armed for a pointer that is not there
+			]
 			if last-mouse-pt = lParam [return EVT_NO_DISPATCH]
 			last-mouse-pt: lParam
 
@@ -1992,6 +1999,8 @@ process: func [
 			res
 		]
 		WM_LBUTTONUP	[
+			sent?: msg/wParam and 8000h <> 0			;-- by OS-send-event
+			if sent? [msg/wParam: msg/wParam xor 8000h]
 			prev-captured: hWnd
 			if all [hWnd <> null hWnd = GetCapture face-set? hWnd][
 				word: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
@@ -1999,6 +2008,9 @@ process: func [
 			]
 			res: make-event msg flags EVT_LEFT_UP
 			prev-captured: null
+			if all [sent? face-set? hWnd not face-enabled? get-face-obj hWnd][	;-- disabled (facets), by its
+				SendMessage hWnd BM_SETSTATE 0 0			;-- actors too: a native button is released unclicked
+			]
 			res
 		]
 		WM_RBUTTONDOWN	[

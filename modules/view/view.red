@@ -33,6 +33,14 @@ send-event: function [
 ][
 	if block? evt [evt: make event! evt]
 	unless find [minimize maximize restore] evt/type [	;-- window state events keep their own rules
+		if evt/type = 'click [							;-- a click: the press, then its release right after
+			evt/type: 'down
+			sent?: send-event/:no-wait evt
+			evt/type: 'up
+			if sent? [sent?: send-event-os evt to logic! no-wait]	;-- its release goes to the face even if that press
+			evt/type: 'click										;-- disabled it, as the mouse capture does on Windows
+			return sent?
+		]
 		face: evt/face
 		while [face][									;-- disabled, or inside a disabled face (a panel, a window
 			unless face/enabled? [return false]			;-- under a modal one): a user could not act on it either

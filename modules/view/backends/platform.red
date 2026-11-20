@@ -797,6 +797,25 @@ system/view/platform: context [
 				idx
 			]
 
+			face-enabled?: func [								;-- the face and all its parents have `enabled?` on
+				face	[red-object!]
+				return:	[logic!]
+				/local
+					values [red-value!]
+					bool   [red-logic!]
+			][
+				while [TYPE_OF(face) = TYPE_OBJECT][
+					values: object/get-values face
+					bool: as red-logic! values + FACE_OBJ_ENABLED?
+					if any [									;-- none or false, as send-event reads it
+						TYPE_OF(bool) = TYPE_NONE
+						all [TYPE_OF(bool) = TYPE_LOGIC not bool/value]
+					][return false]
+					face: as red-object! values + FACE_OBJ_PARENT
+				]
+				true
+			]
+
 			#include %keycodes.reds
 			#switch GUI-engine [
 				native [

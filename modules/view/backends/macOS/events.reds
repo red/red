@@ -624,13 +624,17 @@ OS-send-event: func [
 	switch evt/type [
 		EVT_LEFT_DOWN	[
 			make-event view mods EVT_LEFT_DOWN
+			if view <> as-integer face-handle? obj [return true]	;-- freed by its actors: no control left
 			if ns-kind? view "NSButton" [objc_msgSend [view sel_getUid "highlight:" 1]]	;-- depress the button
 		]
 		EVT_LEFT_UP		[
 			make-event view mods EVT_LEFT_UP
+			if view <> as-integer face-handle? obj [return true]	;-- freed by its actors: no control left
 			if ns-kind? view "NSButton" [					;-- native button/checkbox/toggle/radio: fire the click and release
-				button-click view							;-- the highlight. (RedButton routes clicks via its mouseDown: override,
+				objc_msgSend [view sel_getUid "retain"]		;-- the highlight, the view kept alive (the click's actors can
+				if face-enabled? obj [button-click view]	;-- remove it). (RedButton routes clicks via its mouseDown: override,
 				objc_msgSend [view sel_getUid "highlight:" 0]	;-- whose modal tracking loop would deadlock on a separate up.)
+				objc_msgSend [view sel_getUid "release"]
 			]
 		]
 		EVT_MIDDLE_DOWN	[make-event view mods EVT_MIDDLE_DOWN]
@@ -646,6 +650,7 @@ OS-send-event: func [
 		EVT_KEY			[
 			special-key: 0
 			make-event view ((flags and FFFFh) or mods) EVT_KEY
+			if view <> as-integer face-handle? obj [return true]	;-- freed by its actors: no control left
 			if ns-kind? view "NSTextField" [field-append-char view flags and FFFFh]	;-- native field: also fill the text
 		]
 		EVT_WHEEL		[make-event view mods EVT_WHEEL]	;-- delta via synth/picked
