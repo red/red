@@ -1152,6 +1152,7 @@ Red/System [
 			]
 			draw-end :DC handle on-graphic? cache? paint?
 			if system/thrown = RED_THROWN_ERROR [
+				cycles/reset							;-- a fired error left the blocks being parsed on it
 				either catch? [system/thrown: 0][re-throw]
 			]
 		]
