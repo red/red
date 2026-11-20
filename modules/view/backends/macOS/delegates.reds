@@ -1040,13 +1040,15 @@ win-will-close: func [
 	i: 0
 	while [i < n][
 		pp: p + 1
-		if pp/value = self [		;-- active its parent window
-			objc_msgSend [p/value sel_getUid "makeKeyAndOrderFront:" p/value]
+		if p/value = self [p/value: 0]				;-- a closed parent is not shown again by its modal window
+		either pp/value = self [	;-- active its parent window
+			if p/value <> 0 [objc_msgSend [p/value sel_getUid "makeKeyAndOrderFront:" p/value]]
 			string/remove-part as red-string! active-wins i 2
-			break
+			n: n - 2
+		][
+			p: p + 2
+			i: i + 2
 		]
-		p: p + 2
-		i: i + 2
 	]
 	0
 ]
