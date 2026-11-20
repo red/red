@@ -1872,9 +1872,6 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			return:		[logic!]
 		]
-		gtk_widget_get_type: "gtk_widget_get_type" [
-			return:		[integer!]
-		]
 		gtk_widget_get_parent: "gtk_widget_get_parent" [
 			widget		[handle!]
 			return:		[handle!]

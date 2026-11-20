@@ -143,7 +143,6 @@ remove-tab-page: func [
 		nb		[integer!]
 		index	[integer!]
 ][
-	unless g_type_check_instance_is_a widget gtk_widget_get_type [exit]
 	parent: gtk_widget_get_parent widget
 	if all [
 		not null? parent
