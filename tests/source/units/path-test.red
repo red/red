@@ -565,7 +565,19 @@ Red [
 		--assert [size size] = ocs-log
 		--assert 15x16 = ocs-o/size
 
-	unset [ocs-log ocs-o ocs-f ocs-k ocs-c ocs-s ocs-b ocs-p ocs-q]
+	--test-- "on-change-step-8"						;-- a date's time part: one call, the date normalized
+		ocs-d: context [
+			when: 1-Jan-2020/10:00:00
+			on-change*: func [word old new][append/only ocs-log reduce [word new]]
+		]
+		ocs-f: 'when
+		clear ocs-log
+		ocs-d/when/hour: 8
+		ocs-d/:ocs-f/minute: 30
+		ocs-d/:ocs-f/('second): 15
+		--assert [[when 1-Jan-2020/8:00:00] [when 1-Jan-2020/8:30:00] [when 1-Jan-2020/8:30:15]] = ocs-log
+
+	unset [ocs-log ocs-o ocs-f ocs-k ocs-c ocs-s ocs-b ocs-p ocs-q ocs-d]
 
 ===end-group===
 

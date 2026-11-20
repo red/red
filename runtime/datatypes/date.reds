@@ -1007,6 +1007,8 @@ date: context [
 			int	   [red-integer!]
 			obj	   [red-object!]
 			old	   [red-value!]
+			saved  [red-value!]
+			tsel   [red-integer! value]
 			tm	   [red-time!]
 			dt2	   [red-date!]
 			days   [integer!]
@@ -1080,12 +1082,16 @@ date: context [
 					]
 				]
 				7 8 9 [									;-- /hour: /minute: /second:
+					saved: stack/top
 					stack/keep
 					if TYPE_OF(element) = TYPE_INTEGER [
 						int: as red-integer! element
-						int/value: int/value - 6		;-- normalize accessor for time!
+						tsel/header: TYPE_INTEGER
+						tsel/value: int/value - 6		;-- normalize accessor for time!, in a copy: the selector stays
+						element: as red-value! tsel
 					]
-					time/eval-path as red-time! dt element value path gparent p-item index case? no yes evt?
+					time/eval-path as red-time! dt element value path gparent p-item index case? no yes no	;-- the event: below, once normalized
+					stack/top: saved						;-- what the walk keeps above the arguments stays live
 					set-time dt dt/time field = 7
 					dt/date: DATE_SET_TIME_FLAG(dt/date)
 				]

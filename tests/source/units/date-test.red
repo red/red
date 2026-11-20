@@ -649,6 +649,15 @@ Red [
 	
 	--test-- "julianday" --assert d/yearday = d/julian
 
+	--test-- "pw-index-selector"					;-- a time part set through an integer: the selector stays
+		d: 5-Jul-2017/12:41:40+8:00
+		ds: 7
+		d/:ds: 8
+		--assert ds = 7
+		--assert d = 5-Jul-2017/8:41:40+08:00
+		loop 2 [d/7: 9]
+		--assert d = 5-Jul-2017/9:41:40+08:00
+
 ===end-group===
 
 ===start-group=== "math on dates"
