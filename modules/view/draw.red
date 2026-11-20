@@ -164,6 +164,31 @@ Red/System [
 			color
 		]
 
+		unavailable?: func [							;-- YES: the word's context has no values (a function that has returned)
+			word	[red-word!]
+			return: [logic!]
+			/local
+				ctx [red-context!]
+		][
+			ctx: TO_CTX(word/ctx)
+			null? ctx/values
+		]
+
+		get-word-value: func [							;-- value of a word used in a Draw or text styles block
+			cmds   [red-block!]
+			cmd	   [red-value!]
+			catch? [logic!]
+			return: [red-value!]
+			/local
+				word [red-word!]
+		][
+			word: as red-word! cmd
+			if all [catch? any [word/index = -1 unavailable? word]][	;-- _context/get would fire: a face paint has
+				throw-draw-error cmds cmd catch?						;-- no Red caller for that, so it is reported
+			]
+			_context/get word
+		]
+
 		get-float: func [
 			int		[red-integer!]
 			return: [float!]
@@ -292,7 +317,7 @@ Red/System [
 		#define DRAW_FETCH_NAMED_VALUE(type) [
 			cmd: cmd + 1
 			if cmd >= tail [throw-draw-error cmds cmd catch?]
-			value: either TYPE_OF(cmd) = TYPE_WORD [_context/get as red-word! cmd][cmd]
+			value: either TYPE_OF(cmd) = TYPE_WORD [get-word-value cmds cmd catch?][cmd]
 			if TYPE_OF(value) <> type [throw-draw-error cmds cmd catch?]
 		]
 		
@@ -359,7 +384,7 @@ Red/System [
 				cmd: cmd + 1
 				cmd < tail
 			][
-				value: either TYPE_OF(cmd) = TYPE_WORD [_context/get as red-word! cmd][cmd]
+				value: either TYPE_OF(cmd) = TYPE_WORD [get-word-value cmds cmd catch?][cmd]
 				type: TYPE_OF(value)
 				if type = TYPE_TUPLE [count: count + 1]
 				unless any [type = TYPE_TUPLE type = TYPE_FLOAT][break]
@@ -435,7 +460,7 @@ Red/System [
 					if cmd = _start [ break ]
 					value: cmd
 					if TYPE_OF(value) = TYPE_WORD [
-						value: as red-value! _context/get as red-word! cmd
+						value: get-word-value cmds cmd catch?
 					]
 					if TYPE_OF(value) <> TYPE_TUPLE [ cmd: cmd - 1 break ]
 					DRAW_FETCH_OPT_VALUE(TYPE_FLOAT)
@@ -532,7 +557,7 @@ Red/System [
 						img: null
 						DRAW_FETCH_VALUE(TYPE_WORD)
 						either TYPE_OF(cmd) = TYPE_WORD [
-							value: as red-value! _context/get as red-word! cmd
+							value: get-word-value cmds cmd catch?
 							if TYPE_OF(value) <> TYPE_IMAGE [ 
 								throw-draw-error cmds cmd catch? 
 							]
@@ -706,6 +731,7 @@ Red/System [
 						]
 					]
 					TYPE_SET_WORD [
+						if all [catch? unavailable? as red-word! cmd][throw-draw-error cmds cmd catch?]	;-- _context/set would fire
 						blk: as red-block! _context/set as red-word! cmd as red-value! cmds
 						blk/head: ((as-integer cmd - block/rs-head cmds) / size? cell!) + 1
 					]
@@ -887,7 +913,7 @@ Red/System [
 								pos: cmd + 1
 								if pos < tail [
 									if any [TYPE_OF(pos) = TYPE_TUPLE TYPE_OF(pos) = TYPE_WORD][
-										value: either TYPE_OF(pos) = TYPE_WORD [_context/get as red-word! pos][pos]
+										value: either TYPE_OF(pos) = TYPE_WORD [get-word-value cmds pos catch?][pos]
 										if TYPE_OF(value) = TYPE_TUPLE [color: as red-tuple! value cmd: pos]
 									]
 
@@ -1115,6 +1141,7 @@ Red/System [
 						]
 					]
 					TYPE_SET_WORD [
+						if all [catch? unavailable? as red-word! cmd][throw-draw-error cmds cmd catch?]	;-- _context/set would fire
 						blk: as red-block! _context/set as red-word! cmd as red-value! cmds
 						blk/head: ((as-integer cmd - block/rs-head cmds) / size? cell!) + 1
 					]
