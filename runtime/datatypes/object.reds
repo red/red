@@ -64,6 +64,20 @@ object: context [
 		as red-value! _hashtable/get-ctx-word TO_CTX(obj) index
 	]
 	
+	slot-word: func [									;-- the word of obj's field held in slot, or null
+		obj		[red-object!]
+		slot	[red-value!]
+		return: [red-value!]
+		/local
+			ctx [red-context!]
+			s	[series!]
+	][
+		ctx: GET_CTX(obj)
+		s: as series! ctx/values/value
+		if any [slot < s/offset slot >= s/tail][return null]
+		get-word obj/ctx (as-integer slot - s/offset) >> 4
+	]
+	
 	get-words: func [
 		obj		[red-object!]
 		return: [red-value!]
@@ -1328,7 +1342,11 @@ object: context [
 			if all [word/index = -1	word/symbol = words/self][
 				fire [TO_ERROR(script invalid-path) path element]
 			]
-			if on-set? [old: stack/push _context/get-in word ctx]
+			if on-set? [
+				old: stack/push _context/get-in word ctx
+				if TYPE_OF(element) <> TYPE_WORD [element: get-word parent/ctx word/index]	;-- not a word: the field's own
+				element: stack/push element				;-- a copy: the set may overwrite the selector
+			]
 			_context/set-in word value ctx no
 			if on-set? [fire-on-set parent as red-word! element old value]
 			res: value

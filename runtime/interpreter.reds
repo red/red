@@ -585,6 +585,23 @@ interpreter: context [
 		]
 	]
 	
+	reserve-walk: func [								;-- the 3 cells of a walk, at the stack top (see suspend-walk)
+		walk	[cell!]
+		/local
+			item [cell!]
+	][
+		either walk + 3 < stack/a-end [
+			walk/header: TYPE_UNSET
+			item: walk + 1
+			item/header: TYPE_UNSET
+			item: walk + 2
+			item/header: TYPE_UNSET
+			stack/top: walk + 3
+		][
+			loop 3 [unset/push]						;-- stack overflow error
+		]
+	]
+	
 	suspend-walk: func [								;-- compiled path stopped at a paren: save its walk (series can move meanwhile)
 		walk	[cell!]									;-- data1: paren index + 1, data2: walk-mode!, data3: slot index or pointer
 		parent	[red-value!]
@@ -656,19 +673,11 @@ interpreter: context [
 			s	  [series!]
 			type idx   [integer!]
 			tail? evt? resumed? [logic!]
+			resume-walk [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
 		
-		path: as red-path! value
-		head: block/rs-head as red-block! path
-		tail: block/rs-tail as red-block! path
-		resumed?: all [walk <> null walk/data1 <> 0]
-		
-		either resumed? [								;-- compiled code has pushed the value of the paren at idx
-			idx:     walk/data1 - 1
-			p-item:  head + idx
-			item:    p-item + 1
-			saved:   walk + 3							;-- stack top when the walk started
+		resume-walk: [									;-- after a paren: parent and gparent found again (see suspend-walk)
 			parent:  walk + 1							;-- the copy, unless found again below
 			gparent: walk + 2
 			if TYPE_OF(gparent) = TYPE_UNSET [gparent: null]
@@ -699,6 +708,18 @@ interpreter: context [
 				slot: s/offset + walk/data3
 				if slot < s/tail [parent: slot]
 			]
+		]
+		path: as red-path! value
+		head: block/rs-head as red-block! path
+		tail: block/rs-tail as red-block! path
+		resumed?: all [walk <> null walk/data1 <> 0]
+		
+		either resumed? [								;-- compiled code has pushed the value of the paren at idx
+			idx:     walk/data1 - 1
+			p-item:  head + idx
+			item:    p-item + 1
+			saved:   walk + 3							;-- stack top when the walk started
+			resume-walk
 			walk/data1: 0								;-- done, unless it stops at another paren
 		][
 			if head = tail [fire [TO_ERROR(script empty-path)]]
@@ -751,7 +772,14 @@ interpreter: context [
 			value: switch TYPE_OF(item) [ 
 				TYPE_GET_WORD [_context/get as red-word! item]
 				TYPE_PAREN 	  [
-					unless resumed? [eval as red-block! item no]	;-- eval paren content
+					unless resumed? [					;-- interpreted: the walk is saved across it, as in compiled code
+						walk: stack/top
+						reserve-walk walk
+						suspend-walk walk parent gparent idx
+						eval as red-block! item no		;-- eval paren content
+						resume-walk
+						walk: null
+					]
 					resumed?: no
 					stack/top - 1
 				]
@@ -773,7 +801,12 @@ interpreter: context [
 				evt?: either ser = null [no][
 					obj: as red-object! ser
 					switch TYPE_OF(ser) [
-						TYPE_OBJECT 	 [all [obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]]
+						TYPE_OBJECT 	 [
+							if all [obj/on-set <> null TYPE_OF(p-item) <> TYPE_WORD][	;-- not a word step: the field set
+								p-item: object/slot-word obj parent
+							]
+							all [obj/on-set <> null p-item <> null]
+						]
 						TYPE_ANY_BLOCK   [gparent <> null]
 						default			 [no]
 					]
@@ -818,16 +851,7 @@ interpreter: context [
 		walk: stack/arguments + 1						;-- 3 state cells, after the frame's result slot
 		if start? [
 			unless set? [unset/push]					;-- result slot (a set path's value is already there)
-			either walk + 3 < stack/a-end [				;-- reserve them (see suspend-walk)
-				walk/header: TYPE_UNSET
-				item: walk + 1
-				item/header: TYPE_UNSET
-				item: walk + 2
-				item/header: TYPE_UNSET
-				stack/top: walk + 3
-			][
-				loop 3 [unset/push]						;-- stack overflow error
-			]
+			reserve-walk walk
 			walk/data1: 0
 			head: block/rs-head as red-block! path
 			item: head + 1

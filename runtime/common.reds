@@ -517,7 +517,12 @@ eval-path*: func [
 			evt?: either ser = null [no][
 				obj: as red-object! ser
 				switch TYPE_OF(ser) [
-					TYPE_OBJECT [all [obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]]
+					TYPE_OBJECT [
+						if all [obj/on-set <> null TYPE_OF(p-item) <> TYPE_WORD][	;-- not a word step: the field set
+							p-item: object/slot-word obj parent
+						]
+						all [obj/on-set <> null p-item <> null]
+					]
 					TYPE_ANY_BLOCK	 [gparent <> null]
 					default			 [no]
 				]

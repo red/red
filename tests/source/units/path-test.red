@@ -243,6 +243,9 @@ Red [
 		ppt-n: 0
 		loop 3 [ppt-n: ppt-n + 1 ppt-eb/1/(break)]
 		--assert 1 = ppt-n
+		ppt-mv: reduce [1x2]
+		ppt-mv/1/(append/dup ppt-mv 0 100 'x): 3		;-- the paren moves the block's buffer
+		--assert 3x2 = first ppt-mv
 
 	--test-- "paren-path-9"						;-- a paren setting a field of an object with on-change*
 		ppt-oc: object [i: 0 on-change*: func [word old new][append ppt-trail word]]
@@ -469,7 +472,100 @@ Red [
 			--assert [x w z] = blk
 		]
 
-	unset [gws-b gws-o gws-d]
+	--test-- "getword-step-6"						;-- a get-word held by the step's word is not evaluated
+		gws-part: "expanded"
+		gws-sel:  first [:gws-part]
+		gws-file: %/a/b
+		gws-url:  http://a.b/c
+		--assert %/a/b/gws-part = gws-file/:gws-sel
+		--assert http://a.b/c/gws-part = gws-url/:gws-sel
+
+	unset [gws-b gws-o gws-d gws-part gws-sel gws-file gws-url]
+
+===end-group===
+
+===start-group=== "on-change* through get-word and paren steps"
+
+	ocs-log: make block! 8
+	ocs-o: context [
+		size: 10x20
+		on-change*: func [word old new][append ocs-log word]
+	]
+	ocs-f: 'size
+	ocs-k: 'x
+	ocs-c: context [
+		f: 'size
+		set-x: func [v][ocs-o/:f/x: v]
+	]
+
+	--test-- "on-change-step-1"						;-- the step before the last one is a get-word
+		clear ocs-log
+		ocs-o/:ocs-f/x: 1
+		ocs-o/:ocs-f/:ocs-k: 2
+		ocs-c/set-x 3
+		--assert [size size size] = ocs-log
+		--assert 3x20 = ocs-o/size
+
+	--test-- "on-change-step-2"						;-- or a paren
+		clear ocs-log
+		ocs-o/(ocs-f)/x: 4
+		ocs-o/(ocs-f)/:ocs-k: 5
+		--assert [size size] = ocs-log
+
+	--test-- "on-change-step-3"						;-- and the last step a paren
+		clear ocs-log
+		ocs-o/size/(ocs-k): 6
+		ocs-o/:ocs-f/(ocs-k): 7
+		ocs-o/(ocs-f)/(ocs-k): 8
+		--assert [size size size] = ocs-log
+		--assert 8x20 = ocs-o/size
+
+	--test-- "on-change-step-4"						;-- whatever the selector holds, or holds later
+		clear ocs-log
+		ocs-f: first ['size]
+		ocs-o/:ocs-f/x: 9
+		ocs-f: 'size
+		ocs-o/:ocs-f/(ocs-f: none 'y): 10
+		--assert [size size] = ocs-log
+		--assert 9x10 = ocs-o/size
+
+	--test-- "on-change-step-5"						;-- two steps: the field's word too
+		clear ocs-log
+		ocs-f: first ['size]
+		ocs-o/:ocs-f: 1x1
+		--assert [size] = ocs-log
+		--assert word? first ocs-log
+
+	--test-- "on-change-step-6"						;-- the selector is the very field set
+		ocs-s: context [
+			key: 'key
+			on-change*: func [word old new][append ocs-log word]
+			set-key: func [v][self/:key: v]
+			set-key-p: func [v][ocs-b/(1)/:key: v]
+		]
+		ocs-b: reduce [ocs-s]
+		clear ocs-log
+		ocs-s/set-key 1x1
+		ocs-s/key: 'key
+		ocs-s/set-key-p 1x2
+		ocs-s/key: first ['key]
+		ocs-s/set-key 1x3
+		--assert [key key key key key] = ocs-log
+		--assert 1x3 = ocs-s/key
+
+	--test-- "on-change-step-7"						;-- a later paren replaces the object
+		ocs-f: 'size
+		ocs-p: ocs-o
+		ocs-q: context [size: 0x0 on-change*: func [word old new][append ocs-log 'other]]
+		clear ocs-log
+		ocs-o/:ocs-f/(ocs-o: none 'x): 15
+		ocs-o: ocs-p
+		ocs-o/size/(ocs-o: ocs-q 'y): 16
+		ocs-o: ocs-p
+		--assert [size size] = ocs-log
+		--assert 15x16 = ocs-o/size
+
+	unset [ocs-log ocs-o ocs-f ocs-k ocs-c ocs-s ocs-b ocs-p ocs-q]
 
 ===end-group===
 

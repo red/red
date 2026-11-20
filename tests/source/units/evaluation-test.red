@@ -616,8 +616,8 @@ Red [
 		    return 3 "+" "3" 1 
 		    expr 3 #(none) "3" 1 
 		    exit 3 #(none) "3" 1 
-		    push 1 #(none) "3" 1 
-		    exit 2 #(none) "z" 1 
+		    push 1 #(none) "3" 4 
+		    exit 2 #(none) "z" 4 
 		    push 1 #(none) "z" 1 
 		    expr 1 #(none) "z" 1 
 		    exit 1 #(none) "z" 1 
