@@ -113,6 +113,7 @@ events-ctx: context [
 					if pos > length? lst/data [pos: length? lst/data]
 					lst/selected: pos
 					got-wheel-sel: pos
+					'stop		;-- the wheel only moves the selection: keeps the list from scrolling by itself too
 				]
 		]
 		panel 470x470 [
