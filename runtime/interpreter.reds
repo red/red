@@ -604,6 +604,7 @@ interpreter: context [
 	
 	suspend-walk: func [								;-- compiled path stopped at a paren: save its walk (series can move meanwhile)
 		walk	[cell!]									;-- data1: paren index + 1, data2: walk-mode!, data3: slot index or pointer
+		head	[red-value!]							;-- the path's head word
 		parent	[red-value!]
 		gparent	[red-value!]
 		idx		[integer!]
@@ -616,7 +617,11 @@ interpreter: context [
 			type [integer!]
 	][
 		walk/data1: idx + 1
-		if zero? idx [walk/data2: WALK_HEAD exit]		;-- parent and gparent: through the head word
+		if zero? idx [									;-- parent and gparent: through the head word
+			walk/data2: WALK_HEAD
+			copy-cell head walk + 1						;-- as resolved before the paren, which can change the path
+			exit
+		]
 		walk/data2: WALK_COPY
 		slot: walk + 2									;-- gparent first: it can be the previous parent's copy
 		slot/header: TYPE_UNSET
@@ -664,7 +669,7 @@ interpreter: context [
 		walk	[red-value!]							;-- compiled code: walk state (see eval-path-paren), or null
 		return: [red-value!]
 		/local
-			head tail item parent gparent saved prev arg p-item slot [red-value!]
+			head tail item parent gparent saved prev arg p-item slot cells pcell [red-value!]
 			path  [red-path!]
 			obj	  [red-object!]
 			w	  [red-word!]
@@ -684,7 +689,7 @@ interpreter: context [
 			s: null
 			switch walk/data2 [
 				WALK_HEAD	 [							;-- as the head code does
-					w: as red-word! head
+					w: as red-word! walk + 1
 					parent: _context/get w
 					gparent: null
 					if w/ctx <> global-ctx [
@@ -713,6 +718,7 @@ interpreter: context [
 		head: block/rs-head as red-block! path
 		tail: block/rs-tail as red-block! path
 		resumed?: all [walk <> null walk/data1 <> 0]
+		cells: null
 		
 		either resumed? [								;-- compiled code has pushed the value of the paren at idx
 			idx:     walk/data1 - 1
@@ -764,7 +770,7 @@ interpreter: context [
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
 			
 			if all [walk <> null not resumed? TYPE_OF(item) = TYPE_PAREN][	;-- compiled code evaluates it
-				suspend-walk walk parent gparent idx
+				suspend-walk walk head parent gparent idx
 				return pc
 			]
 			if tracing? [fire-event EVT_FETCH as red-block! path item item item]
@@ -773,12 +779,25 @@ interpreter: context [
 				TYPE_GET_WORD [_context/get as red-word! item]
 				TYPE_PAREN 	  [
 					unless resumed? [					;-- interpreted: the walk is saved across it, as in compiled code
-						walk: stack/top
-						reserve-walk walk
-						suspend-walk walk parent gparent idx
-						eval as red-block! item no		;-- eval paren content
+						if null? cells [				;-- once per path, as in compiled code
+							cells: stack/top
+							if all [cells <= parent parent < stack/a-end][cells: parent + 1]	;-- above a value left just above the top
+							reserve-walk cells
+						]
+						walk: cells
+						suspend-walk walk head parent gparent idx
+						stack/top: cells + 3			;-- the values of the previous parens are consumed
+						if all [walk/data2 = WALK_STACK parent >= stack/top][stack/top: parent + 1]	;-- not a parent held there
+						pcell: stack/push item			;-- a copy: the paren can move the path
+						eval as red-block! pcell no		;-- eval paren content
+						copy-cell stack/top - 1 pcell	;-- its value, in the copy's place
+						stack/top: pcell + 1
 						resume-walk
 						walk: null
+						head: block/rs-head as red-block! path	;-- the paren can change the path itself
+						tail: block/rs-tail as red-block! path
+						p-item: head + idx
+						item: p-item + 1
 					]
 					resumed?: no
 					stack/top - 1
@@ -792,11 +811,11 @@ interpreter: context [
 			;-- invoke eval-path action
 			prev: parent
 			type: TYPE_OF(parent)
-			tail?: item + 1 = tail
+			tail?: item + 1 >= tail						;-- also when the paren removed its own step
 			arg: either all [set? tail?][stack/arguments][null]
 			evt?: no
 
-			if all [set?  head + 2 <= item  item + 1 = tail][ ;-- check only if set-path of length > 2
+			if all [set?  head + 2 <= item  tail?][ ;-- check only if set-path of length > 2
 				ser: as red-series! gparent
 				evt?: either ser = null [no][
 					obj: as red-object! ser
@@ -860,8 +879,7 @@ interpreter: context [
 				switch TYPE_OF(value) [
 					TYPE_ANY_FUNCTION TYPE_UNSET [0]	;-- a call or an error: left to eval-path
 					default [							;-- what eval-path does up to the first paren
-						walk/data1: 1
-						walk/data2: WALK_HEAD
+						suspend-walk walk head null null 0
 						return yes
 					]
 				]

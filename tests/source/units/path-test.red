@@ -264,6 +264,33 @@ Red [
 		--assert 2 = ppt-oc/i
 		--assert [2 2] = ppt-onset
 
+	--test-- "paren-path-10"						;-- the paren edits the path walked, many parens
+		ppt-hd: [7 8]
+		ppt-hp: to path! [ppt-hd (poke ppt-hp 1 'ppt-b 1)]
+		--assert 7 = get ppt-hp
+		ppt-hp: to path! [ppt-hd (poke ppt-hp 1 42 1)]
+		--assert 7 = get ppt-hp
+		ppt-lb: copy []
+		append/only ppt-lb ppt-lb
+		ppt-lp: make path! 21001
+		append ppt-lp 'ppt-lb
+		loop 21000 [append/only ppt-lp to paren! [1]]
+		--assert same? ppt-lb do reduce [ppt-lp]
+		ppt-sb: copy []
+		append/only ppt-sb ppt-sb
+		append ppt-sb 42
+		ppt-gp: to path! [ppt-sb (append/dup ppt-gp 1 100 append ppt-gp 2 1)]
+		--assert 42 = get ppt-gp
+		ppt-gp: to path! [ppt-hd (clear next next ppt-gp 1) 2]
+		--assert 7 = get ppt-gp
+		ppt-dt: 1-Jan-2020/10:20:30
+		--assert 10 = ppt-dt/time/(1)				;-- after a field value held on the stack
+		--assert 2020 = ppt-dt/date/(2)
+		ppt-sv: copy [10]
+		ppt-gp: to path! [ppt-sv (clear next ppt-gp 1)]	;-- a set through a paren removing its own step
+		--assert 42 = set ppt-gp 42
+		--assert [42] = ppt-sv
+
 ===end-group===
 
 
