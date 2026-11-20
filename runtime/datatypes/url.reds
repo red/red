@@ -452,7 +452,6 @@ url: context [
 			unit: GET_UNIT(s)
 			len: string/rs-length? parent
 			new: string/make-at stack/push* 16 + len unit
-			if TYPE_OF(element) = TYPE_GET_WORD [element: _context/get as red-word! element]
 			
 			actions/form element new null 0
 			s2: GET_BUFFER(new)
