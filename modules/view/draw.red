@@ -1229,7 +1229,7 @@ Red/System [
 						idx: range/x - 1
 						len: range/y
 						if idx + len > max-len [len: max-len - idx]
-						#if OS = 'Windows [
+						#if any [OS = 'Windows all [OS = 'macOS GUI-engine = 'native]] [	;-- UTF-16 positions
 							len: adjust-index text idx len 1
 							idx: adjust-index text 0 idx 1
 						]

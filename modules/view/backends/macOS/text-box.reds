@@ -17,6 +17,7 @@ Red/System [
 #define TBOX_METRICS_SIZE			3
 #define TBOX_METRICS_LINE_COUNT		4
 #define TBOX_METRICS_CHAR_INDEX?	5
+#define TBOX_METRICS_OFFSET_LOWER	6
 
 max-line-cnt:  0
 tb-ext-type:  -1
@@ -171,12 +172,26 @@ OS-text-box-metrics: func [
 		_y		[integer!]
 		_x		[integer!]
 		frame	[NSRect!]
+		rc		[NSRect! value]
+		lp		[CGPoint! value]
 		cg-pt	[CGPoint!]
 		idx		[integer!]
 		len		[integer!]
+		c16		[integer!]
+		n		[integer!]
+		m		[integer!]
+		k		[integer!]
+		j		[integer!]
+		e		[integer!]
+		ck		[integer!]
+		cj		[integer!]
+		buf		[int-ptr!]
+		ip		[int-ptr!]
+		fp		[float32-ptr!]
 		method	[integer!]
 		saved	[int-ptr!]
 		last?	[logic!]
+		blank?	[logic!]
 		pt		[red-point2D!]
 ][
 	int: as red-integer! block/rs-head state
@@ -187,6 +202,7 @@ OS-text-box-metrics: func [
 	ts: int/value
 	as red-value! switch type [
 		TBOX_METRICS_OFFSET?
+		TBOX_METRICS_OFFSET_LOWER
 		TBOX_METRICS_LINE_HEIGHT [
 			str: as red-string! int + 2
 			xx: 0 _x: 0
@@ -198,22 +214,98 @@ OS-text-box-metrics: func [
 			if last? [idx: len - 1]
 
 			frame: as NSRect! :_x
-			method: sel_getUid "lineFragmentUsedRectForGlyphAtIndex:effectiveRange:"
-			saved: system/stack/align
-			push 0 push 0 push 0
-			push 0 push idx
-			push method push layout push frame
-			objc_msgSend_stret 5
-			system/stack/top: saved
+			blank?: no
+			either zero? len [								;-- empty text: one line of the face's font
+				frame/y: F32_0
+				frame/h: set-line-spacing 0 0 layout 0 F32_0 F32_0 F32_0 F32_0
+				cnt: objc_getAssociatedObject layout RedAttachedWidgetKey
+				frame/h: frame/h + objc_msgSend_f32 [layout sel_getUid "defaultLineHeightForFont:" cnt]
+			][
+				c16: adjust-index str 0 idx 1					;-- UTF-16 position
+				idx: objc_msgSend [layout sel_getUid "glyphIndexForCharacterAtIndex:" c16]
+				method: sel_getUid "lineFragmentUsedRectForGlyphAtIndex:effectiveRange:"
+				saved: system/stack/align
+				push 0 push 0 push 0
+				push 0 push idx
+				push method push layout push frame
+				objc_msgSend_stret 5
+				system/stack/top: saved
+				if last? [										;-- past the end: on the line AppKit adds after a final line break
+					objc_msgSend [layout sel_getUid "ensureLayoutForTextContainer:" tc]
+					cnt: objc_msgSend [layout sel_getUid "extraLineFragmentTextContainer"]
+					blank?: cnt <> 0
+					if blank? [
+						rc: objc_msgSend_rect [layout sel_getUid "extraLineFragmentUsedRect"]
+						frame/x: rc/x
+						frame/y: rc/y
+						frame/h: set-line-spacing 0 0 layout 0 F32_0 F32_0 F32_0 F32_0
+						frame/h: frame/h + rc/h
+					]
+				]
+			]
 			either type = TBOX_METRICS_LINE_HEIGHT [
 				float/push as float! frame/h
 			][
 				cg-pt: as CGPoint! :_x
-				either last? [
-					cg-pt/x: frame/x + frame/w
-				][
-					_x: objc_msgSend [layout sel_getUid "locationForGlyphAtIndex:" idx]
+				x: frame/x										;-- trailing edge
+				y: x											;-- leading edge
+				n: 0
+				if all [len > 0 not blank?][
+					method: sel_getUid "getLineFragmentInsertionPointsForCharacterAtIndex:alternatePositions:inDisplayOrder:positions:characterIndexes:"
+					n: objc_msgSend [layout method c16 0 0 0 0]	;-- AppKit's carets on the line, in text order (none if not laid out)
 				]
+				if n > 0 [
+					either n <= 4096 [buf: system/stack/allocate n * 2][buf: allocate-virtual n * 8 no]
+					objc_msgSend [layout method c16 0 0 buf buf + n]
+					fp: as float32-ptr! buf
+					ip: buf + n
+					k: 1
+					j: 2
+					while [all [j <= n ip/j <= c16]][			;-- k: the caret before the character, j: the one after it
+						k: j
+						j: j + 1
+					]
+					y: fp/k
+					ck: ip/k
+					x: y
+					cj: -1
+					if j <= n [
+						x: fp/j
+						cj: ip/j
+					]
+					if n > 4096 [free-virtual buf]
+					m: objc_msgSend [layout method c16 1 0 0 0]	;-- where the direction changes, AppKit has a second caret
+					if m > 0 [
+						lp: objc_msgSend_pt [layout sel_getUid "locationForGlyphAtIndex:" idx]	;-- the character's left edge
+						cnt: 0
+						objc_msgSend [layout sel_getUid "getGlyphsInRange:glyphs:properties:characterIndexes:bidiLevels:" idx 1 0 0 0 :cnt]
+						either m <= 4096 [buf: system/stack/allocate m * 2][buf: allocate-virtual m * 8 no]
+						objc_msgSend [layout method c16 1 0 buf buf + m]
+						fp: as float32-ptr! buf
+						ip: buf + m
+						e: 1
+						while [e <= m][							;-- the character's edges: its left one, and the nearest caret on its right
+							if ip/e = ck [
+								either cnt and 1 = 0 [y: lp/x][
+									if all [fp/e > lp/x any [y <= lp/x fp/e < y]][y: fp/e]
+								]
+							]
+							if ip/e = cj [
+								either cnt and 1 = 1 [x: lp/x][
+									if all [fp/e > lp/x any [x <= lp/x fp/e < x]][x: fp/e]
+								]
+							]
+							e: e + 1
+						]
+						if m > 4096 [free-virtual buf]
+					]
+					if last? [y: x]								;-- past the end: after the last character
+				]
+				if type = TBOX_METRICS_OFFSET_LOWER [			;-- lower end: the trailing edge, at the line's bottom
+					y: x
+					cg-pt/y: cg-pt/y + frame/h
+				]
+				cg-pt/x: y
 				point2D/push cg-pt/x cg-pt/y
 			]
 		]
@@ -229,6 +321,8 @@ OS-text-box-metrics: func [
 				sel_getUid "characterIndexForPoint:inTextContainer:fractionOfDistanceBetweenInsertionPoints:"
 				cg-pt/x cg-pt/y tc :y
 			]
+			str: as red-string! int + 2
+			idx: adjust-index str 0 idx -1						;-- UTF-16 position to Red position
 			if all [type = TBOX_METRICS_INDEX? y > as float32! 0.5][idx: idx + 1]
 			integer/push idx + 1
 		]
@@ -341,7 +435,6 @@ OS-text-box-layout: func [
 		objc_msgSend [ts sel_getUid "addLayoutManager:" layout]
 		objc_msgSend [layout sel_release]
 		objc_msgSend [layout sel_getUid "setDelegate:" layout]
-		objc_setAssociatedObject layout RedAttachedWidgetKey nsfont OBJC_ASSOCIATION_ASSIGN
 
 		para: objc_msgSend [objc_getClass "NSParagraphStyle" sel_getUid "defaultParagraphStyle"]
 		para: objc_msgSend [para sel_getUid "mutableCopy"]
@@ -360,6 +453,7 @@ OS-text-box-layout: func [
 		none/make-in state
 		logic/make-in state false
 	]
+	objc_setAssociatedObject layout RedAttachedWidgetKey nsfont OBJC_ASSOCIATION_ASSIGN	;-- the current font, for the line spacing
 
 	copy-cell values + FACE_OBJ_TEXT (block/rs-head state) + 4
 
