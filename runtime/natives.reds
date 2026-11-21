@@ -2897,6 +2897,7 @@ natives: context [
 
 	compress*: func [
 		check?	 [logic!]
+		level	 [integer!]
 		/local
 			method	[red-word!]
 			sym		[integer!]
@@ -2908,8 +2909,11 @@ natives: context [
 			res		[integer!]
 			s		[series!]
 			dst		[red-binary! value]
+			int		[red-integer!]
+			lv		[integer!]
+			max		[integer!]
 	][
-		#typecheck compress
+		#typecheck [compress level]
 		arg: as red-binary! stack/arguments
 		method: as red-word! arg + 1
 		either TYPE_OF(arg) <> TYPE_BINARY [		;-- any-string!
@@ -2922,22 +2926,30 @@ natives: context [
 		buflen: srclen >> 11 + srclen + 32			;-- above deflate's stored blocks overhead
 
 		sym: symbol/resolve method/symbol
+		lv: -1										;-- the method's default level
+		if level > 0 [
+			int: as red-integer! arg + level
+			lv: int/value
+			max: 9
+			if sym = compressor/zstd [max: 19]
+			if any [lv < 1 lv > max][fire [TO_ERROR(script out-of-range) int]]
+		]
 		loop 2 [	;-- try again in case fails the first time
 			binary/make-at as red-value! dst buflen
 			s: GET_BUFFER(dst)
 			buffer: as byte-ptr! s/offset
 			case [
 				compressor/zlib = sym [
-					res: zlib-compress buffer :buflen src srclen
+					res: zlib-compress buffer :buflen src srclen lv
 				]
 				compressor/deflate = sym [
-					res: deflate/compress buffer :buflen src srclen
+					res: deflate/compress buffer :buflen src srclen lv
 				]
 				compressor/gzip = sym [
-					res: gzip-compress buffer :buflen src srclen
+					res: gzip-compress buffer :buflen src srclen lv
 				]
 				compressor/zstd = sym [
-					res: zstd/compress buffer :buflen src srclen
+					res: zstd/compress buffer :buflen src srclen lv
 				]
 				true [fire [TO_ERROR(script invalid-arg) method]]
 			]

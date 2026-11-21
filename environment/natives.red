@@ -931,6 +931,8 @@ compress: make native! [[
 		"Compresses data"
 		data	[any-string! binary!]
 		method	[word!]	"zlib deflate gzip zstd"
+		/level "Specify the compression level"
+			lvl [integer!] "1 (fastest) to 9 (smallest), 19 for ZSTD; default: 6, 3 for ZSTD"
 		return: [binary!]
 	]
 	#get-definition NAT_COMPRESS

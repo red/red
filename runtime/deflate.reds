@@ -20,10 +20,6 @@ deflate: context [
 	#define MAX_DIST		32767	;-- a match at 32768 would share its chain slot with the current position
 	#define HASH_SIZE		32768	;-- hash of 3 bytes on 15 bits, fewer for short inputs (8 at least)
 	#define TOO_FAR			4096	;-- a 3-byte match farther than that is coded as literals
-	#define GOOD_LEN		8		;-- match search effort, as zlib's level 6:
-	#define LAZY_LEN		16		;-- no search after a match that long
-	#define NICE_LEN		128		;-- a match that long ends the search
-	#define MAX_CHAIN		128		;-- candidates per search (a quarter after a GOOD_LEN match)
 	#define BLOCK_SYMS		16384	;-- symbols per block
 	#define STORED_MAX		65535	;-- bytes per stored block
 	#define LCODES			288		;-- literal/length codes (286 used)
@@ -125,6 +121,18 @@ deflate: context [
 		03 03 03 03 04 04 04 04
 		05 05 05 05 00 00 00 00
 	}
+
+	LEVELS: protect [						;-- zlib's match search of levels 1 to 9: good, lazy, nice, chain
+		4	4	8	4
+		4	5	16	8
+		4	6	32	32
+		4	4	16	16
+		8	16	32	32
+		8	16	128	128
+		8	32	128	256
+		32	128	258	1024
+		32	258	258	4096
+	]
 
 	rev16: func [
 		n			[integer!]
@@ -649,6 +657,9 @@ deflate: context [
 		best		[integer!]					;-- length to beat
 		max			[integer!]					;-- bytes left at `p`, MAX_MATCH at most
 		dist		[int-ptr!]					;-- distance of the match found
+		good		[integer!]					;-- a quarter of the candidates after a match that long
+		nice		[integer!]					;-- a match that long ends the search
+		chain		[integer!]					;-- candidates per search
 		return:		[integer!]					;-- its length, or `best`
 		/local
 			scan	[byte-ptr!]
@@ -657,17 +668,13 @@ deflate: context [
 			m		[byte-ptr!]
 			e0		[byte!]
 			e1		[byte!]
-			chain	[integer!]
-			nice	[integer!]
 			limit	[integer!]
 			len		[integer!]
 			b1		[integer!]
 			k		[integer!]
 	][
 		if best >= max [return best]
-		chain: MAX_CHAIN
-		if best >= GOOD_LEN [chain: chain >> 2]
-		nice: NICE_LEN
+		if best >= good [chain: chain >> 2]
 		if nice > max [nice: max]
 		limit: p - MAX_DIST - 1
 		if limit < 0 [limit: 0]
@@ -708,9 +715,14 @@ deflate: context [
 		out-size	[int-ptr!]
 		in			[byte-ptr!]
 		in-size		[integer!]
+		level		[integer!]						;-- 1 to 9, -1: 6
 		return:		[integer!]
 		/local
 			st		[DEFLATE! value]
+			good	[integer!]						;-- match search of the level
+			lazy	[integer!]
+			nice	[integer!]
+			chain	[integer!]
 			work	[int-ptr!]
 			head	[int-ptr!]
 			prev	[int-ptr!]
@@ -772,6 +784,16 @@ deflate: context [
 		gen-codes flens st/fcodes LCODES
 		gen-codes flens + LCODES st/fcodes + LCODES DCODES
 
+		if level < 1 [level: 6]
+		k: level * 4 - 3
+		good: LEVELS/k
+		k: k + 1
+		lazy: LEVELS/k
+		k: k + 1
+		nice: LEVELS/k
+		k: k + 1
+		chain: LEVELS/k
+
 		k: 8										;-- hash table sized to the input: fewer pages touched
 		while [all [k < 15 (1 << k) < in-size]][k: k + 1]
 		hmask: (1 << k) - 1
@@ -800,10 +822,10 @@ deflate: context [
 			]
 			either skip > 0 [skip: skip - 1][
 				len: MIN_MATCH - 1
-				if all [cand > 0 p - cand <= MAX_DIST plen < LAZY_LEN][
+				if all [cand > 0 p - cand <= MAX_DIST plen < lazy][
 					k: in-size - p + 1
 					if k > MAX_MATCH [k: MAX_MATCH]
-					len: longest-match in prev p cand plen k :dist
+					len: longest-match in prev p cand plen k :dist good nice chain
 					if all [len = MIN_MATCH dist > TOO_FAR][len: MIN_MATCH - 1]
 				]
 				either all [plen >= MIN_MATCH len <= plen][	;-- codes the match at `p - 1`

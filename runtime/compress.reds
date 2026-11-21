@@ -176,12 +176,14 @@ gzip-compress: func [
 	dest-len	[int-ptr!]
 	src			[byte-ptr!]
 	src-len		[integer!]
+	level		[integer!]
 	return:		[integer!]
 	/local
 		dstart	[byte-ptr!]
 		dend	[byte-ptr!]
 		res		[integer!]
 		crc		[integer!]
+		b		[byte!]
 ][
 	;-- check if data is already compressed
 	if all [src-len > 2 src/1 = #"^(1F)" src/2 = #"^(8B)" src/3 = #"^(08)"][
@@ -209,11 +211,14 @@ gzip-compress: func [
 	dest/6: #"^(00)"
 	dest/7: #"^(00)"
 	dest/8: #"^(00)"
-	dest/9: #"^(04)"			;-- XFL
+	b: #"^(04)"					;-- XFL, as zlib sets it for the level: fastest (also without /level)
+	if level > 1 [b: #"^(00)"]
+	if level = 9 [b: #"^(02)"]	;-- slowest
+	dest/9: b
 	dest/10: #"^(04)"			;-- OS
 	dest: dest + 10
 	dest-len/1: dest-len/1 - 10
-	res: deflate/compress dest dest-len src src-len
+	res: deflate/compress dest dest-len src src-len level
 	if res <> 0 [
 		dest-len/1: dest-len/1 + 18
 		return res
@@ -291,11 +296,13 @@ zlib-compress: func [
 	dest-len	[int-ptr!]
 	src			[byte-ptr!]
 	src-len		[integer!]
+	level		[integer!]
 	return:		[integer!]
 	/local
 		dend	[byte-ptr!]
 		res		[integer!]
 		crc		[integer!]
+		b		[byte!]
 ][
 	if dest-len/1 < 6 [
 		dest-len/1: 6 + src-len
@@ -303,10 +310,14 @@ zlib-compress: func [
 	]
 	dend: dest + dest-len/1
 	dest/1: #"^(78)"
-	dest/2: #"^(01)"
+	b: #"^(01)"								;-- FLEVEL as zlib sets it for the level, with FCHECK: fastest (also without /level)
+	if level > 1 [b: #"^(5E)"]				;-- fast
+	if level = 6 [b: #"^(9C)"]				;-- default
+	if level > 6 [b: #"^(DA)"]				;-- slowest
+	dest/2: b
 	dest: dest + 2
 	dest-len/1: dest-len/1 - 2
-	res: deflate/compress dest dest-len src src-len
+	res: deflate/compress dest dest-len src src-len level
 	if res <> 0 [
 		dest-len/1: dest-len/1 + 6
 		return res

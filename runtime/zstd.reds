@@ -11,7 +11,7 @@ Red/System [
 	Note: {
 		Zstandard frames (RFC 8878), written from the specification.
 		Decoding: every frame and block type, skippable frames, content checksums; no dictionaries.
-		Encoding: one frame with its content size, no checksum; blocks matched as zstd's level 3 does.
+		Encoding: one frame with its content size, no checksum; levels 1 to 19 (default 3), zstd's settings up to 12, deeper hash chain searches above.
 	}
 ]
 
@@ -1291,7 +1291,6 @@ zstd: context [
 
 	;-- encoder
 
-	#define ZSTD_WINDOW			200000h				;-- farthest match: 2 MB
 	#define ZSTD_PRIME1			9E3779B1h
 	#define ZSTD_PRIME2			85EBCA77h
 
@@ -1301,7 +1300,13 @@ zstd: context [
 		short		[int-ptr!]
 		lsh			[integer!]						;-- 32 - their log sizes
 		ssh			[integer!]
-		m5			[integer!]						;-- FFh: short hash of 5 bytes, 0: of 4
+		m5			[integer!]						;-- short hash of 4 to 7 bytes: 0, FFh, FFFFh, FFFFFFh
+		window		[integer!]						;-- farthest match
+		depth		[integer!]						;-- -1: the two tables above, 0 to 2: hash chains, lazy steps
+		attempts	[integer!]						;-- hash chains: candidates per search
+		cmask		[integer!]						;-- chain size - 1
+		ins			[integer!]						;-- next position to put in the chains
+		skip?		[logic!]						;-- only the positions searched go in the chains
 		rep1		[integer!]						;-- repeat offsets, as the decoder will have them
 		rep2		[integer!]
 		lits		[byte-ptr!]						;-- literals of the block
@@ -1343,6 +1348,33 @@ zstd: context [
 	}
 
 	RTB: protect [0 473195 504333 520860 550000 700000 750000 830000]	;-- round-up thresholds, 20-bit fractions
+
+	ZSTD-LEVELS: protect #{						;-- levels 1 to 19: window, chain and hash logs, search log, match length, matcher
+		;-- inputs above 256 KB
+		13 0D 0E 01 07 00  14 0F 10 01 06 00  15 10 11 01 05 00  15 12 12 01 05 00
+		15 12 13 03 05 01  15 12 13 03 05 02  15 13 14 04 05 02  15 13 14 04 05 03
+		16 14 15 04 05 03  16 15 16 05 05 03  16 15 16 06 05 03  16 16 17 06 05 03
+		16 16 16 06 05 03  16 16 17 06 05 03  16 17 17 07 05 03  16 16 16 07 05 03
+		17 17 16 08 04 03  17 17 16 08 04 03  17 18 16 08 04 03
+		;-- up to 256 KB
+		12 0D 0E 01 06 00  12 0E 0E 01 05 00  12 10 10 01 04 00  12 10 11 03 05 01
+		12 11 12 05 05 01  12 12 13 03 05 02  12 12 13 04 04 02  12 12 13 04 04 03
+		12 12 13 05 04 03  12 12 13 06 04 03  12 12 13 06 04 03  12 13 13 07 04 03
+		12 12 13 07 04 03  12 12 13 07 04 03  12 12 13 07 04 03  12 13 13 07 04 03
+		12 13 13 08 04 03  12 13 13 08 04 03  12 13 13 08 04 03
+		;-- up to 128 KB
+		11 0C 0D 01 06 00  11 0D 0F 01 05 00  11 0F 10 02 05 00  11 11 11 02 04 00
+		11 10 11 03 04 01  11 10 11 03 04 02  11 10 11 03 04 03  11 10 11 04 04 03
+		11 10 11 05 04 03  11 10 11 06 04 03  11 11 11 06 04 03  11 12 11 07 04 03
+		11 12 11 07 04 03  11 12 11 07 04 03  11 12 11 07 04 03  11 12 11 07 04 03
+		11 12 11 08 04 03  11 12 11 08 04 03  11 12 11 08 04 03
+		;-- up to 16 KB
+		0E 0E 0F 01 05 00  0E 0E 0F 01 04 00  0E 0E 0F 02 04 00  0E 0E 0E 04 04 01
+		0E 0E 0E 03 04 02  0E 0E 0E 04 04 03  0E 0E 0E 06 04 03  0E 0E 0E 08 04 03
+		0E 0F 0E 08 04 03  0E 0F 0E 08 04 03  0E 0F 0E 08 04 03  0E 0F 0E 08 04 03
+		0E 0F 0E 08 04 03  0E 0F 0F 08 04 03  0E 0F 0F 08 04 03  0E 0F 0F 08 04 03
+		0E 0F 0F 08 04 03  0E 0F 0F 08 04 03  0E 0F 0F 08 04 03
+	}
 
 	;-- bit streams read backward: locals bits, cnt, op
 
@@ -1483,14 +1515,14 @@ zstd: context [
 		as-integer p - s
 	]
 
-	match-block: func [							;-- sequences and literals of a block, matched as zstd's level 3
+	match-block: func [							;-- sequences and literals of a block, matched on two hash tables (lowest levels)
 		st		[ZSTD-ENC!]
 		bstart	[byte-ptr!]
 		bend	[byte-ptr!]
 		/local
 			in ip anchor m limit lits q q4 ld ls le [byte-ptr!]
 			i4 long short sll sml sof s4 d4 [int-ptr!]
-			cur cl cs hl hs len dist rep1 rep2 ns nl a b c t k lsh ssh m5 [integer!]
+			cur cl cs hl hs len dist rep1 rep2 ns nl a b c t k lsh ssh m5 win [integer!]
 	][
 		in: st/in
 		long: st/long
@@ -1498,6 +1530,7 @@ zstd: context [
 		lsh: st/lsh
 		ssh: st/ssh
 		m5: st/m5
+		win: st/window
 		rep1: st/rep1
 		rep2: st/rep2
 		sll: st/sll
@@ -1528,7 +1561,7 @@ zstd: context [
 					ip: q
 				]
 			]
-			if all [len = 0 cl > 0 cur - cl < ZSTD_WINDOW][	;-- the same 8 bytes before
+			if all [len = 0 cl > 0 cur - cl < win][	;-- the same 8 bytes before
 				m: in + cl - 1
 				ZSTD_GET32(c m)
 				q: m + 4
@@ -1538,7 +1571,7 @@ zstd: context [
 					dist: cur - cl + 1
 				]
 			]
-			if all [len = 0 cs > 0 cur - cs < ZSTD_WINDOW][	;-- the same 5 bytes before
+			if all [len = 0 cs > 0 cur - cs < win][	;-- the same 5 bytes before
 				m: in + cs - 1
 				ZSTD_GET32(c m)
 				if c = a [
@@ -1547,7 +1580,7 @@ zstd: context [
 					ZSTD_HASH(q)
 					cl: long/hl
 					long/hl: cur + 2
-					if all [cl > 0 cur + 1 - cl < ZSTD_WINDOW][
+					if all [cl > 0 cur + 1 - cl < win][
 						q4: in + cl - 1
 						ZSTD_GET32(c q4)
 						q4: q4 + 4
@@ -1623,6 +1656,234 @@ zstd: context [
 						anchor: ip
 					]
 				]
+			]
+		]
+		k: as-integer bend - anchor
+		copy-memory lits + nl anchor k
+		st/nlits: nl + k
+		st/nseq: ns
+		st/rep1: rep1
+		st/rep2: rep2
+	]
+
+	#define ZSTD_CHASH(_p) [						;-- hl: hash of the first 4 to 6 bytes at _p (as m5 says)
+		ZSTD_GET32(a _p)
+		q4: _p + 4
+		ZSTD_GET32(b q4)
+		hl: b and m5 * ZSTD_PRIME2 xor (a * ZSTD_PRIME1) >>> lsh + 1
+	]
+
+	chain-search: func [						;-- longest match at `ip` in its hash chain, positions before `ip` inserted first
+		st		[ZSTD-ENC!]
+		ip		[byte-ptr!]
+		iend	[byte-ptr!]						;-- matches stop there
+		dist	[int-ptr!]						;-- out: distance of the match
+		return:	[integer!]						;-- its length, 0: none of 4 bytes at least
+		/local
+			in q q4 m	[byte-ptr!]
+			i4 head chain [int-ptr!]
+			cur pos a b hl k n ml len cand low minc lsh m5 cmask [integer!]
+	][
+		in: st/in
+		head: st/long
+		chain: st/short
+		lsh: st/lsh
+		m5: st/m5
+		cmask: st/cmask
+		cur: as-integer ip - in
+		pos: st/ins
+		while [pos < cur][
+			q: in + pos
+			ZSTD_CHASH(q)
+			k: pos and cmask + 1
+			chain/k: head/hl
+			head/hl: pos + 1
+			pos: pos + 1
+			if st/skip? [pos: cur]				;-- through data without matches: only the positions searched
+		]
+		st/ins: cur
+		ZSTD_CHASH(ip)
+		cand: head/hl							;-- position + 1, 0: none
+		low: cur - st/window
+		if low < 0 [low: 0]
+		minc: cur - cmask - 1					;-- older positions: their chain slot was reused
+		n: st/attempts
+		ml: 3
+		while [all [cand > low n > 0]][
+			m: in + cand - 1
+			q: m + ml - 3						;-- the 4 bytes up to the one a longer match needs
+			q4: ip + ml - 3
+			ZSTD_GET32(a q)
+			ZSTD_GET32(b q4)
+			if a = b [
+				len: match-len ip m iend
+				if len > ml [
+					ml: len
+					dist/value: cur - cand + 1
+					if ip + len = iend [break]
+				]
+			]
+			k: cand - 1
+			if k <= minc [break]
+			k: k and cmask + 1
+			cand: chain/k
+			n: n - 1
+		]
+		if ml < 4 [ml: 0]
+		ml
+	]
+
+	chain-block: func [						;-- sequences and literals of a block, lazy matching on hash chains
+		st		[ZSTD-ENC!]
+		bstart	[byte-ptr!]
+		bend	[byte-ptr!]
+		/local
+			in ip anchor start limit lits q m ld ls le [byte-ptr!]
+			i4 sll sml sof s4 d4 [int-ptr!]
+			rep1 rep2 ns nl ml ob mlr k cur depth g1 g2 a b c dist [integer!]
+	][
+		in: st/in
+		rep1: st/rep1
+		rep2: st/rep2
+		sll: st/sll
+		sml: st/sml
+		sof: st/sof
+		lits: st/lits
+		depth: st/depth
+		dist: 0
+		ns: 0
+		nl: 0
+		ip: bstart
+		anchor: bstart
+		limit: bend - 8
+		while [ip < limit][
+			ml: 0
+			ob: 1									;-- repeat code, else offset + 3
+			start: ip + 1
+			cur: as-integer ip - in
+			if rep1 <= (cur + 1) [					;-- the last offset, one byte further
+				q: ip + 1
+				m: q - rep1
+				ZSTD_GET32(a q)
+				ZSTD_GET32(b m)
+				if a = b [ml: (match-len q + 4 m + 4 bend) + 4]
+			]
+			unless all [ml > 0 depth = 0][			;-- greedy: a repeat match is kept at once
+				k: chain-search st ip bend :dist
+				if k > ml [
+					ml: k
+					ob: dist + 3
+					start: ip
+				]
+				if ml < 4 [
+					k: as-integer ip - anchor
+					k: k >> 8 + 1
+					ip: ip + k						;-- faster through data without matches
+					st/skip?: k > 8
+					continue
+				]
+				if depth > 0 [
+					while [ip < limit][				;-- a better match one byte further, two for lazy2?
+						ip: ip + 1
+						cur: cur + 1
+						if rep1 <= cur [
+							m: ip - rep1
+							ZSTD_GET32(a ip)
+							ZSTD_GET32(b m)
+							if a = b [
+								mlr: (match-len ip + 4 m + 4 bend) + 4
+								g1: ml * 3 - (log-b ob) + 1
+								if mlr * 3 > g1 [
+									ml: mlr
+									ob: 1
+									start: ip
+								]
+							]
+						]
+						k: chain-search st ip bend :dist
+						if k > 0 [
+							g2: k * 4 - (log-b dist + 3)
+							g1: ml * 4 - (log-b ob) + 4
+							if g2 > g1 [
+								ml: k
+								ob: dist + 3
+								start: ip
+								continue
+							]
+						]
+						if all [depth = 2 ip < limit][
+							ip: ip + 1
+							cur: cur + 1
+							if rep1 <= cur [
+								m: ip - rep1
+								ZSTD_GET32(a ip)
+								ZSTD_GET32(b m)
+								if a = b [
+									mlr: (match-len ip + 4 m + 4 bend) + 4
+									g1: ml * 4 - (log-b ob) + 1
+									if mlr * 4 > g1 [
+										ml: mlr
+										ob: 1
+										start: ip
+									]
+								]
+							]
+							k: chain-search st ip bend :dist
+							if k > 0 [
+								g2: k * 4 - (log-b dist + 3)
+								g1: ml * 4 - (log-b ob) + 7
+								if g2 > g1 [
+									ml: k
+									ob: dist + 3
+									start: ip
+									continue
+								]
+							]
+						]
+						break
+					]
+				]
+				if ob > 3 [							;-- extends the match backward
+					dist: ob - 3
+					m: start - dist
+					while [all [start > anchor m > in]][
+						q: start - 1
+						m: m - 1
+						if q/1 <> m/1 [break]
+						start: q
+						ml: ml + 1
+					]
+					rep2: rep1
+					rep1: dist
+				]
+			]
+			ns: ns + 1
+			sof/ns: ob
+			sml/ns: ml
+			k: as-integer start - anchor
+			sll/ns: k
+			ZSTD_LITS((lits + nl) anchor k bend)
+			nl: nl + k
+			ip: start + ml
+			anchor: ip
+			st/skip?: no
+			while [ip <= limit][					;-- the offset before the last one, at once
+				k: as-integer ip - in
+				if rep2 > k [break]
+				q: ip - rep2
+				ZSTD_GET32(a ip)
+				ZSTD_GET32(b q)
+				if a <> b [break]
+				ml: (match-len ip + 4 q + 4 bend) + 4
+				c: rep2
+				rep2: rep1
+				rep1: c
+				ns: ns + 1
+				sll/ns: 0
+				sml/ns: ml
+				sof/ns: 1
+				ip: ip + ml
+				anchor: ip
 			]
 		]
 		k: as-integer bend - anchor
@@ -2355,7 +2616,7 @@ zstd: context [
 		csize: -1
 		room: n - (n >> 6) - 3						;-- compressed size worth it, at most
 		if room > 1 [
-			match-block st src src + n
+			either st/depth < 0 [match-block st src src + n][chain-block st src src + n]
 			k: put-lits st dst + 3 room - 1
 			if k > 0 [
 				csize: put-seqs st dst + 3 + k room - k
@@ -2395,12 +2656,13 @@ zstd: context [
 		out-size	[int-ptr!]
 		in			[byte-ptr!]
 		in-size		[integer!]
+		level		[integer!]						;-- 1 to 19, -1: 3
 		return:		[integer!]
 		/local
 			st		[ZSTD-ENC! value]
 			work heap [int-ptr!]
-			op p e	[byte-ptr!]
-			n k lg sg bs ns [integer!]
+			op p e lv [byte-ptr!]
+			n k lg sg bs ns w [integer!]
 	][
 		n: in-size
 		k: n + ZSTD_BLOCK_MAX - 1 / ZSTD_BLOCK_MAX
@@ -2410,29 +2672,32 @@ zstd: context [
 			out-size/value: k
 			return ZSTD-NO-MEM
 		]
-		k: 6										;-- hash tables and match length: zstd's level 3 for this size
+		if level < 1 [level: 3]
+		k: 0										;-- zstd's settings of the level for this input size
+		if n <= 262144 [k: 1]
+		if n <= 131072 [k: 2]
+		if n <= 16384 [k: 3]
+		lv: ZSTD-LEVELS + (k * 19 + level - 1 * 6)
+		w: as integer! lv/1
+		sg: as integer! lv/2
+		lg: as integer! lv/3
+		st/attempts: 1 << as integer! lv/4
+		k: as integer! lv/5
+		st/m5: (1 << (k - 4 * 8)) - 1
+		st/depth: (as integer! lv/6) - 1
+		k: 6										;-- tables sized to the input
 		if n > 64 [k: (log-b n - 1) + 1]
-		lg: 17
-		sg: 16
-		st/m5: FFh
-		case [
-			n <= 16384 [
-				lg: 15
-				sg: 14
-				st/m5: 0
-			]
-			n <= 131072 [
-				lg: 16
-				sg: 15
-			]
-			n <= 262144 [
-				lg: 16
-				st/m5: 0
-			]
-			true [0]
+		if lg > k [lg: k]
+		either st/depth < 0 [
+			if sg > (k - 1) [sg: k - 1]				;-- two tables half zstd's size: as good for small inputs
+		][
+			if sg > k [sg: k]
+			if sg > w [sg: w]
 		]
-		if lg > k [lg: k]							;-- tables half zstd's size: as good for small inputs
-		if sg > (k - 1) [sg: k - 1]
+		st/window: 1 << w
+		st/cmask: (1 << sg) - 1
+		st/ins: 0
+		st/skip?: no
 		bs: n
 		if bs > ZSTD_BLOCK_MAX [bs: ZSTD_BLOCK_MAX]
 		ns: bs >> 2 + 2								;-- sequences of a block, at most
@@ -2479,7 +2744,7 @@ zstd: context [
 		op/2: #"^(B5)"
 		op/3: #"^(2F)"
 		op/4: #"^(FD)"
-		either n <= ZSTD_WINDOW [					;-- single segment: the window is the content
+		either n <= st/window [					;-- single segment: the window is the content
 			case [
 				n < 256 [
 					op/5: #"^(20)"
@@ -2500,7 +2765,7 @@ zstd: context [
 			]
 		][
 			op/5: #"^(80)"
-			op/6: #"^(58)"							;-- window of 2 MB
+			op/6: as byte! w - 10 << 3				;-- window of the level
 			op: op + 6
 		]
 		if n >= 65792 [

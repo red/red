@@ -180,6 +180,21 @@ Red [
 		--assert #{7801FBFFEFEF9FDFBF0014CE05EC} = compress dc-data 'zlib
 		--assert #{1F8B0800000000000404FBFFEFEF9FDFBF00E983F0C006000000} = compress dc-data 'gzip
 
+	--test-- "compression levels"
+		foreach dc-m [deflate zlib gzip zstd][
+			foreach dc-l either dc-m = 'zstd [[1 3 4 5 6 9 19]][[1 6 9]][
+				--assert dc-text = decompress compress/level dc-text dc-m dc-l dc-m
+			]
+		]
+		--assert (compress dc-text 'deflate) = compress/level dc-text 'deflate 6
+		--assert (compress dc-text 'zstd) = compress/level dc-text 'zstd 3
+		--assert (length? compress/level dc-text 'deflate 9) < length? compress/level dc-text 'deflate 1
+		--assert (length? compress/level dc-text 'zstd 19) < length? compress/level dc-text 'zstd 1
+		--assert error? try [compress/level dc-text 'zstd 20]
+		--assert error? try [compress/level dc-text 'deflate 0]
+		--assert [#{7801} #{785E} #{789C} #{78DA}] = collect [foreach dc-l [1 5 6 9][keep copy/part compress/level dc-text 'zlib dc-l 2]]	;-- FLEVEL
+		--assert [4 0 0 2] = collect [foreach dc-l [1 5 6 9][keep pick compress/level dc-text 'gzip dc-l 9]]	;-- XFL
+
 ===end-group===
 
 ~~~end-file~~~
