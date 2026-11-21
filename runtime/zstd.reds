@@ -11,7 +11,7 @@ Red/System [
 	Note: {
 		Zstandard frames (RFC 8878), written from the specification.
 		Decoding: every frame and block type, skippable frames, content checksums; no dictionaries.
-		Encoding: one frame with its content size, no checksum; levels 1 to 19 (default 3), zstd's settings and match finders, optimal parsing at the highest.
+		Encoding: one frame with its content size, no checksum; levels 1 to 19 (default 3), zstd's settings and match finders, optimal parsing and block splitting at the highest.
 	}
 ]
 
@@ -1296,6 +1296,7 @@ zstd: context [
 	#define ZSTD_PRIME3			1E35A7BDh			;-- 3-byte hash, zstd's
 	#define ZSTD_OPT_NUM		4096				;-- optimal parser: positions priced in one pass, at most
 	#define ZSTD_MAX_PRICE		40000000h
+	#define ZSTD_SPLITS			196					;-- block splitter: split points of a block, at most (zstd's)
 
 	ZSTD-ENC!: alias struct! [
 		in			[byte-ptr!]						;-- input
@@ -1332,6 +1333,8 @@ zstd: context [
 		llbase		[integer!]
 		mlbase		[integer!]
 		obase		[integer!]
+		split?		[logic!]						;-- blocks cut where the parts are smaller (zstd's block splitter)
+		sof2		[int-ptr!]						;-- offset values of a part, as written
 		rep1		[integer!]						;-- repeat offsets, as the decoder will have them
 		rep2		[integer!]
 		rep3		[integer!]
@@ -1353,6 +1356,19 @@ zstd: context [
 		stab		[int-ptr!]						;-- 3 x 512: next states of LL, OF, ML
 		tt			[int-ptr!]						;-- 3 x 128: bit count and state deltas per symbol
 		logs		[int-ptr!]						;-- 3: their accuracy logs
+	]
+
+	ZSTD-SEQS!: alias struct! [					;-- a block's sequences and literals, as the matcher left them
+		sll			[int-ptr!]
+		sml			[int-ptr!]
+		sof			[int-ptr!]
+		cll			[byte-ptr!]
+		cml			[byte-ptr!]
+		cof			[byte-ptr!]
+		lits		[byte-ptr!]
+		nlits		[integer!]
+		nseq		[integer!]
+		src			[byte-ptr!]						;-- the block's bytes
 	]
 
 	LL-CODE: protect #{
@@ -3413,40 +3429,23 @@ zstd: context [
 		put-raw dst lits n no room
 	]
 
-	put-block: func [							;-- one block: compressed, RLE or raw
+	put-part: func [							;-- the sequences and literals in st as one block of `n` bytes at `src`: compressed, RLE or raw
 		st		[ZSTD-ENC!]
 		src		[byte-ptr!]
 		n		[integer!]
 		last	[integer!]						;-- 1: last block
 		dst		[byte-ptr!]
+		r1		[integer!]						;-- repeat offsets before them, the decoder's if the block is not compressed
+		r2		[integer!]
+		r3		[integer!]
 		return:	[byte-ptr!]						;-- position after the block
 		/local
 			p e		[byte-ptr!]
-			r1 r2 r3 room k csize b [integer!]
+			room k csize b [integer!]
 	][
-		r1: st/rep1
-		r2: st/rep2
-		r3: st/rep3
 		csize: -1
 		room: n - (n >> 6) - 3						;-- compressed size worth it, at most
 		if room > 1 [
-			case [
-				st/depth < 0 [match-block st src src + n]
-				st/parser = 0 [chain-block st src src + n]
-				true [
-					if all [st/parser = 3 st/llsum = 0 n > 8][	;-- first block: parsed twice, the first time for statistics
-						opt-block st src src + n
-						set-memory as byte-ptr! st/long null-byte 4 << (32 - st/lsh)
-						if st/h3sh > 0 [set-memory as byte-ptr! st/h3 null-byte 4 << (32 - st/h3sh)]
-						st/ins: 0
-						st/ins3: 0
-						st/rep1: r1
-						st/rep2: r2
-						st/rep3: r3
-					]
-					opt-block st src src + n
-				]
-			]
 			k: put-lits st dst + 3 room - 1
 			if k > 0 [
 				csize: put-seqs st dst + 3 + k room - k
@@ -3481,6 +3480,255 @@ zstd: context [
 		dst/2: as byte! b >> 8
 		dst/3: as byte! b >> 16
 		dst + 3 + csize
+	]
+
+	seq-view: func [							;-- st's sequences and literals: those of sequences a to b - 1 of the block in v (b = all: its last literals too)
+		st		[ZSTD-ENC!]
+		v		[ZSTD-SEQS!]
+		a		[integer!]
+		b		[integer!]
+		len		[int-ptr!]						;-- out: their size in bytes
+		return:	[byte-ptr!]						;-- their first byte
+		/local
+			sll sml	[int-ptr!]
+			i lo mo l2 m2 [integer!]
+	][
+		sll: v/sll
+		sml: v/sml
+		lo: 0										;-- literals and match bytes before sequence a, then before b
+		mo: 0
+		i: 1
+		while [i <= a][
+			lo: lo + sll/i
+			mo: mo + sml/i
+			i: i + 1
+		]
+		l2: lo
+		m2: mo
+		while [i <= b][
+			l2: l2 + sll/i
+			m2: m2 + sml/i
+			i: i + 1
+		]
+		if b = v/nseq [l2: v/nlits]
+		st/sll: sll + a
+		st/sml: sml + a
+		st/sof: v/sof + a
+		st/cll: v/cll + a
+		st/cml: v/cml + a
+		st/cof: v/cof + a
+		st/lits: v/lits + lo
+		st/nlits: l2 - lo
+		st/nseq: b - a
+		len/value: l2 - lo + m2 - mo
+		v/src + lo + mo
+	]
+
+	part-size: func [							;-- size of the block put-part writes at dst for sequences a to b - 1
+		st		[ZSTD-ENC!]
+		v		[ZSTD-SEQS!]
+		a		[integer!]
+		b		[integer!]
+		dst		[byte-ptr!]
+		return:	[integer!]
+		/local
+			p e		[byte-ptr!]
+			len		[integer!]
+	][
+		len: 0
+		p: seq-view st v a b :len
+		e: put-part st p len 0 dst st/rep1 st/rep2 st/rep3
+		as-integer e - dst
+	]
+
+	split-seqs: func [							;-- where sequences a to b - 1 (a block of `full` bytes) are smaller in halves, as zstd's splitter cuts them
+		st		[ZSTD-ENC!]
+		v		[ZSTD-SEQS!]
+		a		[integer!]
+		b		[integer!]
+		full	[integer!]
+		dst		[byte-ptr!]						;-- scratch output
+		parts	[int-ptr!]						;-- out: split points, in order
+		np		[int-ptr!]						;-- their count
+		/local
+			mid s1 s2 k [integer!]
+	][
+		if any [b - a < 300 np/value >= ZSTD_SPLITS][exit]
+		mid: a + b / 2
+		s1: part-size st v a mid dst
+		s2: part-size st v mid b dst
+		if s1 + s2 < full [
+			split-seqs st v a mid s1 dst parts np
+			if np/value < ZSTD_SPLITS [				;-- the first half may have used the last ones
+				k: np/value + 1
+				np/value: k
+				parts/k: mid
+				split-seqs st v mid b s2 dst parts np
+			]
+		]
+	]
+
+	fix-reps: func [							;-- offset values of st's sequences into `o`: a repeat code an offset where the decoder's repeat offsets (st) differ from the encoder's (c)
+		st		[ZSTD-ENC!]
+		c		[int-ptr!]						;-- the encoder's repeat offsets
+		o		[int-ptr!]
+		/local
+			d sll sof [int-ptr!]
+			i z k ob od oc rc ro [integer!]
+	][
+		d: system/stack/allocate 3
+		d/1: st/rep1
+		d/2: st/rep2
+		d/3: st/rep3
+		sll: st/sll
+		sof: st/sof
+		i: 1
+		while [i <= st/nseq][
+			ob: sof/i
+			z: 0
+			if sll/i = 0 [z: 1]
+			o/i: ob
+			if ob <= 3 [
+				rc: ob - 1 + z
+				either rc = 3 [
+					od: d/1 - 1
+					oc: c/1 - 1
+				][
+					rc: rc + 1
+					od: d/rc
+					oc: c/rc
+				]
+				if od <> oc [o/i: oc + 3]
+			]
+			k: o/i
+			ZSTD_NEWREP(d d k z)
+			ZSTD_NEWREP(c c ob z)
+			i: i + 1
+		]
+		st/rep1: d/1
+		st/rep2: d/2
+		st/rep3: d/3
+	]
+
+	split-block: func [							;-- the block's sequences cut where the parts are smaller, one block each (zstd's block splitter)
+		st		[ZSTD-ENC!]
+		src		[byte-ptr!]
+		n		[integer!]
+		last	[integer!]						;-- 1: last block
+		dst		[byte-ptr!]
+		r1		[integer!]						;-- repeat offsets before the block
+		r2		[integer!]
+		r3		[integer!]
+		return:	[byte-ptr!]						;-- position after the blocks
+		/local
+			v		[ZSTD-SEQS! value]
+			parts c	[int-ptr!]
+			p q		[byte-ptr!]
+			np i a b len full lb e1 e2 e3 d1 d2 d3 [integer!]
+	][
+		v/sll: st/sll
+		v/sml: st/sml
+		v/sof: st/sof
+		v/cll: st/cll
+		v/cml: st/cml
+		v/cof: st/cof
+		v/lits: st/lits
+		v/nlits: st/nlits
+		v/nseq: st/nseq
+		v/src: src
+		e1: st/rep1									;-- the encoder's repeat offsets after the block
+		e2: st/rep2
+		e3: st/rep3
+		parts: system/stack/allocate ZSTD_SPLITS + 1		;-- and the block's end
+		np: 0
+		full: part-size st v 0 v/nseq dst
+		split-seqs st v 0 v/nseq full dst parts :np
+		q: null
+		if np > 0 [
+			np: np + 1
+			parts/np: v/nseq
+			c: system/stack/allocate 3
+			c/1: r1
+			c/2: r2
+			c/3: r3
+			st/rep1: r1								;-- the decoder's, in st
+			st/rep2: r2
+			st/rep3: r3
+			q: dst
+			a: 0
+			len: 0
+			i: 1
+			while [i <= np][
+				b: parts/i
+				p: seq-view st v a b :len
+				if (as-integer q - dst) + len > n [	;-- a raw part would pass the block's room: one block instead
+					q: null
+					break
+				]
+				d1: st/rep1
+				d2: st/rep2
+				d3: st/rep3
+				fix-reps st c st/sof2
+				st/sof: st/sof2
+				lb: 0
+				if i = np [lb: last]
+				q: put-part st p len lb q d1 d2 d3
+				a: b
+				i: i + 1
+			]
+		]
+		st/sll: v/sll
+		st/sml: v/sml
+		st/sof: v/sof
+		st/cll: v/cll
+		st/cml: v/cml
+		st/cof: v/cof
+		st/lits: v/lits
+		st/nlits: v/nlits
+		st/nseq: v/nseq
+		if null? q [
+			st/rep1: e1
+			st/rep2: e2
+			st/rep3: e3
+			q: put-part st src n last dst r1 r2 r3
+		]
+		q
+	]
+
+	put-block: func [							;-- one block, or several where zstd's splitter finds them smaller
+		st		[ZSTD-ENC!]
+		src		[byte-ptr!]
+		n		[integer!]
+		last	[integer!]						;-- 1: last block
+		dst		[byte-ptr!]
+		return:	[byte-ptr!]						;-- position after the block
+		/local
+			r1 r2 r3 [integer!]
+	][
+		r1: st/rep1
+		r2: st/rep2
+		r3: st/rep3
+		if n - (n >> 6) - 3 > 1 [					;-- else not worth compressing
+			case [
+				st/depth < 0 [match-block st src src + n]
+				st/parser = 0 [chain-block st src src + n]
+				true [
+					if all [st/parser = 3 st/llsum = 0 n > 8][	;-- first block: parsed twice, the first time for statistics
+						opt-block st src src + n
+						set-memory as byte-ptr! st/long null-byte 4 << (32 - st/lsh)
+						if st/h3sh > 0 [set-memory as byte-ptr! st/h3 null-byte 4 << (32 - st/h3sh)]
+						st/ins: 0
+						st/ins3: 0
+						st/rep1: r1
+						st/rep2: r2
+						st/rep3: r3
+					]
+					opt-block st src src + n
+				]
+			]
+			if all [st/split? st/nseq >= 300][return split-block st src n last dst r1 r2 r3]
+		]
+		put-part st src n last dst r1 r2 r3
 	]
 
 	compress: func [
@@ -3533,6 +3781,7 @@ zstd: context [
 		k: 6										;-- tables sized to the input
 		if n > 64 [k: (log-b n - 1) + 1]
 		h3: 0
+		st/split?: no
 		either st/tree? [							;-- as zstd's: hash and tree logs up to the window's + 1
 			if k > w [k: w]
 			if lg > (k + 1) [lg: k + 1]
@@ -3541,6 +3790,7 @@ zstd: context [
 				h3: 17
 				if h3 > k [h3: k]
 			]
+			st/split?: all [st/parser > 0 k >= 17]	;-- as zstd: optimal parsing, windows of 128 KB at least
 		][
 			if lg > k [lg: k]
 			either st/depth < 0 [
@@ -3563,6 +3813,7 @@ zstd: context [
 		x: 0										;-- tree, optimal parser: matches, positions, statistics
 		if st/tree? [x: st/attempts + 4 << 1]
 		if st/parser > 0 [x: ZSTD_OPT_NUM + 3 << 3 + 377 + x]
+		if st/split? [x: x + ns]
 		h3n: 0
 		if h3 > 0 [h3n: 1 << h3]
 		k: (1 << lg) + (1 << sg) + h3n + (ns * 3) + 3524 + x << 2 + (ns * 3) + bs + 512
@@ -3609,6 +3860,8 @@ zstd: context [
 			st/ofq: st/mlf + 53
 			q: st/ofq + 32
 		]
+		st/sof2: q
+		if st/split? [q: q + ns]
 		st/cll: as byte-ptr! q
 		st/cml: st/cll + ns
 		st/cof: st/cml + ns

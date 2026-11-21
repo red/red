@@ -186,6 +186,8 @@ Red [
 				--assert dc-text = decompress compress/level dc-text dc-m dc-l dc-m
 			]
 		]
+		dc-data: rejoin [dc-text dc-rnd dc-text]
+		--assert dc-data = decompress compress/level dc-data 'zstd 19 'zstd	;-- a block split in several
 		--assert (compress dc-text 'deflate) = compress/level dc-text 'deflate 6
 		--assert (compress dc-text 'zstd) = compress/level dc-text 'zstd 3
 		--assert (length? compress/level dc-text 'deflate 9) < length? compress/level dc-text 'deflate 1
