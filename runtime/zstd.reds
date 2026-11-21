@@ -1104,6 +1104,7 @@ zstd: context [
 		st/unchecked?: no
 		oend: out + out-len
 		unless write? [oend: as byte-ptr! ZSTD_BIG]
+		if p = e [return ZSTD-BAD]					;-- no frame
 		while [p < e][
 			k: as-integer e - p
 			if k < 4 [return ZSTD-BAD]

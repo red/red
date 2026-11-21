@@ -113,6 +113,7 @@ Red [
 		--assert zd-text = to string! decompress/size zd-1 'zstd 1000
 
 	--test-- "zstd invalid data"
+		--assert error? try [decompress #{} 'zstd]
 		--assert error? try [decompress copy/part zd-1 100 'zstd]
 		--assert error? try [decompress head change back tail copy zd-1 #{00} 'zstd]	;-- checksum
 		--assert error? try [decompress #{28B52FFE2403190000616263990977AD} 'zstd]
