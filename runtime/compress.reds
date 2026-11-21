@@ -13,6 +13,7 @@ Red/System [
 ;-- deflate used for Red's runtime
 
 #include %deflate.reds
+#include %zstd.reds
 
 ;-- gzip-uncompress function
 #define GZIP_FTEXT		1
@@ -327,10 +328,12 @@ compressor: context [
 	zlib:		0
 	deflate:	0
 	gzip:		0
+	zstd:		0
 
 	init: does [
 		zlib:		symbol/make "zlib"
 		deflate:	symbol/make "deflate"
 		gzip:		symbol/make "gzip"
+		zstd:		symbol/make "zstd"
 	]
 ]

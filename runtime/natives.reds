@@ -2936,6 +2936,9 @@ natives: context [
 				compressor/gzip = sym [
 					res: gzip-compress buffer :buflen src srclen
 				]
+				compressor/zstd = sym [
+					res: zstd/compress buffer :buflen src srclen
+				]
 				true [fire [TO_ERROR(script invalid-arg) method]]
 			]
 			if res <> 1 [break]
@@ -2994,6 +2997,9 @@ natives: context [
 				;-- get buffer size from gzip format header
 				gzip-uncompress null :dstlen src srclen
 			]
+			compressor/zstd = sym [
+				if dstlen <= 0 [zstd/uncompress null :dstlen src srclen]	;-- size from the frames
+			]
 			true [fire [TO_ERROR(script invalid-arg) method]]
 		]
 
@@ -3005,6 +3011,7 @@ natives: context [
 				sym = compressor/zlib	 [zlib-uncompress buf :dstlen src srclen]
 				sym = compressor/deflate [deflate/uncompress buf :dstlen src srclen]
 				sym = compressor/gzip	 [gzip-uncompress buf :dstlen src srclen]
+				sym = compressor/zstd	 [zstd/uncompress buf :dstlen src srclen]
 			]
 			if res <> 1 [break]
 		]

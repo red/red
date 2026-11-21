@@ -930,7 +930,7 @@ browse: make native! [[
 compress: make native! [[
 		"Compresses data"
 		data	[any-string! binary!]
-		method	[word!]	"zlib deflate gzip"
+		method	[word!]	"zlib deflate gzip zstd"
 		return: [binary!]
 	]
 	#get-definition NAT_COMPRESS
@@ -939,7 +939,7 @@ compress: make native! [[
 decompress: make native! [[
 		"Decompresses data"
 		data	[binary!]
-		method	[word!]	"zlib deflate gzip"
+		method	[word!]	"zlib deflate gzip zstd"
 		/size "Specify an uncompressed data size (ignored for GZIP)"
 			sz [integer!] "Uncompressed data size; must not be negative"
 		return: [binary!]

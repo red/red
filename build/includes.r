@@ -114,6 +114,7 @@ write %build/bin/sources.r set-cache [
 		%utils.reds
 		%vector2d.reds
 		%wcwidth.reds
+		%zstd.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
