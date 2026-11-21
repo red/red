@@ -1539,31 +1539,29 @@ update-combo-box: func [
 	new	  [red-value!]
 	index [integer!]
 	part  [integer!]
-	list? [logic!]										;-- TRUE: drop-list or drop-down widgets
+	list? [logic!]										;-- TRUE: drop-list (NSPopUpButton), FALSE: drop-down (NSComboBox)
 	/local
 		hWnd [integer!]
 		nstr [integer!]
 		str  [red-string!]
-		sel  [red-integer!]
 		blk  [red-block!]
 		data [red-block!]
 		val  [red-value!]
 		i n	 [integer!]
 ][
 	hWnd: get-face-handle face
+	;-- caculate the index in native widget, e.g.
+	;-- we have data: ["abc" 32 "zyz" 8 "xxx"]   index: 4
+	;-- the actual insertion index: 2
+	val: block/rs-head as red-block! (object/get-values face) + FACE_OBJ_DATA
+	i: 0 n: 0
+	while [n < index][
+		if TYPE_OF(val) = TYPE_STRING [i: i + 1]
+		val: val + 1
+		n: n + 1
+	]
 	switch TYPE_OF(value) [
 		TYPE_BLOCK [
-			;-- caculate the index in native widget, e.g.
-			;-- we have data: ["abc" 32 "zyz" 8 "xxx"]   index: 4
-			;-- the actual insertion index: 2
-			val: block/rs-head as red-block! (object/get-values face) + FACE_OBJ_DATA
-			i: 0 n: 0
-			while [n < index][
-				if TYPE_OF(val) = TYPE_STRING [i: i + 1]
-				val: val + 1
-				n: n + 1
-			]
-
 			blk: as red-block! value
 			case [
 				any [
@@ -1574,6 +1572,8 @@ update-combo-box: func [
 					sym = words/_put/symbol
 					sym = words/_poke/symbol
 					sym = words/_move/symbol
+					sym = words/_change/symbol
+					sym = words/_sort/symbol
 				][
 					data: as red-block! new
 					if all [
@@ -1594,7 +1594,7 @@ update-combo-box: func [
 						objc_msgSend [hWnd sel_getUid "removeAllItems"]
 						nstr: NSString("")
 						either list? [
-							objc_msgSend [hWnd sel_getUid "setTitle:" nstr]
+							objc_msgSend [hWnd sel_getUid "addItemWithTitle:" nstr]	;-- the pull-down's title item (item 0)
 						][
 							objc_msgSend [hWnd sel_getUid "setStringValue:" nstr]
 						]
@@ -1617,15 +1617,10 @@ update-combo-box: func [
 					sym = words/_put-ed/symbol
 					sym = words/_reversed/symbol
 					sym = words/_moved/symbol
+					sym = words/_changed/symbol
+					sym = words/_sorted/symbol
 				][
-					str: as red-string! either any [
-						null? new
-						TYPE_OF(new) = TYPE_BLOCK
-					][
-						block/rs-abs-at as red-block! value index
-					][
-						new
-					]
+					str: as red-string! block/rs-abs-at as red-block! value index	;-- not `new`: /dup copies, PUT may keep the old value
 
 					ownership/unbind-each as red-block! value index part
 					loop part [
@@ -1641,11 +1636,7 @@ update-combo-box: func [
 			]
 		]
 		TYPE_STRING [
-			if any [sym = words/_lowercase/symbol sym = words/_uppercase/symbol][
-				sel: as red-integer! (object/get-values face) + FACE_OBJ_SELECTED
-				index: sel/value - 1
-			]
-			i: index
+			index: i
 			if list? [index: index + 1]
 			objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" index]
 			insert-list-item hWnd as red-string! value i list?
@@ -2412,8 +2403,11 @@ OS-update-facet: func [
 					type = drop-list
 					type = drop-down
 				][
-					if zero? part [exit]
-					update-combo-box face value sym new index part yes
+					if zero? part [								;-- sort notifies no length: it reorders up to the tail
+						unless any [sym = words/_sort/symbol sym = words/_sorted/symbol][exit]
+						part: block/rs-length? as red-block! value
+					]
+					update-combo-box face value sym new index part type = drop-list
 				]
 				type = tab-panel [
 					update-tabs face value sym new index part
