@@ -182,7 +182,7 @@ Red [
 
 	--test-- "compression levels"
 		foreach dc-m [deflate zlib gzip zstd][
-			foreach dc-l either dc-m = 'zstd [[1 3 4 5 6 9 19]][[1 6 9]][
+			foreach dc-l either dc-m = 'zstd [[1 3 4 5 6 9 12 14 17 19]][[1 6 9]][
 				--assert dc-text = decompress compress/level dc-text dc-m dc-l dc-m
 			]
 		]

@@ -11,7 +11,7 @@ Red/System [
 	Note: {
 		Zstandard frames (RFC 8878), written from the specification.
 		Decoding: every frame and block type, skippable frames, content checksums; no dictionaries.
-		Encoding: one frame with its content size, no checksum; levels 1 to 19 (default 3), zstd's settings up to 12, deeper hash chain searches above.
+		Encoding: one frame with its content size, no checksum; levels 1 to 19 (default 3), zstd's settings and match finders, optimal parsing at the highest.
 	}
 ]
 
@@ -1293,6 +1293,9 @@ zstd: context [
 
 	#define ZSTD_PRIME1			9E3779B1h
 	#define ZSTD_PRIME2			85EBCA77h
+	#define ZSTD_PRIME3			1E35A7BDh			;-- 3-byte hash, zstd's
+	#define ZSTD_OPT_NUM		4096				;-- optimal parser: positions priced in one pass, at most
+	#define ZSTD_MAX_PRICE		40000000h
 
 	ZSTD-ENC!: alias struct! [
 		in			[byte-ptr!]						;-- input
@@ -1307,8 +1310,31 @@ zstd: context [
 		cmask		[integer!]						;-- chain size - 1
 		ins			[integer!]						;-- next position to put in the chains
 		skip?		[logic!]						;-- only the positions searched go in the chains
+		tree?		[logic!]						;-- a binary tree instead: smaller and larger subtrees of each position
+		bmask		[integer!]						;-- positions in the tree - 1
+		h3			[int-ptr!]						;-- optimal parser: position + 1 of the last 3 bytes seen
+		h3sh		[integer!]						;-- 32 - its log size, 0: no table
+		ins3		[integer!]						;-- next position to put in it
+		parser		[integer!]						;-- optimal parser: 0 none, 1 prices in whole bits, 2 with fractions, 3 also first block parsed twice
+		mml			[integer!]						;-- shortest match: 3 or 4
+		suff		[integer!]						;-- match length taken at once
+		opt			[int-ptr!]						;-- positions, 8 slots: price, offset value, match and literal lengths, repeat offsets
+		mt			[int-ptr!]						;-- matches at a position: offset value, length
+		lf			[int-ptr!]						;-- counts of literals, literal lengths, match lengths, offset codes
+		llf			[int-ptr!]
+		mlf			[int-ptr!]
+		ofq			[int-ptr!]
+		lsum		[integer!]						;-- their sums, llsum 0: none yet
+		llsum		[integer!]
+		mlsum		[integer!]
+		osum		[integer!]
+		lbase		[integer!]						;-- their weights: base prices
+		llbase		[integer!]
+		mlbase		[integer!]
+		obase		[integer!]
 		rep1		[integer!]						;-- repeat offsets, as the decoder will have them
 		rep2		[integer!]
+		rep3		[integer!]
 		lits		[byte-ptr!]						;-- literals of the block
 		nlits		[integer!]
 		sll			[int-ptr!]						;-- sequences: literal length, match length, offset + 3 or 1
@@ -1349,32 +1375,35 @@ zstd: context [
 
 	RTB: protect [0 473195 504333 520860 550000 700000 750000 830000]	;-- round-up thresholds, 20-bit fractions
 
-	ZSTD-LEVELS: protect #{						;-- levels 1 to 19: window, chain and hash logs, search log, match length, matcher
+	ZSTD-LEVELS: protect #{						;-- levels 1 to 19, zstd's: window, chain, hash and search logs, match length, matcher, length taken at once / 4
+		;-- matchers: 0 two hash tables, 1 to 3 hash chains (greedy, lazy, lazy2), 4 binary tree (lazy2), 5 to 7 binary tree and optimal parser 1 to 3
 		;-- inputs above 256 KB
-		13 0D 0E 01 07 00  14 0F 10 01 06 00  15 10 11 01 05 00  15 12 12 01 05 00
-		15 12 13 03 05 01  15 12 13 03 05 02  15 13 14 04 05 02  15 13 14 04 05 03
-		16 14 15 04 05 03  16 15 16 05 05 03  16 15 16 06 05 03  16 16 17 06 05 03
-		16 16 16 06 05 03  16 16 17 06 05 03  16 17 17 07 05 03  16 16 16 07 05 03
-		17 17 16 08 04 03  17 17 16 08 04 03  17 18 16 08 04 03
+		13 0D 0E 01 07 00 00  14 0F 10 01 06 00 00  15 10 11 01 05 00 00  15 12 12 01 05 00 00
+		15 12 13 03 05 01 00  15 12 13 03 05 02 00  15 13 14 04 05 02 00  15 13 14 04 05 03 00
+		16 14 15 04 05 03 00  16 15 16 05 05 03 00  16 15 16 06 05 03 00  16 16 17 06 05 03 00
+		16 16 16 04 05 04 00  16 16 17 05 05 04 00  16 17 17 06 05 04 00  16 16 16 05 05 05 0C
+		17 17 16 05 04 05 10  17 17 16 06 03 06 10  17 18 16 07 03 07 40
 		;-- up to 256 KB
-		12 0D 0E 01 06 00  12 0E 0E 01 05 00  12 10 10 01 04 00  12 10 11 03 05 01
-		12 11 12 05 05 01  12 12 13 03 05 02  12 12 13 04 04 02  12 12 13 04 04 03
-		12 12 13 05 04 03  12 12 13 06 04 03  12 12 13 06 04 03  12 13 13 07 04 03
-		12 12 13 07 04 03  12 12 13 07 04 03  12 12 13 07 04 03  12 13 13 07 04 03
-		12 13 13 08 04 03  12 13 13 08 04 03  12 13 13 08 04 03
+		12 0D 0E 01 06 00 00  12 0E 0E 01 05 00 00  12 10 10 01 04 00 00  12 10 11 03 05 01 00
+		12 11 12 05 05 01 00  12 12 13 03 05 02 00  12 12 13 04 04 02 00  12 12 13 04 04 03 00
+		12 12 13 05 04 03 00  12 12 13 06 04 03 00  12 12 13 05 04 04 00  12 13 13 07 04 04 00
+		12 12 13 04 04 05 04  12 12 13 04 03 05 08  12 12 13 06 03 05 20  12 13 13 06 03 06 20
+		12 13 13 08 03 06 40  12 13 13 06 03 07 20  12 13 13 08 03 07 40
 		;-- up to 128 KB
-		11 0C 0D 01 06 00  11 0D 0F 01 05 00  11 0F 10 02 05 00  11 11 11 02 04 00
-		11 10 11 03 04 01  11 10 11 03 04 02  11 10 11 03 04 03  11 10 11 04 04 03
-		11 10 11 05 04 03  11 10 11 06 04 03  11 11 11 06 04 03  11 12 11 07 04 03
-		11 12 11 07 04 03  11 12 11 07 04 03  11 12 11 07 04 03  11 12 11 07 04 03
-		11 12 11 08 04 03  11 12 11 08 04 03  11 12 11 08 04 03
+		11 0C 0D 01 06 00 00  11 0D 0F 01 05 00 00  11 0F 10 02 05 00 00  11 11 11 02 04 00 00
+		11 10 11 03 04 01 00  11 10 11 03 04 02 00  11 10 11 03 04 03 00  11 10 11 04 04 03 00
+		11 10 11 05 04 03 00  11 10 11 06 04 03 00  11 11 11 05 04 04 00  11 12 11 07 04 04 00
+		11 12 11 03 04 05 03  11 12 11 04 03 05 08  11 12 11 06 03 05 40  11 12 11 06 03 06 20
+		11 12 11 08 03 06 40  11 12 11 0A 03 06 80  11 12 11 05 03 07 40
 		;-- up to 16 KB
-		0E 0E 0F 01 05 00  0E 0E 0F 01 04 00  0E 0E 0F 02 04 00  0E 0E 0E 04 04 01
-		0E 0E 0E 03 04 02  0E 0E 0E 04 04 03  0E 0E 0E 06 04 03  0E 0E 0E 08 04 03
-		0E 0F 0E 08 04 03  0E 0F 0E 08 04 03  0E 0F 0E 08 04 03  0E 0F 0E 08 04 03
-		0E 0F 0E 08 04 03  0E 0F 0F 08 04 03  0E 0F 0F 08 04 03  0E 0F 0F 08 04 03
-		0E 0F 0F 08 04 03  0E 0F 0F 08 04 03  0E 0F 0F 08 04 03
+		0E 0E 0F 01 05 00 00  0E 0E 0F 01 04 00 00  0E 0E 0F 02 04 00 00  0E 0E 0E 04 04 01 00
+		0E 0E 0E 03 04 02 00  0E 0E 0E 04 04 03 00  0E 0E 0E 06 04 03 00  0E 0E 0E 08 04 03 00
+		0E 0F 0E 05 04 04 00  0E 0F 0E 09 04 04 00  0E 0F 0E 03 04 05 03  0E 0F 0E 04 03 05 06
+		0E 0F 0E 05 03 06 08  0E 0F 0F 06 03 06 10  0E 0F 0F 07 03 06 40  0E 0F 0F 05 03 07 0C
+		0E 0F 0F 06 03 07 20  0E 0F 0F 07 03 07 40  0E 0F 0F 08 03 07 40
 	}
+
+	OF-FREQS: protect #{06 02 01 01 02 03 04 04 04 03 02}	;-- first counts of offset codes 0 to 10 (then 1), zstd's
 
 	;-- bit streams read backward: locals bits, cnt, op
 
@@ -1673,6 +1702,150 @@ zstd: context [
 		hl: b and m5 * ZSTD_PRIME2 xor (a * ZSTD_PRIME1) >>> lsh + 1
 	]
 
+	bt-walk: func [								;-- puts `ip` in the binary tree; mode 1: its longer matches too, into st/mt
+		st		[ZSTD-ENC!]
+		ip		[byte-ptr!]
+		iend	[byte-ptr!]						;-- matches stop there
+		best	[integer!]						;-- length to beat
+		mode	[integer!]						;-- 0: only the insertion
+		nm		[integer!]						;-- matches already in st/mt
+		return:	[integer!]						;-- mode 0: positions to skip, else matches in st/mt
+		/local
+			in m q4		[byte-ptr!]
+			i4 head bt sp lp nd mt [int-ptr!]
+			cur cand mi low btlow bmask n len lsm llg mend k a b hl lsh m5 dummy [integer!]
+	][
+		in: st/in
+		head: st/long
+		bt: st/short
+		lsh: st/lsh
+		m5: st/m5
+		bmask: st/bmask
+		mt: st/mt
+		cur: as-integer ip - in
+		ZSTD_CHASH(ip)
+		cand: head/hl								;-- position + 1, 0: none
+		head/hl: cur + 1							;-- `ip` becomes the root
+		low: cur - st/window
+		if low < 0 [low: 0]
+		btlow: cur - bmask							;-- positions up to this one: their subtrees are not kept
+		k: cur and bmask << 1
+		sp: bt + k									;-- where the next smaller and larger positions go
+		lp: sp + 1
+		lsm: 0										;-- bytes shared with every smaller and larger position left
+		llg: 0
+		mend: cur + 9								;-- farthest match end: repetitive data skipped
+		dummy: 0
+		n: st/attempts
+		while [all [cand > low n > 0]][
+			mi: cand - 1
+			nd: bt + (mi and bmask << 1)			;-- its subtrees: smaller, larger
+			len: lsm
+			if llg < len [len: llg]
+			m: in + mi
+			len: (match-len ip + len m + len iend) + len
+			if len > best [
+				best: len
+				if mi + len > mend [mend: mi + len]
+				if mode > 0 [
+					nm: nm + 1
+					k: nm << 1
+					mt/k: len
+					k: k - 1
+					mt/k: cur - mi + 3
+					if len > ZSTD_OPT_NUM [break]
+				]
+			]
+			if ip + len = iend [break]				;-- no byte left to order them: that subtree is dropped
+			k: len + 1
+			either m/k < ip/k [
+				sp/value: cand
+				lsm: len
+				if mi <= btlow [
+					sp: :dummy
+					break
+				]
+				sp: nd + 1
+				cand: nd/2
+			][
+				lp/value: cand
+				llg: len
+				if mi <= btlow [
+					lp: :dummy
+					break
+				]
+				lp: nd
+				cand: nd/1
+			]
+			n: n - 1
+		]
+		sp/value: 0
+		lp/value: 0
+		either mode = 0 [
+			k: 0
+			if best > 384 [							;-- long repetitive data: faster
+				k: best - 384
+				if k > 192 [k: 192]
+			]
+			mend: mend - cur - 8
+			if mend < k [mend: k]
+			mend
+		][
+			st/ins: mend - 8
+			nm
+		]
+	]
+
+	bt-update: func [							;-- puts in the binary tree the positions before `ip`
+		st		[ZSTD-ENC!]
+		ip		[byte-ptr!]
+		iend	[byte-ptr!]
+		/local
+			in		[byte-ptr!]
+			cur pos k [integer!]
+	][
+		in: st/in
+		cur: as-integer ip - in
+		pos: st/ins
+		while [pos < cur][
+			k: bt-walk st in + pos iend 8 0 0
+			pos: pos + k
+			if st/skip? [pos: cur]				;-- through data without matches: only the positions searched
+		]
+		st/ins: cur
+	]
+
+	tree-search: func [							;-- longest match at `ip` worth its offset, in the binary tree, positions before `ip` inserted first
+		st		[ZSTD-ENC!]
+		ip		[byte-ptr!]
+		iend	[byte-ptr!]
+		dist	[int-ptr!]						;-- out: distance of the match
+		return:	[integer!]						;-- its length, 0: none of 4 bytes at least
+		/local
+			mt		[int-ptr!]
+			n i k len ml ob [integer!]
+	][
+		if (as-integer ip - st/in) < st/ins [return 0]	;-- inside repetitive data: skipped
+		bt-update st ip iend
+		n: bt-walk st ip iend 3 1 0
+		mt: st/mt
+		ml: 0
+		ob: 999999999
+		i: 1
+		while [i <= n][							;-- longer and farther: kept if worth more bits, as zstd does
+			k: i << 1
+			len: mt/k
+			k: k - 1
+			if (len - ml * 4) > ((log-b mt/k - 2) - (log-b ob)) [
+				ml: len
+				ob: mt/k
+			]
+			i: i + 1
+		]
+		dist/value: ob - 3
+		ml
+	]
+
 	chain-search: func [						;-- longest match at `ip` in its hash chain, positions before `ip` inserted first
 		st		[ZSTD-ENC!]
 		ip		[byte-ptr!]
@@ -1684,6 +1857,7 @@ zstd: context [
 			i4 head chain [int-ptr!]
 			cur pos a b hl k n ml len cand low minc lsh m5 cmask [integer!]
 	][
+		if st/tree? [return tree-search st ip iend dist]
 		in: st/in
 		head: st/long
 		chain: st/short
@@ -1892,6 +2066,645 @@ zstd: context [
 		st/nseq: ns
 		st/rep1: rep1
 		st/rep2: rep2
+	]
+
+	;-- optimal parser: prices in 1/256 bits, from the statistics of the sequences already chosen
+
+	#define ZSTD_H3(_p) [							;-- h3: slot of the 3 bytes at _p
+		ZSTD_GET32(a _p)
+		h3: a << 8 * ZSTD_PRIME3 >>> h3sh + 1
+	]
+
+	#define ZSTD_WEIGHT(_w _s) [					;-- _w: about log2 (_s + 1) << 8, with a fraction if fr
+		_w: _s + 1
+		hb: log-b _w
+		either fr [_w: _w << 8 >> hb + (hb << 8)][_w: hb << 8]
+	]
+
+	#define ZSTD_LITPRICE(_w _b) [					;-- _w: price of the literal _b, 1 bit at least
+		k2: 1 + as integer! _b
+		ZSTD_WEIGHT(_w lf/k2)
+		_w: st/lbase - _w
+		if _w < 256 [_w: 256]
+	]
+
+	#define ZSTD_MLPRICE(_w _m) [					;-- _w: price of the match length _m
+		k2: _m - 3
+		either k2 < 128 [
+			k2: k2 + 1
+			c2: as integer! ML-CODE/k2
+		][
+			c2: (log-b k2) + 36
+		]
+		k2: c2 + 1
+		ZSTD_WEIGHT(_w mlf/k2)
+		_w: (as integer! ML-BITS/k2) << 8 + st/mlbase - _w
+	]
+
+	#define ZSTD_NEWREP(_d _s _o _z) [				;-- repeat offsets _d after a match of offset value _o, from _s (_z: 1 without literals)
+		either _o > 3 [
+			_d/3: _s/2
+			_d/2: _s/1
+			_d/1: _o - 3
+		][
+			rc: _o - 1 + _z
+			either rc = 0 [
+				_d/1: _s/1
+				_d/2: _s/2
+				_d/3: _s/3
+			][
+				either rc = 3 [ro: _s/1 - 1][
+					rc: rc + 1
+					ro: _s/rc
+					rc: rc - 1
+				]
+				either rc >= 2 [_d/3: _s/2][_d/3: _s/3]
+				_d/2: _s/1
+				_d/1: ro
+			]
+		]
+	]
+
+	ll-price: func [							;-- price of a literal length
+		st		[ZSTD-ENC!]
+		ll		[integer!]
+		return:	[integer!]
+		/local
+			f		[int-ptr!]
+			c k w hb px [integer!]
+			fr		[logic!]
+	][
+		px: 0
+		if ll >= ZSTD_BLOCK_MAX [				;-- a block of literals only: a bit more than the longest length
+			ll: ZSTD_BLOCK_MAX - 1
+			px: 256
+		]
+		either ll < 64 [
+			k: ll + 1
+			c: as integer! LL-CODE/k
+		][
+			c: (log-b ll) + 19
+		]
+		k: c + 1
+		f: st/llf
+		fr: st/parser > 1
+		ZSTD_WEIGHT(w f/k)
+		(as integer! LL-BITS/k) << 8 + st/llbase - w + px
+	]
+
+	off-price: func [							;-- price of an offset value (offset + 3 or repeat code)
+		st		[ZSTD-ENC!]
+		ob		[integer!]
+		return:	[integer!]
+		/local
+			f		[int-ptr!]
+			c k w hb [integer!]
+			fr		[logic!]
+	][
+		c: log-b ob
+		k: c + 1
+		f: st/ofq
+		fr: st/parser > 1
+		ZSTD_WEIGHT(w f/k)
+		w: c << 8 + st/obase - w + 51			;-- 1/5 bit more per match: fewer sequences, faster decoding
+		if all [not fr c >= 20][w: c - 19 << 9 + w]	;-- far offsets dearer, for the same reason
+		w
+	]
+
+	opt-count: func [							;-- statistics after a sequence
+		st		[ZSTD-ENC!]
+		p		[byte-ptr!]						;-- its literals
+		ll		[integer!]
+		ob		[integer!]						;-- offset value
+		ml		[integer!]
+		/local
+			f		[int-ptr!]
+			e		[byte-ptr!]
+			c k		[integer!]
+	][
+		f: st/lf
+		e: p + ll
+		while [p < e][
+			k: 1 + as integer! p/1
+			f/k: f/k + 2
+			p: p + 1
+		]
+		st/lsum: ll << 1 + st/lsum
+		either ll < 64 [
+			k: ll + 1
+			c: as integer! LL-CODE/k
+		][
+			c: (log-b ll) + 19
+		]
+		f: st/llf
+		k: c + 1
+		f/k: f/k + 1
+		f: st/ofq
+		k: (log-b ob) + 1
+		f/k: f/k + 1
+		k: ml - 3
+		either k < 128 [
+			k: k + 1
+			c: as integer! ML-CODE/k
+		][
+			c: (log-b k) + 36
+		]
+		f: st/mlf
+		k: c + 1
+		f/k: f/k + 1
+		st/llsum: st/llsum + 1
+		st/mlsum: st/mlsum + 1
+		st/osum: st/osum + 1
+	]
+
+	opt-bases: func [							;-- base prices: weights of the sums
+		st		[ZSTD-ENC!]
+		/local
+			w hb	[integer!]
+			fr		[logic!]
+	][
+		fr: st/parser > 1
+		ZSTD_WEIGHT(w st/lsum)
+		st/lbase: w
+		ZSTD_WEIGHT(w st/llsum)
+		st/llbase: w
+		ZSTD_WEIGHT(w st/mlsum)
+		st/mlbase: w
+		ZSTD_WEIGHT(w st/osum)
+		st/obase: w
+	]
+
+	opt-shrink: func [							;-- counts divided by 1 << sh, kept above 0 (unless 0 when z?), their sum
+		f		[int-ptr!]
+		n		[integer!]
+		sh		[integer!]
+		z?		[logic!]
+		return:	[integer!]
+		/local
+			i s v	[integer!]
+	][
+		s: 0
+		i: 1
+		while [i <= n][
+			v: f/i >> sh
+			if any [not z? f/i > 0][v: v + 1]
+			f/i: v
+			s: s + v
+			i: i + 1
+		]
+		s
+	]
+
+	opt-scale: func [							;-- counts divided when their sum passes 2 << lg, their sum
+		f		[int-ptr!]
+		n		[integer!]
+		lg		[integer!]
+		return:	[integer!]
+		/local
+			i s		[integer!]
+	][
+		s: 0
+		i: 1
+		while [i <= n][
+			s: s + f/i
+			i: i + 1
+		]
+		i: s >> lg
+		if i <= 1 [return s]
+		i: log-b i
+		opt-shrink f n i no
+	]
+
+	opt-stats: func [							;-- statistics at a block's start: from its literals at first, else the last ones scaled down
+		st		[ZSTD-ENC!]
+		src		[byte-ptr!]
+		n		[integer!]
+		/local
+			f		[int-ptr!]
+			p e		[byte-ptr!]
+			k		[integer!]
+	][
+		either st/llsum = 0 [
+			f: st/lf
+			set-memory as byte-ptr! f null-byte 1024
+			p: src
+			e: src + n
+			while [p < e][
+				k: 1 + as integer! p/1
+				f/k: f/k + 1
+				p: p + 1
+			]
+			st/lsum: opt-shrink f 256 8 yes
+			f: st/llf
+			k: 1
+			while [k <= 36][
+				f/k: 1
+				k: k + 1
+			]
+			f/1: 4
+			f/2: 2
+			st/llsum: 40
+			f: st/mlf
+			k: 1
+			while [k <= 53][
+				f/k: 1
+				k: k + 1
+			]
+			st/mlsum: 53
+			f: st/ofq
+			k: 1
+			while [k <= 32][
+				f/k: 1
+				if k <= 11 [f/k: as integer! OF-FREQS/k]
+				k: k + 1
+			]
+			st/osum: 53
+		][
+			st/lsum: opt-scale st/lf 256 12
+			st/llsum: opt-scale st/llf 36 11
+			st/mlsum: opt-scale st/mlf 53 11
+			st/osum: opt-scale st/ofq 32 11
+		]
+		opt-bases st
+	]
+
+	opt-matches: func [							;-- matches at `ip` into st/mt, of increasing lengths: repeat offsets, 3 bytes, binary tree
+		st		[ZSTD-ENC!]
+		ip		[byte-ptr!]
+		iend	[byte-ptr!]
+		reps	[int-ptr!]						;-- repeat offsets at `ip`
+		z		[integer!]						;-- 1: no literals before `ip`
+		return:	[integer!]						;-- matches in st/mt
+		/local
+			in m		[byte-ptr!]
+			i4 mt h3t	[int-ptr!]
+			cur best nm r lim ro len a b k mml h3 h3sh pos [integer!]
+	][
+		in: st/in
+		cur: as-integer ip - in
+		if cur < st/ins [return 0]				;-- inside repetitive data: skipped
+		bt-update st ip iend
+		mt: st/mt
+		mml: st/mml
+		best: mml - 1
+		nm: 0
+		r: z
+		lim: z + 3
+		while [r < lim][						;-- repeat offsets, as the decoder reads them (3 without literals: the last - 1)
+			either r = 3 [ro: reps/1 - 1][
+				k: r + 1
+				ro: reps/k
+			]
+			if all [ro > 0 ro <= cur ro <= st/window][
+				m: ip - ro
+				ZSTD_GET32(a ip)
+				ZSTD_GET32(b m)
+				if mml = 3 [					;-- the first 3 bytes only
+					a: a << 8
+					b: b << 8
+				]
+				if a = b [
+					len: (match-len ip + mml m + mml iend) + mml
+					if len > best [
+						best: len
+						nm: nm + 1
+						k: nm << 1
+						mt/k: len
+						k: k - 1
+						mt/k: r - z + 1
+						if any [len > st/suff ip + len = iend][return nm]
+					]
+				]
+			]
+			r: r + 1
+		]
+		if all [mml = 3 best < 3][				;-- the last 3 bytes seen, if not too far
+			h3t: st/h3
+			h3sh: st/h3sh
+			pos: st/ins3
+			while [pos < cur][
+				m: in + pos
+				ZSTD_H3(m)
+				pos: pos + 1
+				h3t/h3: pos
+			]
+			st/ins3: cur
+			ZSTD_H3(ip)
+			k: h3t/h3 - 1						;-- -1: none
+			if all [k >= 0 cur - k <= st/window cur - k < 40000h][
+				len: match-len ip in + k iend
+				if len >= 3 [
+					best: len
+					nm: 1
+					mt/1: cur - k + 3
+					mt/2: len
+					if any [len > st/suff ip + len = iend][
+						st/ins: cur + 1					;-- `ip` not put in the tree
+						return 1
+					]
+				]
+			]
+		]
+		bt-walk st ip iend best 1 nm
+	]
+
+	opt-block: func [							;-- sequences and literals of a block: the cheapest path through its matches
+		st		[ZSTD-ENC!]
+		bstart	[byte-ptr!]
+		bend	[byte-ptr!]
+		/local
+			in ip anchor limit lits p ld ls le [byte-ptr!]
+			opt mt lf mlf sll sml sof rep e e1 e2 r0 r1 s4 d4 [int-ptr!]
+			ns nl cur last nm i k k2 c2 hb w w2 l1 ll ml mlen start ob op price base
+			pm pmo pmm pml sm so sl rc ro z suff mml pos se ss sp [integer!]
+			fr done? [logic!]
+	][
+		in: st/in
+		opt: st/opt
+		mt: st/mt
+		lf: st/lf
+		mlf: st/mlf
+		sll: st/sll
+		sml: st/sml
+		sof: st/sof
+		lits: st/lits
+		suff: st/suff
+		mml: st/mml
+		fr: st/parser > 1
+		rep: system/stack/allocate 3
+		rep/1: st/rep1
+		rep/2: st/rep2
+		rep/3: st/rep3
+		opt-stats st bstart as-integer bend - bstart
+		ns: 0
+		nl: 0
+		ip: bstart
+		anchor: bstart
+		limit: bend - 8
+		if ip = in [ip: ip + 1]					;-- no match at the first byte
+		while [ip < limit][
+			ll: as-integer ip - anchor
+			z: 0
+			if ll = 0 [z: 1]
+			nm: opt-matches st ip bend rep z
+			if nm = 0 [
+				ip: ip + 1
+				continue
+			]
+			opt/1: ll-price st ll				;-- position 0: the literals before
+			opt/3: 0
+			opt/4: ll
+			opt/5: rep/1
+			opt/6: rep/2
+			opt/7: rep/3
+			k: nm << 1
+			ml: mt/k
+			done?: no
+			either ml > suff [					;-- long enough: taken at once
+				k: k - 1
+				so: mt/k
+				sm: ml
+				sl: 0
+				cur: 0
+				last: ml
+				done?: yes
+			][
+				pos: 1							;-- prices of the first matches
+				while [pos < mml][
+					e: opt + (pos << 3)
+					e/1: ZSTD_MAX_PRICE
+					e/3: 0
+					e/4: ll + pos
+					pos: pos + 1
+				]
+				w: ll-price st 0
+				base: opt/1 + w
+				i: 1
+				while [i <= nm][
+					k: i << 1
+					ml: mt/k
+					k: k - 1
+					ob: mt/k
+					op: off-price st ob
+					while [pos <= ml][
+						ZSTD_MLPRICE(w pos)
+						e: opt + (pos << 3)
+						e/1: base + op + w
+						e/2: ob
+						e/3: pos
+						e/4: 0
+						pos: pos + 1
+					]
+					i: i + 1
+				]
+				last: pos - 1
+				e: opt + (pos << 3)
+				e/1: ZSTD_MAX_PRICE
+				cur: 0
+				while [cur < last][				;-- each next position: one literal more, or matches from there
+					cur: cur + 1
+					e: opt + (cur << 3)
+					e1: e - 8
+					k: e1/4 + 1
+					p: ip + cur - 1
+					ZSTD_LITPRICE(w p/1)
+					w2: ll-price st k
+					price: e1/1 + w + w2
+					w2: ll-price st k - 1
+					price: price - w2
+					if price <= e/1 [
+						pm: e/1					;-- a match ending here, replaced
+						pmo: e/2
+						pmm: e/3
+						pml: e/4
+						e/1: price
+						e/2: e1/2
+						e/3: e1/3
+						e/4: k
+						e/5: e1/5
+						e/6: e1/6
+						e/7: e1/7
+						if all [fr pml = 0 ip + cur < bend][	;-- that match and one literal: cheaper at the next position?
+							w: ll-price st 1
+							w2: ll-price st 0
+							l1: w - w2
+							if l1 < 0 [
+								p: ip + cur
+								ZSTD_LITPRICE(w p/1)
+								pm: pm + w + l1
+								w2: ll-price st k + 1
+								price: price + w + w2
+								w2: ll-price st k
+								price: price - w2
+								e2: e + 8
+								if all [pm < price pm < e2/1][
+									k: cur - pmm
+									r0: opt + (k << 3)
+									z: 0
+									if r0/4 = 0 [z: 1]
+									r0: r0 + 4
+									r1: e2 + 4
+									ZSTD_NEWREP(r1 r0 pmo z)
+									e2/1: pm
+									e2/2: pmo
+									e2/3: pmm
+									e2/4: 1
+									if last <= cur [
+										last: cur + 1
+										e2: e2 + 8
+										e2/1: ZSTD_MAX_PRICE
+									]
+								]
+							]
+						]
+					]
+					if e/4 = 0 [						;-- a match ends here: the repeat offsets after it
+						k: cur - e/3
+						r0: opt + (k << 3)
+						z: 0
+						if r0/4 = 0 [z: 1]
+						r0: r0 + 4
+						r1: e + 4
+						ZSTD_NEWREP(r1 r0 e/2 z)
+					]
+					p: ip + cur
+					if p > limit [continue]				;-- matches start 8 bytes before the end at least
+					if cur = last [break]
+					unless fr [
+						e2: e + 8
+						if e2/1 <= (e/1 + 128) [continue]	;-- the next position already cheaper: not searched
+					]
+					z: 0
+					if e/4 = 0 [z: 1]
+					r1: e + 4
+					nm: opt-matches st p bend r1 z
+					if nm = 0 [continue]
+					k: nm << 1
+					ml: mt/k
+					if any [ml > suff cur + ml >= ZSTD_OPT_NUM p + ml >= bend][	;-- long enough: taken at once
+						k: k - 1
+						so: mt/k
+						sm: ml
+						sl: 0
+						last: cur + ml
+						done?: yes
+						break
+					]
+					w: ll-price st 0
+					base: e/1 + w
+					start: mml
+					i: 1
+					while [i <= nm][
+						k: i << 1
+						ml: mt/k
+						k: k - 1
+						ob: mt/k
+						op: off-price st ob
+						mlen: ml
+						while [mlen >= start][			;-- lengths down to the previous match's
+							pos: cur + mlen
+							ZSTD_MLPRICE(w mlen)
+							price: base + op + w
+							e2: opt + (pos << 3)
+							either any [pos > last price < e2/1][
+								while [last < pos][
+									last: last + 1
+									e1: opt + (last << 3)
+									e1/1: ZSTD_MAX_PRICE
+									e1/4: 1
+								]
+								e2/1: price
+								e2/2: ob
+								e2/3: mlen
+								e2/4: 0
+							][
+								unless fr [break]		;-- shorter ones not tried
+							]
+							mlen: mlen - 1
+						]
+						start: ml + 1
+						i: i + 1
+					]
+					e2: opt + (last + 1 << 3)
+					e2/1: ZSTD_MAX_PRICE
+				]
+				unless done? [
+					e: opt + (last << 3)
+					sm: e/3
+					so: e/2
+					sl: e/4
+					cur: last - sm
+				]
+			]
+			if sm = 0 [							;-- no match on the path: literals only
+				ip: ip + last
+				continue
+			]
+			either sl = 0 [						;-- the repeat offsets after the last match
+				e: opt + (cur << 3)
+				z: 0
+				if e/4 = 0 [z: 1]
+				r0: e + 4
+				ZSTD_NEWREP(rep r0 so z)
+			][
+				e: opt + (last << 3)
+				rep/1: e/5
+				rep/2: e/6
+				rep/3: e/7
+				cur: cur - sl
+			]
+			se: cur + 2							;-- the path's sequences, written backward into opt from se down to ss
+			ss: se
+			e: opt + (se << 3)
+			if sl > 0 [							;-- literals after the last match
+				e/3: 0
+				e/4: sl
+				ss: se - 1
+				e: e - 8
+			]
+			e/2: so
+			e/3: sm
+			sp: cur
+			forever [
+				e1: opt + (sp << 3)
+				e/4: e1/4						;-- literals before the match
+				if e1/3 = 0 [break]
+				ss: ss - 1
+				e: e - 8
+				e/2: e1/2
+				e/3: e1/3
+				sp: sp - e1/4 - e1/3
+			]
+			pos: ss
+			while [pos <= se][
+				e: opt + (pos << 3)
+				ll: e/4
+				mlen: e/3
+				if mlen = 0 [					;-- literals only: the start of the next path
+					ip: anchor + ll
+					break
+				]
+				ob: e/2
+				opt-count st anchor ll ob mlen
+				ns: ns + 1
+				sll/ns: ll
+				sml/ns: mlen
+				sof/ns: ob
+				ZSTD_LITS((lits + nl) anchor ll bend)
+				nl: nl + ll
+				anchor: anchor + ll + mlen
+				ip: anchor
+				pos: pos + 1
+			]
+			opt-bases st
+		]
+		k: as-integer bend - anchor
+		copy-memory lits + nl anchor k
+		st/nlits: nl + k
+		st/nseq: ns
+		st/rep1: rep/1
+		st/rep2: rep/2
+		st/rep3: rep/3
 	]
 
 	fse-log: func [								;-- accuracy log for `n` symbols of values up to `maxv`
@@ -2609,14 +3422,31 @@ zstd: context [
 		return:	[byte-ptr!]						;-- position after the block
 		/local
 			p e		[byte-ptr!]
-			r1 r2 room k csize b [integer!]
+			r1 r2 r3 room k csize b [integer!]
 	][
 		r1: st/rep1
 		r2: st/rep2
+		r3: st/rep3
 		csize: -1
 		room: n - (n >> 6) - 3						;-- compressed size worth it, at most
 		if room > 1 [
-			either st/depth < 0 [match-block st src src + n][chain-block st src src + n]
+			case [
+				st/depth < 0 [match-block st src src + n]
+				st/parser = 0 [chain-block st src src + n]
+				true [
+					if all [st/parser = 3 st/llsum = 0 n > 8][	;-- first block: parsed twice, the first time for statistics
+						opt-block st src src + n
+						set-memory as byte-ptr! st/long null-byte 4 << (32 - st/lsh)
+						if st/h3sh > 0 [set-memory as byte-ptr! st/h3 null-byte 4 << (32 - st/h3sh)]
+						st/ins: 0
+						st/ins3: 0
+						st/rep1: r1
+						st/rep2: r2
+						st/rep3: r3
+					]
+					opt-block st src src + n
+				]
+			]
 			k: put-lits st dst + 3 room - 1
 			if k > 0 [
 				csize: put-seqs st dst + 3 + k room - k
@@ -2634,6 +3464,7 @@ zstd: context [
 			csize: 1
 			st/rep1: r1								;-- no sequences seen by the decoder
 			st/rep2: r2
+			st/rep3: r3
 		][
 			either csize > 0 [
 				b: csize << 3 or 4 or last
@@ -2643,6 +3474,7 @@ zstd: context [
 				csize: n
 				st/rep1: r1
 				st/rep2: r2
+				st/rep3: r3
 			]
 		]
 		dst/1: as byte! b
@@ -2660,9 +3492,9 @@ zstd: context [
 		return:		[integer!]
 		/local
 			st		[ZSTD-ENC! value]
-			work heap [int-ptr!]
+			work heap q [int-ptr!]
 			op p e lv [byte-ptr!]
-			n k lg sg bs ns w [integer!]
+			n k lg sg bs ns w x h3 h3n [integer!]
 	][
 		n: in-size
 		k: n + ZSTD_BLOCK_MAX - 1 / ZSTD_BLOCK_MAX
@@ -2677,35 +3509,67 @@ zstd: context [
 		if n <= 262144 [k: 1]
 		if n <= 131072 [k: 2]
 		if n <= 16384 [k: 3]
-		lv: ZSTD-LEVELS + (k * 19 + level - 1 * 6)
+		lv: ZSTD-LEVELS + (k * 19 + level - 1 * 7)
 		w: as integer! lv/1
 		sg: as integer! lv/2
 		lg: as integer! lv/3
 		st/attempts: 1 << as integer! lv/4
 		k: as integer! lv/5
+		st/mml: 4									;-- more only in the hashes
+		if k < 4 [
+			st/mml: 3
+			k: 4									;-- hashes of 4 bytes at least
+		]
 		st/m5: (1 << (k - 4 * 8)) - 1
-		st/depth: (as integer! lv/6) - 1
+		k: as integer! lv/6							;-- matcher
+		st/depth: k - 1
+		st/tree?: k >= 4
+		st/parser: 0
+		if st/tree? [
+			st/depth: 2
+			st/parser: k - 4
+		]
+		st/suff: (as integer! lv/7) << 2
 		k: 6										;-- tables sized to the input
 		if n > 64 [k: (log-b n - 1) + 1]
-		if lg > k [lg: k]
-		either st/depth < 0 [
-			if sg > (k - 1) [sg: k - 1]				;-- two tables half zstd's size: as good for small inputs
+		h3: 0
+		either st/tree? [							;-- as zstd's: hash and tree logs up to the window's + 1
+			if k > w [k: w]
+			if lg > (k + 1) [lg: k + 1]
+			if sg > (k + 1) [sg: k + 1]
+			if all [st/parser > 0 st/mml = 3][
+				h3: 17
+				if h3 > k [h3: k]
+			]
 		][
-			if sg > k [sg: k]
-			if sg > w [sg: w]
+			if lg > k [lg: k]
+			either st/depth < 0 [
+				if sg > (k - 1) [sg: k - 1]			;-- two tables half zstd's size: as good for small inputs
+			][
+				if sg > k [sg: k]
+				if sg > w [sg: w]
+			]
 		]
 		st/window: 1 << w
 		st/cmask: (1 << sg) - 1
+		st/bmask: (1 << (sg - 1)) - 1
 		st/ins: 0
+		st/ins3: 0
 		st/skip?: no
 		bs: n
 		if bs > ZSTD_BLOCK_MAX [bs: ZSTD_BLOCK_MAX]
 		ns: bs >> 2 + 2								;-- sequences of a block, at most
-		k: (1 << lg) + (1 << sg) + (ns * 3) + 3524 << 2 + (ns * 3) + bs + 512
+		if st/mml < 4 [ns: bs / 3 + 2]
+		x: 0										;-- tree, optimal parser: matches, positions, statistics
+		if st/tree? [x: st/attempts + 4 << 1]
+		if st/parser > 0 [x: ZSTD_OPT_NUM + 3 << 3 + 377 + x]
+		h3n: 0
+		if h3 > 0 [h3n: 1 << h3]
+		k: (1 << lg) + (1 << sg) + h3n + (ns * 3) + 3524 + x << 2 + (ns * 3) + bs + 512
 		heap: null
 		either k <= 32768 [							;-- small inputs: on the native stack
 			work: system/stack/allocate k >> 2 + 1
-			set-memory as byte-ptr! work null-byte (1 << lg) + (1 << sg) << 2	;-- empty hash tables
+			set-memory as byte-ptr! work null-byte (1 << lg) + (1 << sg) + h3n << 2	;-- empty hash tables
 		][
 			#either red-pass? = yes [
 				work: allocate-virtual k no			;-- zeroed: empty hash tables
@@ -2718,9 +3582,12 @@ zstd: context [
 		st/in: in
 		st/long: work
 		st/short: work + (1 << lg)
+		st/h3: st/short + (1 << sg)
+		st/h3sh: 0
+		if h3 > 0 [st/h3sh: 32 - h3]
 		st/lsh: 32 - lg
 		st/ssh: 32 - sg
-		st/sll: st/short + (1 << sg)
+		st/sll: st/h3 + h3n
 		st/sml: st/sll + ns
 		st/sof: st/sml + ns
 		st/freq: st/sof + ns
@@ -2731,13 +3598,26 @@ zstd: context [
 		st/stab: st/cells + 512
 		st/tt: st/stab + 1536
 		st/logs: st/tt + 384
-		st/cll: as byte-ptr! st/logs + 4
+		q: st/logs + 4
+		st/mt: q
+		if st/tree? [q: q + (st/attempts + 4 << 1)]
+		st/opt: q
+		if st/parser > 0 [
+			st/lf: q + (ZSTD_OPT_NUM + 3 << 3)
+			st/llf: st/lf + 256
+			st/mlf: st/llf + 36
+			st/ofq: st/mlf + 53
+			q: st/ofq + 32
+		]
+		st/cll: as byte-ptr! q
 		st/cml: st/cll + ns
 		st/cof: st/cml + ns
 		st/lits: st/cof + ns
 		st/hlens: st/lits + bs
 		st/rep1: 1
 		st/rep2: 4
+		st/rep3: 8
+		st/llsum: 0
 
 		op: out										;-- frame header: content size
 		op/1: #"^(28)"
