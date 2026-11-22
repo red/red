@@ -181,6 +181,7 @@ add-app-delegate: func [class [integer!]][
 add-panel-delegate: func [class [integer!]][
 	class_addMethod class sel_changeFont as-integer :dialog-proc "v@:@"
 	class_addMethod class sel_windowWillClose as-integer :dialog-proc "v@:@"
+	class_addMethod class sel_getUid "changeColor:" as-integer :dialog-proc "v@:@"	;-- the color panel's action
 ]
 
 flip-coord: func [class [integer!]][

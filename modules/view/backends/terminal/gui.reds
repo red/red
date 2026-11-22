@@ -300,6 +300,14 @@ OS-request-dir: func [
 	#call [TUI-helpers/request-dir title dir filter keep? multi?]
 ]
 
+OS-request-color: func [								;-- no system requester: REQUEST-COLOR shows its own
+	color	[red-tuple!]
+	recent	[red-block!]
+	return: [red-value!]
+][
+	as red-value! none-value
+]
+
 update-scroller: func [
 	scroller [red-object!]
 	flags [integer!]

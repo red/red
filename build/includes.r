@@ -200,6 +200,7 @@ write %build/bin/sources.r set-cache [
 			%RTD.red
 			%styles.red
 			%VID.red
+			%request-color.red
 			%backends/ [
 				%keycodes.reds
 				%platform.red

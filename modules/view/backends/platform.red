@@ -1124,6 +1124,10 @@ system/view/platform: context [
 			multi?
 	]
 
+	request-color: routine [color [tuple!] recent [block!]][
+		stack/set-last gui/OS-request-color color recent
+	]
+
 	text-box-metrics: routine [
 		box		[object!]
 		arg0	[any-type!]

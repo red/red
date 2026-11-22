@@ -246,6 +246,14 @@ OS-request-dir: func [
 	as red-value! none-value
 ]
 
+OS-request-color: func [
+	color	[red-tuple!]
+	recent	[red-block!]
+	return: [red-value!]
+][
+	as red-value! none-value
+]
+
 
 
 update-scroller: func [

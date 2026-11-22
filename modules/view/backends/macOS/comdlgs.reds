@@ -372,42 +372,16 @@ OS-request-file: func [
 	_request-file title name filter save? multi? no
 ]
 
-OS-request-font: func [
-	font			[red-object!]
-	selected		[red-object!]
-	mono?			[logic!]
-	return:			[red-object!]
+center-panel: func [
+	panel		[integer!]
 	/local
-		panel		[integer!]
-		delegate	[integer!]
-		nsfont		[integer!]
-		values		[red-value!]
-		style		[red-block!]
-		size		[float32!]
-		manager		[integer!]
-		trait		[integer!]
-		bold?		[logic!]
-		pool		[integer!]
-		key-win		[integer!]
-		wins		[integer!]
-		wframe		[NSRect! value]
-		pframe		[NSRect! value]
-		x y			[float32!]
+		key-win	[integer!]
+		wins	[integer!]
+		wframe	[NSRect! value]
+		pframe	[NSRect! value]
+		x y		[float32!]
 ][
-	font-changed?: no
-	nsfont: as-integer get-font null selected
-	if zero? nsfont [nsfont: default-font]
-	delegate: objc_msgSend [objc_getClass "RedPanelDelegate" sel_getUid "alloc"]
-	delegate: objc_msgSend [delegate sel_getUid "init"]
-
-	panel: objc_msgSend [objc_getClass "NSFontPanel" sel_getUid "sharedFontPanel"]
-	objc_msgSend [panel sel_getUid "setPanelFont:isMultiple:" nsfont no]
-	manager: objc_msgSend [objc_getClass "NSFontManager" sel_getUid "sharedFontManager"]
-	objc_msgSend [manager sel_getUid "setSelectedFont:isMultiple:" nsfont no]	;-- the panel's lists reflect the
-															;-- font manager's selection, not setPanelFont:
-	objc_msgSend [panel sel_getUid "setDelegate:" delegate]
-
-	key-win: objc_msgSend [NSApp sel_getUid "keyWindow"]	;-- the shared font panel keeps its own
+	key-win: objc_msgSend [NSApp sel_getUid "keyWindow"]	;-- the shared panels keep their own
 	if zero? key-win [									;-- autosaved frame: center it over the app's
 		key-win: objc_msgSend [NSApp sel_getUid "mainWindow"]	;-- window, as the Windows (hwndOwner) and
 	]													;-- GTK (transient-for) backends do
@@ -428,6 +402,39 @@ OS-request-font: func [
 		y: wframe/y + y
 		objc_msgSend [panel sel_getUid "setFrameOrigin:" x y]
 	]
+]
+
+OS-request-font: func [
+	font			[red-object!]
+	selected		[red-object!]
+	mono?			[logic!]
+	return:			[red-object!]
+	/local
+		panel		[integer!]
+		delegate	[integer!]
+		nsfont		[integer!]
+		values		[red-value!]
+		style		[red-block!]
+		size		[float32!]
+		manager		[integer!]
+		trait		[integer!]
+		bold?		[logic!]
+		pool		[integer!]
+][
+	font-changed?: no
+	nsfont: as-integer get-font null selected
+	if zero? nsfont [nsfont: default-font]
+	delegate: objc_msgSend [objc_getClass "RedPanelDelegate" sel_getUid "alloc"]
+	delegate: objc_msgSend [delegate sel_getUid "init"]
+
+	panel: objc_msgSend [objc_getClass "NSFontPanel" sel_getUid "sharedFontPanel"]
+	objc_msgSend [panel sel_getUid "setPanelFont:isMultiple:" nsfont no]
+	manager: objc_msgSend [objc_getClass "NSFontManager" sel_getUid "sharedFontManager"]
+	objc_msgSend [manager sel_getUid "setSelectedFont:isMultiple:" nsfont no]	;-- the panel's lists reflect the
+															;-- font manager's selection, not setPanelFont:
+	objc_msgSend [panel sel_getUid "setDelegate:" delegate]
+
+	center-panel panel
 	objc_msgSend [panel sel_getUid "orderFront:" 0]
 	objc_msgSend [NSApp sel_getUid "runModalForWindow:" panel]
 	either font-changed? [
@@ -471,4 +478,57 @@ OS-request-font: func [
 	objc_msgSend [panel sel_getUid "setDelegate:" 0]
 	objc_msgSend [delegate sel_release]
 	font
+]
+
+color-byte: func [										;-- NSColor's component SEL (0..1) as 0..255
+	nscolor	[integer!]
+	sel		[c-string!]
+	return:	[integer!]
+	/local
+		f	[float32!]
+][
+	f: objc_msgSend_f32 [nscolor sel_getUid sel]
+	f: f * (as float32! 255.0) + (as float32! 0.5)
+	as-integer f
+]
+
+OS-request-color: func [
+	color			[red-tuple!]
+	recent			[red-block!]
+	return:			[red-value!]
+	/local
+		panel		[integer!]
+		delegate	[integer!]
+		nscolor		[integer!]
+		r g b t		[integer!]
+][
+	delegate: objc_msgSend [objc_getClass "RedPanelDelegate" sel_getUid "alloc"]
+	delegate: objc_msgSend [delegate sel_getUid "init"]
+	panel: objc_msgSend [objc_getClass "NSColorPanel" sel_getUid "sharedColorPanel"]
+	objc_msgSend [panel sel_getUid "setDelegate:" delegate]		;-- its windowWillClose: ends the modal loop
+	objc_msgSend [panel sel_getUid "setTarget:" delegate]		;-- picks go to it, not to the first responder
+	objc_msgSend [panel sel_getUid "setAction:" sel_getUid "changeColor:"]
+	objc_msgSend [panel sel_getUid "setShowsAlpha:" yes]
+	objc_msgSend [panel sel_getUid "setColor:" to-NSColor color]
+	center-panel panel
+	objc_msgSend [panel sel_getUid "orderFront:" 0]
+	objc_msgSend [NSApp sel_getUid "runModalForWindow:" panel]
+	objc_msgSend [panel sel_getUid "setTarget:" 0]
+	objc_msgSend [panel sel_getUid "setDelegate:" 0]
+	objc_msgSend [delegate sel_release]
+
+	nscolor: objc_msgSend [								;-- in the color space TO-NSCOLOR uses
+		objc_msgSend [panel sel_getUid "color"]
+		sel_getUid "colorUsingColorSpaceName:" NSString("NSDeviceRGBColorSpace")
+	]
+	if zero? nscolor [return as red-value! none-value]
+	r: color-byte nscolor "redComponent"
+	g: color-byte nscolor "greenComponent"
+	b: color-byte nscolor "blueComponent"
+	t: 255 - color-byte nscolor "alphaComponent"		;-- transparency, as in tuples
+	either (get-tuple-color color) = (t << 24 or (b << 16) or (g << 8) or r) [
+		as red-value! none-value						;-- left as it was: the panel has no OK or Cancel
+	][
+		as red-value! tuple/make-rgba stack/push* r g b t
+	]
 ]

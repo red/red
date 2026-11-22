@@ -1497,6 +1497,23 @@ GPtrArray!: alias struct! [
 			font-sel 	[handle!]
 			font-desc 	[handle!]
 		]
+		gtk_color_chooser_dialog_new: "gtk_color_chooser_dialog_new" [
+			title 		[c-string!]
+			win 		[handle!]
+			return: 	[handle!]
+		]
+		gtk_color_chooser_get_rgba: "gtk_color_chooser_get_rgba" [
+			chooser 	[handle!]
+			color 		[GdkRGBA!]
+		]
+		gtk_color_chooser_set_rgba: "gtk_color_chooser_set_rgba" [
+			chooser 	[handle!]
+			color 		[GdkRGBA!]
+		]
+		gtk_color_chooser_set_use_alpha: "gtk_color_chooser_set_use_alpha" [
+			chooser 	[handle!]
+			alpha? 		[logic!]
+		]
 		gtk_init: "gtk_init" [
 			argc		[int-ptr!]
 			argv		[handle!]

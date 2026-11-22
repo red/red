@@ -226,3 +226,41 @@ OS-request-font: func [
 
 	font
 ]
+
+OS-request-color: func [
+	color		[red-tuple!]
+	recent		[red-block!]
+	return:		[red-value!]
+	/local
+		widget	[handle!]
+		window	[handle!]
+		new?	[logic!]
+		rgba	[GdkRGBA! value]
+		res		[red-value!]
+][
+	widget: gtk_color_chooser_dialog_new "Color" null
+	gtk_color_chooser_set_use_alpha widget yes
+	to-gdk-color get-tuple-color color :rgba
+	gtk_color_chooser_set_rgba widget :rgba
+	window: find-active-window
+	new?: false
+	if null? window [
+		window: gtk_window_new 0
+		gtk_widget_hide window
+		new?: true
+	]
+	gtk_window_set_transient_for widget window
+	res: as red-value! none-value
+	if -5 = gtk_dialog_run widget [							;-- GTK_RESPONSE_OK (GtkResponseType! starts at 0)
+		gtk_color_chooser_get_rgba widget :rgba
+		res: as red-value! tuple/make-rgba stack/push*
+			as-integer (rgba/red * 255.0 + 0.5)
+			as-integer (rgba/green * 255.0 + 0.5)
+			as-integer (rgba/blue * 255.0 + 0.5)
+			255 - as-integer (rgba/alpha * 255.0 + 0.5)
+	]
+	gtk_widget_destroy widget
+	if new? [gtk_widget_destroy window]
+	while [gtk_events_pending][gtk_main_iteration]		;-- as OS-REQUEST-FONT does, for the console
+	res
+]

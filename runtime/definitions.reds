@@ -632,6 +632,10 @@ Red/System [
 	#define OFN_EXPLORER			00080000h
 	#define OFN_ALLOWMULTISELECT	00000200h
 
+	#define CC_RGBINIT				01h
+	#define CC_FULLOPEN				02h
+	#define CC_ANYCOLOR				0100h
+
 	#define WIN32_FIND_DATA_SIZE	592
 
 	#define BIF_RETURNONLYFSDIRS	1

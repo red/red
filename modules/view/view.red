@@ -825,6 +825,7 @@ system/view: context [
 #include %backends/platform.red
 #include %draw.red
 #include %VID.red
+#include %request-color.red
 
 do-events: func [
 	"Launch the event loop, blocks until all windows are closed"

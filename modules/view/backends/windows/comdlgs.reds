@@ -236,3 +236,38 @@ OS-request-file: func [
 	free buffer
 	files
 ]
+
+OS-request-color: func [
+	color	[red-tuple!]
+	recent	[red-block!]
+	return: [red-value!]
+	/local
+		cc		[tagCHOOSECOLOR value]
+		custom	[int-ptr!]
+		tp		[red-tuple!]
+		n i rgb	[integer!]
+][
+	check-base-capture
+	custom: system/stack/allocate 16						;-- the custom color slots show RECENT
+	n: block/rs-length? recent
+	tp: as red-tuple! block/rs-head recent
+	i: 1
+	while [i <= 16][
+		rgb: either i <= n [tp/array1 and 00FFFFFFh][00FFFFFFh]	;-- white past its end
+		custom/i: rgb
+		tp: tp + 1
+		i: i + 1
+	]
+	zero-memory as byte-ptr! :cc size? tagCHOOSECOLOR
+	cc/lStructSize: size? tagCHOOSECOLOR
+	cc/hwndOwner: GetForegroundWindow
+	cc/rgbResult: color/array1 and 00FFFFFFh				;-- 00BBGGRR, as a tuple's first bytes
+	cc/lpCustColors: custom
+	cc/Flags: CC_RGBINIT or CC_FULLOPEN or CC_ANYCOLOR
+	either ChooseColor :cc [
+		rgb: cc/rgbResult
+		as red-value! tuple/make-rgba stack/push* rgb and FFh rgb >> 8 and FFh rgb >> 16 and FFh 0
+	][
+		as red-value! none-value
+	]
+]

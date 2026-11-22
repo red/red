@@ -985,6 +985,18 @@ tagCHOOSEFONT: alias struct! [
 	nSizeMax		[integer!]
 ]
 
+tagCHOOSECOLOR: alias struct! [
+	lStructSize		[integer!]
+	hwndOwner		[handle!]
+	hInstance		[integer!]
+	rgbResult		[integer!]
+	lpCustColors	[int-ptr!]
+	Flags			[integer!]
+	lCustData		[integer!]
+	lpfnHook		[integer!]
+	lpTemplateName	[c-string!]
+]
+
 tagOFNW: alias struct! [
 	lStructSize			[integer!]
 	hwndOwner			[handle!]
@@ -2141,6 +2153,10 @@ BITMAPINFO32: alias struct! [					;-- BITMAPINFOHEADER, no color table (BI_RGB 3
 			]
 		ChooseFont: "ChooseFontW" [
 			lpcf		[tagCHOOSEFONT]
+			return:		[logic!]
+		]
+		ChooseColor: "ChooseColorW" [
+			lpcc		[tagCHOOSECOLOR]
 			return:		[logic!]
 		]
 	]
