@@ -57,7 +57,7 @@ on-radio-event: func [
 		data/value: yes
 		make-radio-ui widget
 		screen/redraw widget
-		make-red-event EVT_CHANGE widget 0
+		if EVT_DESTROYED = make-red-event EVT_CHANGE widget 0 [return EVT_DESTROYED]
 	]
 	0
 ]

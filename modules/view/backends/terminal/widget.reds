@@ -135,6 +135,7 @@ _widget: context [
 		/local
 			sym [integer!]
 	][
+		screen/forget-widget w							;-- nothing may point to it once freed
 		sym: WIDGET_TYPE(w)
 		case [
 			sym = window [screen/remove-window w]

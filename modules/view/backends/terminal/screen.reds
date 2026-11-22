@@ -12,7 +12,6 @@ Red/System [
 screen: context [
 
 	active-win:			as window-manager! 0
-	current-win:		as widget! 0
 	hover-widget:		as widget! 0		;-- the widget under the mouse
 	focus-widget:		as widget! 0
 	captured-widget:	as widget! 0
@@ -57,21 +56,26 @@ screen: context [
 		h	[integer!]
 		/local
 			g-evt	[widget-event! value]
-			cnt i	[integer!]
+			i n		[integer!]
 			wm		[window-manager!]
 			win		[widget!]
+			wins	[int-ptr!]
 	][
 		g-evt/pt/x: as float32! w
 		g-evt/pt/y: as float32! h
-		cnt: windows-cnt
+		n: windows-cnt
+		wins: system/stack/allocate n					;-- the windows now: a handler can close any of them
+		copy-memory as byte-ptr! wins array/get-ptr win-list n * size? int-ptr!
 		i: 1
-		while [i <= cnt][
-			wm: as window-manager! array/pick-ptr win-list i
-			win: wm/window
-			g-evt/widget: win
-			win/on-event EVT_SIZE :g-evt
-			if 0 <> win/face [
-				make-event EVT_SIZE :g-evt 0
+		while [i <= n][
+			wm: as window-manager! wins/i
+			if window-open? wm [
+				win: wm/window
+				g-evt/widget: win
+				win/on-event EVT_SIZE :g-evt
+				if 0 <> win/face [
+					make-event EVT_SIZE :g-evt 0
+				]
 			]
 			i: i + 1
 		]
@@ -115,6 +119,39 @@ screen: context [
 		return: [integer!]
 	][
 		array/length? win-list
+	]
+
+	window-open?: func [								;-- no once a handler closed its window
+		wm		[window-manager!]
+		return: [logic!]
+	][
+		-1 <> array/find-ptr win-list as int-ptr! wm
+	]
+
+	new-window?: func [									;-- yes while WM is above the active window, or none is: new, or revealed
+		wm		[window-manager!]
+		return: [logic!]
+		/local
+			n	[integer!]
+	][
+		n: array/find-ptr win-list as int-ptr! wm
+		all [
+			n >= 0
+			wm <> active-win
+			any [
+				null? active-win
+				n > array/find-ptr win-list as int-ptr! active-win
+			]
+		]
+	]
+
+	raise-window: func [								;-- puts WM on top: the end of WIN-LIST
+		wm		[window-manager!]
+	][
+		if window-open? wm [
+			array/remove-ptr win-list as int-ptr! wm
+			array/append-ptr win-list as int-ptr! wm
+		]
 	]
 
 	resize-buffer: func [
@@ -264,11 +301,7 @@ screen: context [
 			win	[widget!]
 			wm  [window-manager!]
 	][
-		wm: as window-manager! current-win/data
-		if any [
-			wm/focused <> null
-			widget/flags and WIDGET_FLAG_FOCUSABLE = 0
-		][exit]
+		if widget/flags and WIDGET_FLAG_FOCUSABLE = 0 [exit]
 
 		win: widget/parent
 		while [all [win <> null win/type <> window]][
@@ -276,17 +309,46 @@ screen: context [
 		]
 		if win <> null [
 			wm: as window-manager! win/data
-			set-focus-widget widget wm
+			if null? wm/focused [set-focus-widget widget wm]	;-- the first focusable one of its window
 		]
 	]
 
 	set-focus-widget: func [
 		w			[widget!]
 		wm			[window-manager!]
+		/local
+			face	[red-object! value]
+			shown?	[logic!]
+			win		[widget!]
+			old		[widget!]
 	][
-		if null? wm [wm: active-win]
-		WIDGET_UNSET_FLAG(focus-widget WIDGET_FLAG_FOCUS)
-		send-event EVT_UNFOCUS focus-widget 0
+		if null? wm [									;-- W's own window, not ACTIVE-WIN: a handler can open others
+			win: w
+			while [all [win <> null win/type <> window]][win: win/parent]
+			if null? win [exit]
+			wm: as window-manager! win/data
+		]
+		if wm <> active-win [							;-- its window is being made or is not the active one:
+			wm/focused: w								;-- W gets the focus once that window is activated
+			exit
+		]
+		if all [focus-widget <> null focus-widget <> w][	;-- none once its window is closed; W keeps it
+			copy-cell as cell! :w/face as cell! :face	;-- a handler can free W, its face stays
+			shown?: w = as widget! face-handle? :face	;-- no while W is being made: no state yet
+			old: focus-widget
+			focus-widget: null							;-- a focus change in the handler must not unfocus it again
+			WIDGET_UNSET_FLAG(old WIDGET_FLAG_FOCUS)
+			send-event EVT_UNFOCUS old 0
+			unless window-open? wm [exit]				;-- the handler closed W's window,
+			if all [shown? w <> as widget! face-handle? :face][	;-- or freed W,
+				if null? focus-widget [focus-widget: wm/window]
+				exit
+			]
+			if any [focus-widget <> null wm <> active-win][	;-- or set the focus, or activated another window:
+				if wm/focused = old [wm/focused: w]		;-- that wins, W stays its window's choice if still free
+				exit
+			]
+		]
 
 		wm/focused: w
 		focus-widget: w
@@ -310,7 +372,6 @@ screen: context [
 		if widget/flags and WIDGET_FLAG_FULLSCREEN <> 0 [
 			alternate-screen?: yes
 		]
-		current-win: widget
 		if null? focus-widget [focus-widget: widget]
 		p: as window-manager! zero-alloc size? window-manager!
 		p/window: widget
@@ -330,8 +391,10 @@ screen: context [
 		][
 			wm/focused
 		]
+		raise-window wm									;-- the active window is the top one
 		active-win: wm
 		set-focus-widget w wm
+		unless window-open? wm [exit]					;-- a focus handler closed the window
 
 		if all [
 			wm/editable = 0
@@ -343,6 +406,30 @@ screen: context [
 		array/clear captured
 	]
 
+	activate-top: func [								;-- activates the top visible window (a hidden one is not shown)
+		/local
+			wm	[window-manager!]
+			n	[integer!]
+	][
+		n: windows-cnt
+		while [n > 0][
+			wm: as window-manager! array/pick-ptr win-list n
+			if wm/window/flags and WIDGET_FLAG_HIDDEN = 0 [break]
+			n: n - 1
+		]
+		if zero? n [									;-- all hidden: the active one stays, else the top one (a blank screen)
+			if window-open? active-win [exit]
+			n: windows-cnt
+			if zero? n [
+				active-win: null						;-- none left to render
+				present?: no
+				exit
+			]
+			wm: as window-manager! array/pick-ptr win-list n
+		]
+		if wm <> active-win [init-window wm]
+	]
+
 	remove-window: func [
 		widget	[widget!]
 		/local
@@ -350,11 +437,29 @@ screen: context [
 	][
 		wm: as window-manager! widget/data
 		array/remove-ptr win-list as int-ptr! wm
+		if wm = active-win [active-win: null]
 		free as byte-ptr! wm
-		if windows-cnt > 0 [
-			active-win: as window-manager! array/pick-ptr win-list windows-cnt
-			init-window active-win
+		activate-top
+	]
+
+	forget-widget: func [								;-- drops the pointers to W, a widget being freed
+		w		[widget!]
+		/local
+			win	[widget!]
+			wm	[window-manager!]
+	][
+		if hover-widget = w [hover-widget: null]
+		if captured-widget = w [captured-widget: null]
+		array/remove-ptr captured as int-ptr! w
+		win: w/parent
+		while [all [win <> null win/type <> window]][
+			win: win/parent
 		]
+		if win <> null [
+			wm: as window-manager! win/data
+			if wm/focused = w [wm/focused: null]
+		]
+		if focus-widget = w [focus-widget: win]			;-- its window, none when W is one
 	]
 
 	redraw: func [w [widget!]][

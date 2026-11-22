@@ -35,7 +35,6 @@ on-text-list-event: func [
 		ret		[integer!]
 		data	[red-block!]
 		values	[red-value!]
-		fstate	[red-value!]
 		selected [red-integer!]
 ][
 	widget: evt/widget
@@ -96,8 +95,7 @@ on-text-list-event: func [
 	if cur-idx <> idx [		;-- select a different item
 		ret: make-red-event EVT_SELECT widget idx
 
-		fstate: values + FACE_OBJ_STATE
-		if TYPE_OF(fstate) <> TYPE_BLOCK [return 0]	;-- widget destroyed
+		if ret = EVT_DESTROYED [return ret]			;-- widget destroyed
 
 		values: get-face-values widget
 		selected: as red-integer! values + FACE_OBJ_SELECTED
@@ -108,7 +106,7 @@ on-text-list-event: func [
 		make-text-list-ui widget
 		screen/redraw widget
 		if ret = EVT_DISPATCH [
-			make-red-event EVT_CHANGE widget idx
+			if EVT_DESTROYED = make-red-event EVT_CHANGE widget idx [return EVT_DESTROYED]
 		]
 	]
 	0

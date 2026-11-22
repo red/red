@@ -94,6 +94,7 @@ ansi-parser: context [
 			flags	[integer!]
 			win		[widget!]
 	][
+		if null? screen/active-win [exit]				;-- no window left
 		win: screen/active-win/window
 		arg1: args/1
 		btn: arg1 and 3 + (arg1 and 64 >> 4)
@@ -339,6 +340,7 @@ ansi-parser: context [
 				true [parse-utf8]
 			]
 			if end-of-buffer? [exit]
+			pbuffer: array/get-ptr buffer					;-- an event handler's GC can move the buffer
 
 			if incomplete? [
 				if cur > 1 [

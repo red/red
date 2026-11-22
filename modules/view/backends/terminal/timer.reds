@@ -73,13 +73,11 @@ timer: context [
 	update: func [
 		elapse		[integer!]
 		/local
-			len		[integer!]
 			t		[int-ptr!]
 			i		[integer!]
 	][
-		len: array/length? timer-list
 		i: 1
-		while [i <= len][
+		while [i <= array/length? timer-list][			;-- a handler can kill timers
 			t: array/pick-ptr timer-list i
 			tick t elapse
 			i: i + 1

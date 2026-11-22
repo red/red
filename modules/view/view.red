@@ -973,13 +973,17 @@ show: function [
 		unless nested [									;-- the whole group at once
 			unless empty? changed [system/view/platform/update-view changed]
 			clear changed
+			unless face/state [return false]			;-- unviewed in an event handler of the update
 			if face/type <> 'screen [system/view/platform/refresh-window face/state/1]
 		]
 	]
 	if all [new? object? face/actors in face/actors 'on-created][
 		do-safe [face/actors/on-created face none]		;@@ only called once
 	]
-	if all [face/type = 'window face/visible?][system/view/platform/show-window handle]
+	if all [face/type = 'window face/visible?][
+		system/view/platform/show-window handle
+		unless face/state [return false]				;-- unviewed in a handler of its first focus
+	]
 	show?
 ]
 
@@ -1026,7 +1030,10 @@ view: function [
 	
 	unless spec/text   [spec/text: "Red: untitled"]
 	unless spec/offset [center-face/with spec get-current-screen]
-	unless show spec [exit]
+	unless show spec [									;-- closed while shown
+		system/view/auto-sync?: sync?
+		exit
+	]
 
 	set/any 'result either no-wait [
 		do-events/no-wait

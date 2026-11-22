@@ -13,6 +13,7 @@ Red/System [
 #enum event-action! [
 	EVT_DISPATCH
 	EVT_NO_DISPATCH										;-- no further msg processing allowed
+	EVT_DESTROYED										;-- the handler freed the widget: stop using it
 ]
 
 flags-blk: declare red-block!							;-- static block value for event/flags
@@ -182,6 +183,8 @@ make-event: func [
 		state	[integer!]
 		gui-evt	[red-event! value]
 		t?		[logic!]
+		w		[widget!]
+		face	[red-object! value]
 ][
 	gui-evt/header: TYPE_EVENT
 	gui-evt/msg:    as byte-ptr! widget-evt
@@ -189,6 +192,8 @@ make-event: func [
 	gui-evt/type:   evt
 
 	state: EVT_DISPATCH
+	w: widget-evt/widget
+	copy-cell as cell! :w/face as cell! :face			;-- a handler can free W, its face stays
 
 	stack/mark-try-all words/_anon
 	res: as red-word! stack/arguments
@@ -208,6 +213,7 @@ make-event: func [
 		sym: symbol/resolve res/symbol
 		if sym = done [state: EVT_NO_DISPATCH]		;-- pass event to widget
 	]
+	if w <> as widget! face-handle? :face [state: EVT_DESTROYED]
 	state
 ]
 
@@ -267,7 +273,7 @@ send-mouse-event: func [
 		g-evt/pt/x: x
 		g-evt/pt/y: y
 		g-evt/widget: obj
-		obj/on-event evt :g-evt
+		if EVT_DESTROYED = obj/on-event evt :g-evt [return EVT_DESTROYED]
 		if 0 <> obj/face [
 			ret: make-event evt :g-evt flags
 		]
@@ -285,6 +291,7 @@ send-key-event: func [
 ][
 	if null? obj [
 		obj: screen/focus-widget
+		if null? obj [exit]								;-- no window left
 	]
 	if obj/flags and WIDGET_FLAG_DISABLE = 0 [
 		if flags <> 0 [
@@ -388,7 +395,7 @@ do-mouse-move: func [
 	ret: EVT_DISPATCH
 
 	if null? screen/hover-widget [					;-- mouse enter a new window
-		send-mouse-event evt obj x y flags
+		if EVT_DESTROYED = send-mouse-event evt obj x y flags [return EVT_DESTROYED]
 	]
 
 	child: _widget/find-child obj x y
@@ -402,16 +409,13 @@ do-mouse-move: func [
 					if screen/captured-widget = hover [
 						WIDGET_SET_FLAG(hover WIDGET_FLAG_AWAY)
 					]
-					send-mouse-event
-						evt
-						hover
-						mouse-x
-						mouse-y
-						flags or EVT_FLAG_AWAY
+					if EVT_DESTROYED = send-mouse-event evt hover mouse-x mouse-y flags or EVT_FLAG_AWAY [
+						return EVT_DESTROYED
+					]
 				]
 				if hover-changed? obj hover [
 					WIDGET_UNSET_FLAG(obj WIDGET_FLAG_AWAY)
-					send-mouse-event evt obj x y flags
+					if EVT_DESTROYED = send-mouse-event evt obj x y flags [return EVT_DESTROYED]
 				]
 			]
 			screen/hover-widget: obj
@@ -420,8 +424,8 @@ do-mouse-move: func [
 		mouse-y: y
 	]
 	if all [
+		ret = EVT_DISPATCH								;-- first: OBJ is freed on EVT_DESTROYED
 		obj/flags and WIDGET_FLAG_ALL_OVER <> 0
-		ret = EVT_DISPATCH 
 	][
 		ret: send-mouse-event evt obj x y flags
 	]
@@ -447,9 +451,11 @@ _do-mouse-press: func [
 	gb: _widget/find-child obj x y
 	if gb <> null [
 		r0: _do-mouse-press evt gb x - gb/box/left y - gb/box/top flags
+		if r0 and FFh = EVT_DESTROYED [return r0]		;-- a handler freed widgets, maybe OBJ
 	]
 	if r0 and FFh = EVT_DISPATCH [
 		r1: send-mouse-event evt obj x y flags
+		if r1 = EVT_DESTROYED [return r1]
 	]
 	switch evt [
 		EVT_LEFT_DOWN [
@@ -467,13 +473,14 @@ _do-mouse-press: func [
 						mouse-click-delta < 500
 					]
 				][
-					send-mouse-event EVT_CLICK obj x y flags
+					if EVT_DESTROYED = send-mouse-event EVT_CLICK obj x y flags [return EVT_DESTROYED]
 					last-mouse-evt: EVT_DBL_CLICK
 					EVT_DBL_CLICK
 				][
 					EVT_CLICK
 				]
 				r2: send-mouse-event evt obj x y flags
+				if r2 = EVT_DESTROYED [return r2]
 				if all [
 					null? gb
 					WIDGET_FOCUSABLE?(obj)
@@ -526,15 +533,15 @@ do-mouse-wheel: func [
 
 	if all [
 		obj <> null
+		res and FFFFh = EVT_DISPATCH					;-- first: OBJ is freed on EVT_DESTROYED
 		0 <> obj/face
 		obj/flags and WIDGET_FLAG_DISABLE = 0
-		res and FFFFh = EVT_DISPATCH
 	][
 		evt/fdata: as float32! dir
 		evt/pt/x: x
 		evt/pt/y: y
 		evt/widget: obj
-		make-event EVT_WHEEL :evt flags
+		if EVT_DESTROYED = make-event EVT_WHEEL :evt flags [res: EVT_DESTROYED]
 	]
 	res
 ]
@@ -563,9 +570,10 @@ do-events: func [
 		n-loop	[integer!]
 		reenter? [logic!]
 ][
-	reenter?: any [
+	reenter?: any [										;-- not "windows open": a no-wait or hidden one is no loop
 		no-wait?
-		1 < screen/windows-cnt
+		tty/raw-mode?									;-- an outer loop set the terminal up
+		event-loop-cnt > 0								;-- or runs without one (stdout not a terminal)
 	]
 
 	n-loop: event-loop-cnt
@@ -576,6 +584,7 @@ do-events: func [
 	][
 		tty/init
 		screen/enter-alter-screen
+		screen/redraw null								;-- paint the active window: the alternate screen starts blank
 
 		mouse?: as red-logic! #get system/view/platform/mouse-event?
 		if mouse?/value <> mouse-event? [
@@ -633,7 +642,7 @@ do-events: func [
 		tty/show-cursor
 		tty/restore
 		tty/read-input no	;-- clear stdin queue
-		screen/reset
+		if zero? screen/windows-cnt [screen/reset]		;-- windows still open (no-wait ones) stay usable
 	]
 
 	msg?

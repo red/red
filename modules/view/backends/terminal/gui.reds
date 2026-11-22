@@ -327,10 +327,12 @@ OS-show-window: func [
 	hWnd	[integer!]
 	/local
 		g	[widget!]
+		wm	[window-manager!]
 ][
 	g: as widget! hWnd
-	screen/init-window as window-manager! g/data
-	screen/redraw g
+	wm: as window-manager! g/data
+	if screen/new-window? wm [screen/init-window wm]	;-- an open window is refreshed, not raised (as on Windows)
+	if screen/window-open? wm [screen/redraw g]		;-- unless a focus handler closed it
 ]
 
 OS-make-view: func [
@@ -650,7 +652,12 @@ change-visible: func [
 		bool [red-logic!]
 ][
 	bool: as red-logic! values + FACE_OBJ_VISIBLE?
-	either bool/value [WIDGET_UNSET_FLAG(w WIDGET_FLAG_HIDDEN)][
+	either bool/value [
+		if all [WIDGET_TYPE(w) = window  w/flags and WIDGET_FLAG_HIDDEN <> 0][
+			screen/raise-window as window-manager! w/data	;-- revealed: OS-show-window presents it
+		]
+		WIDGET_UNSET_FLAG(w WIDGET_FLAG_HIDDEN)
+	][
 		WIDGET_SET_FLAG(w WIDGET_FLAG_HIDDEN)
 	]
 ]
@@ -732,6 +739,7 @@ OS-update-view: func [
 	w: as widget! int/value
 	int: int + 1
 	flags: int/value
+	int/value: 0										;-- reset flags now: SELECTED runs Red code, whose GC can move INT
 	
 	if flags and FACET_FLAG_RATE <> 0 [
 		timer/kill w
@@ -746,6 +754,10 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_SELECTED <> 0 [
 		change-selection w values
+		if w <> as widget! face-handle? face [exit]		;-- a focus handler freed the widget
+		ctx: GET_CTX(face)								;-- and a GC there can move VALUES
+		s: as series! ctx/values/value
+		values: s/offset
 	]
 	if flags and FACET_FLAG_ENABLED? <> 0 [
 		change-enabled w values
@@ -778,8 +790,15 @@ OS-update-view: func [
 	w/update w
 	screen/redraw w
 	b/value: sync?
-
-	int/value: 0										;-- reset flags
+	if all [											;-- the active window was hidden: the top visible one takes over
+		flags and FACET_FLAG_VISIBLE? <> 0
+		WIDGET_TYPE(w) = window
+		w/flags and WIDGET_FLAG_HIDDEN <> 0
+		w/data = as int-ptr! screen/active-win
+	][
+		screen/activate-top
+		screen/redraw null
+	]
 ]
 
 OS-destroy-view: func [
@@ -787,7 +806,7 @@ OS-destroy-view: func [
 	empty? [logic!]
 ][
 	free-faces face
-	post-quit-msg
+	if empty? [post-quit-msg]							;-- only the window its event loop started from (FACE/STATE/4)
 	if 0 < screen/windows-cnt [
 		screen/redraw null
 	]
