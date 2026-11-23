@@ -319,6 +319,7 @@ redc: context [
 				any [
 					(modified? filename) < modified? %runtime/deflate.reds
 					(modified? filename) < modified? %runtime/zstd.reds
+					(modified? filename) < modified? %red.r	;-- holds the `pack` wrapper
 				]
 			]
 		][
@@ -435,7 +436,10 @@ pack: func [in [byte-ptr!] size [integer!] out [byte-ptr!] out-size [integer!] r
 		
 		if lib? [
 			date: modified? lib
-			current?: any [not encap? date > build-date]
+			current?: all [
+				any [not encap? date > build-date]
+				libRedRT/boot-format = attempt [pick load join path libRedRT/defs-file 13]	;-- built for the same boot data format
+			]
 			
 			either all [load-lib? opts/OS = get-OS-name][
 				lib: load/library lib

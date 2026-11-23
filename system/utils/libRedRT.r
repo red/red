@@ -24,6 +24,7 @@ libRedRT: context [
 	extras-file:  %libRedRT-extras.r
 	defs-file:	  %libRedRT-defs.r
 	root-dir:	  %./
+	boot-format:  2									;-- boot data format decoded by the runtime (Redbin payload, bit-arrays): increment on change
 	
 	get-path: func [file][
 		either all [system/version/4 = 3 root-dir = %./][
@@ -311,6 +312,7 @@ libRedRT: context [
 			red/s-counter
 			red/needed
 			red/shadow-funcs
+			boot-format
 		]
 		replace/all tmpl "% " {%"" }
 		replace/all tmpl ">>>" {">>>"}

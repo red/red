@@ -549,6 +549,7 @@ context [
 			compress?: find spec 'compress
 			128 < length? buffer
 			out: redc/zstd-compress buffer
+			(4 + length? out) < length? buffer			;-- smaller with its size field too
 		][
 			flags: flags or #{02}
 			clear buffer

@@ -913,6 +913,7 @@ emitter: make-profilable context [
 		append data-buf to-bin32 either out [length? out][0]	;-- size of the zstd frame, 0: not compressed
 		add-symbol '***-ptr-bitmaps (index? tail data-buf) - 1
 		append data-buf bits-buf
+		pad-data-buf target/ptr-size					;-- a zstd frame can have any size
 	]
 	
 	push-struct: func [expr spec [block!]][
