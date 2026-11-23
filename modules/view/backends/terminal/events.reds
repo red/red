@@ -269,6 +269,12 @@ send-mouse-event: func [
 		ret		[integer!]
 ][
 	ret: EVT_DISPATCH
+	if all [											;-- a left press holds the mouse: no other widget hears of the moves
+		evt = EVT_OVER
+		flags and EVT_FLAG_DOWN <> 0
+		screen/captured-widget <> null
+		obj <> screen/captured-widget
+	][return ret]
 	if obj/flags and WIDGET_FLAG_DISABLE = 0 [
 		g-evt/pt/x: x
 		g-evt/pt/y: y
@@ -326,27 +332,6 @@ send-pt-event: func [
 	send-mouse-event evt obj x y flags
 ]
 
-hover-changed?: func [
-	widget-1	[widget!]
-	widget-2	[widget!]
-	return: [logic!]
-	/local
-		g	[widget!]
-		leave? [logic!]
-][
-	leave?: no
-	g: widget-1
-	until [
-		g: g/parent
-		if g = widget-2 [leave?: yes break]
-		null? g
-	]
-	any [
-		leave?
-		widget-1/parent = widget-2/parent		;-- overlapped sibling widgets
-	]
-]
-
 child?: func [
 	child	[widget!]
 	parent	[widget!]
@@ -367,14 +352,26 @@ send-captured-event: func [
 	filter	[integer!]
 	/local
 		captured [widget!]
+		h		 [widget!]
 ][
 	captured: screen/captured-widget
+	if null? captured [exit]
+	map-pt-from-win captured x y :x :y
+	if evt = EVT_OVER [
+		h: screen/hover-widget
+		if any [h = captured child? h captured][		;-- the pointer is on it or on one of its children
+			WIDGET_UNSET_FLAG(captured WIDGET_FLAG_AWAY)
+			exit
+		]
+		if captured/flags and WIDGET_FLAG_AWAY = 0 [	;-- it left it from a child: not told yet
+			WIDGET_SET_FLAG(captured WIDGET_FLAG_AWAY)
+			if EVT_DESTROYED = send-mouse-event evt captured x y flags or EVT_FLAG_AWAY [exit]
+		]
+	]
 	if all [
-		captured <> null
 		captured/flags and WIDGET_FLAG_AWAY <> 0
 		any [filter = -1 captured/flags and filter <> 0]
 	][
-		map-pt-from-win captured x y :x :y
 		send-mouse-event evt captured x y flags
 	]
 ]
@@ -405,7 +402,7 @@ do-mouse-move: func [
 		hover: screen/hover-widget
 		if hover <> obj [
 			if hover <> null [
-				if hover-changed? hover obj [
+				unless child? obj hover [					;-- the pointer left it, wherever it went
 					if screen/captured-widget = hover [
 						WIDGET_SET_FLAG(hover WIDGET_FLAG_AWAY)
 					]
@@ -413,7 +410,7 @@ do-mouse-move: func [
 						return EVT_DESTROYED
 					]
 				]
-				if hover-changed? obj hover [
+				unless child? hover obj [					;-- the pointer came from outside it
 					WIDGET_UNSET_FLAG(obj WIDGET_FLAG_AWAY)
 					if EVT_DESTROYED = send-mouse-event evt obj x y flags [return EVT_DESTROYED]
 				]
@@ -452,6 +449,13 @@ _do-mouse-press: func [
 	if gb <> null [
 		r0: _do-mouse-press evt gb x - gb/box/left y - gb/box/top flags
 		if r0 and FFh = EVT_DESTROYED [return r0]		;-- a handler freed widgets, maybe OBJ
+	]
+	if all [null? gb evt = EVT_LEFT_DOWN][				;-- the widget a left press lands on gets the moves and the release
+		WIDGET_UNSET_FLAG(obj WIDGET_FLAG_AWAY)
+		screen/captured-widget: obj
+		if all [obj <> screen/hover-widget  EVT_DESTROYED = do-mouse-move EVT_OVER obj x y flags no][	;-- no move came here first
+			return EVT_DESTROYED
+		]
 	]
 	if r0 and FFh = EVT_DISPATCH [
 		r1: send-mouse-event evt obj x y flags
@@ -501,11 +505,21 @@ do-mouse-press: func [
 	x		[float32!]
 	y		[float32!]
 	flags	[integer!]
+	/local
+		w	[widget!]
+		h	[widget!]
 ][
-	if evt = EVT_LEFT_DOWN [screen/captured-widget: screen/hover-widget]
-	_do-mouse-press evt obj x y flags
+	w: screen/captured-widget
+	if any [evt <> EVT_LEFT_UP  null? w  w/flags and WIDGET_FLAG_AWAY = 0][	;-- released away from the widget it pressed: only that one hears of it
+		_do-mouse-press evt obj x y flags
+	]
 	if evt = EVT_LEFT_UP [
 		send-captured-event evt x y flags -1
+		w: screen/captured-widget						;-- none once a handler freed it
+		h: screen/hover-widget
+		if all [w <> null  h <> null  h <> w  not child? w h][	;-- the widget the pointer is on now was entered during the press
+			send-mouse-event EVT_OVER h mouse-x mouse-y flags
+		]
 		screen/captured-widget: null
 		array/clear screen/captured
 		last-mouse-evt: either last-mouse-evt = EVT_DBL_CLICK [0][EVT_LEFT_UP]

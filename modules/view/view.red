@@ -1375,7 +1375,6 @@ insert-event-func 'dragging function [face event][
 						either any [
 							not find [down mid-down] drag-evt	;-- other buttons not reliably reported in motion events
 							find event/flags drag-evt
-							all [drag-evt = 'mid-down find event/flags 'down]	;-- terminal backend reports only `down` in motion events
 						][
 							new: (any [face/offset 0x0]) + event/offset - drag-info/1
 							if face/offset <> new [

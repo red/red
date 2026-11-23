@@ -111,7 +111,7 @@ ansi-parser: context [
 					mouse-down: pressed
 					do-mouse-press evt win x y flags
 				][
-					do-mouse-move EVT_OVER win x y flags or EVT_FLAG_DOWN yes
+					do-mouse-move EVT_OVER win x y flags or (EVT_FLAG_DOWN >> btn) yes	;-- DOWN, MID-DOWN or ALT-DOWN: the button held
 				]
 			]
 			btn = 3 [do-mouse-move EVT_OVER win x y flags yes]
