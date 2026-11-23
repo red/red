@@ -172,6 +172,34 @@ function limit_review_length() {
     }
 }
 
+# The reviewer sees the checkout at its absolute runner path, so a finding reads
+# /home/gharunner/actions-runner/_work/red/red/modules/view/backends/...:645-645
+# while readers only need the tail. Collapse the CI root (everything up to and
+# including `_work/` on a self-hosted runner, `work/` on a hosted one) so the
+# same finding reads /red/red/modules/view/backends/...:645-645. The replacement
+# is a plain string operation: report text is not a regex subject here.
+function collapse_ci_root() {
+    local text="$1" workspace="${GITHUB_WORKSPACE:-}" root=""
+    if [ -n "$workspace" ]; then
+        case "$workspace" in
+            */_work/*) root="${workspace%%/_work/*}/_work" ;;
+            */work/*)  root="${workspace%%/work/*}/work" ;;
+        esac
+    fi
+    if [ -n "$root" ]; then
+        # Literal `root/` -> `/` replacement (index/substr, not a regex), so a
+        # sibling such as `.../workspace` with the same prefix is left alone.
+        local from="${root}/"
+        text="$(printf '%s' "$text" | awk -v from="$from" '{
+            while ((i = index($0, from)) > 0) {
+                $0 = substr($0, 1, i - 1) "/" substr($0, i + length(from))
+            }
+            print
+        }')"
+    fi
+    printf '%s\n' "$text"
+}
+
 # Resolve paths and inputs.
 output_root="${RUNNER_TEMP:-$(pwd)}"
 review_output_path="$output_root/review-output.md"
@@ -363,6 +391,7 @@ if test_review_has_issues "$review_text"; then
 else
     has_issues=false
 fi
+review_text="$(collapse_ci_root "$review_text")"
 review_text="$(limit_review_length "$review_text")"
 
 summary="# AI Code Review
