@@ -938,6 +938,7 @@ show: function [
 
 			handle: system/view/platform/make-view face p
 			if with [face/parent: parent]
+			if face/type = 'window [face/parent: get-current-screen]	;-- before the state: on-change* would SHOW it before the append
 
 			face/state: reduce [handle 0 none false]
 
@@ -950,7 +951,6 @@ show: function [
 					tab-panel [link-tabs-to-parent face]
 				]
 				window	  [
-					face/parent: get-current-screen
 					if find-flag? face/flags 'modal [
 						pane: face/parent/pane
 						foreach f head pane [
