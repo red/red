@@ -422,7 +422,7 @@ pack: func [in [byte-ptr!] size [integer!] out [byte-ptr!] out-size [integer!] r
 		show-stats opts result
 	]
 	
-	needs-libRedRT?: func [opts [object!] /local file path lib lib? get-date ts date current?][
+	needs-libRedRT?: func [opts [object!] /local file path lib lib? get-date ts date current? defs][
 		unless opts/dev-mode? [return no]
 		
 		path: get-output-path opts
@@ -438,7 +438,8 @@ pack: func [in [byte-ptr!] size [integer!] out [byte-ptr!] out-size [integer!] r
 			date: modified? lib
 			current?: all [
 				any [not encap? date > build-date]
-				libRedRT/boot-format = attempt [pick load join path libRedRT/defs-file 13]	;-- built for the same boot data format
+				libRedRT/boot-format = attempt [pick load defs: join path libRedRT/defs-file 13]	;-- built for the same boot data format
+				date >= modified? defs				;-- a failed rebuild leaves new definitions beside the old library
 			]
 			
 			either all [load-lib? opts/OS = get-OS-name][

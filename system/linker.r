@@ -157,7 +157,8 @@ linker: context [
 	]
 	
 	get-debug-lines-size: func [job [object!] /local size][
-		size: 12 * (length? job/debug-info/lines/records) / 3
+		size: (negate length? job/sections/data/2) and 3	;-- padding before the records
+		size: size + (12 * (length? job/debug-info/lines/records) / 3)
 		foreach file job/debug-info/lines/files [
 			size: size + 1 + length? file			;-- file is supposed to be FORMed not MOLDed
 		]
@@ -193,6 +194,7 @@ linker: context [
 		]
 		
 		data-buf: job/sections/data/2
+		insert/dup tail data-buf null (negate length? data-buf) and 3	;-- 32-bit alignment for the records
 		set-ptr job '__debug-lines length? data-buf	;-- patch __debug-lines symbol to point to 1st record
 		set-integer job '__debug-lines-nb (length? records) / 3
 		
@@ -212,7 +214,7 @@ linker: context [
 	
 	get-debug-funcs-size: func [job [object!] /local size sc][
 		sc: system-dialect/compiler
-		size: 0
+		size: (negate (length? job/sections/data/2) + get-debug-lines-size job) and 3	;-- padding before the records
 		foreach [name spec] job/symbols [
 			if is-native? name spec [
 				size: size + 1 + (length? undecorate name) 
@@ -265,6 +267,7 @@ linker: context [
 			if job/verbosity >= 3 [print [to-hex record/address #":" name]]
 		]
 		data-buf: job/sections/data/2
+		insert/dup tail data-buf null (negate length? data-buf) and 3	;-- 32-bit alignment for the records
 		set-ptr job '__debug-funcs length? data-buf		;-- patch __debug-funcs symbol to point to 1st record
 		set-integer job '__debug-funcs-nb nb
 
