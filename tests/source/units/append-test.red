@@ -1359,4 +1359,32 @@ Red [
 ===end-group===
 
 
+===start-group=== "append returns the series head"
+
+	arh-v: tail copy [a b]
+	clear head arh-v								;-- arh-v's index is past its tail
+
+	--test-- "append-head-1"
+		arh-x: append next copy [1 2 3] arh-v
+		--assert 1 = index? arh-x
+		--assert [1 2 3] = arh-x
+	--test-- "append-head-2"
+		--assert 1 = index? append next copy [1 2 3] []
+	--test-- "append-head-3"
+		--assert 1 = index? append/part next copy [1 2 3] [x y] 0
+	--test-- "append-head-4"
+		--assert 1 = index? append/dup next copy [1 2 3] [x] 0
+	--test-- "append-head-5"
+		--assert 1 = index? append next make hash! [1 2 3] arh-v
+	--test-- "append-head-6"
+		--assert 1 = index? append next copy "abc" ""
+	--test-- "append-head-7"
+		--assert 1 = index? append next copy #{010203} #{}
+	--test-- "append-head-8"
+		arh-x: append next make vector! [1 2 3] [4]
+		--assert 1 = index? arh-x
+		--assert arh-x = make vector! [1 2 3 4]
+
+===end-group===
+
 ~~~end-file~~~

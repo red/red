@@ -1569,11 +1569,14 @@ actions: context [
 		only  [integer!]
 		dup   [integer!]
 		/local
-			ser1 ser2 [red-series!]
+			ser ser1 ser2 [red-series!]
 			part-arg  [red-value!]
 			int		  [red-integer!]
 			cnt p0 type	[integer!]
 	][
+		ser: as red-series! stack/arguments
+		type: TYPE_OF(ser)
+		if ANY_SERIES?(type) [ser/head: 0]				;-- returns series head, even if nothing is appended
 		PROCESS_PART_DUP_OPTIONS
 		append
 			as red-series! stack/arguments
