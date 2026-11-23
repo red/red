@@ -1144,7 +1144,7 @@ block: context [
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: either only? [1][					;-- values > 0 => series comparison mode
 				type: TYPE_OF(value)
-				either ANY_BLOCK_STRICT?(type) [
+				either ANY_BLOCK?(type) [
 					b: as red-block! value
 					s: GET_BUFFER(b)
 					(as-integer s/tail - s/offset) >> 4 - b/head

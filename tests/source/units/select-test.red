@@ -176,6 +176,25 @@ Red [
   --assert none = select/skip "12345166661234557890" "6" 5
 ===end-group===
 
+===start-group=== "SELECT with a hash! value"
+
+	--test-- "select-hash-value-1"
+		--assert 'd = select [a b c d] make hash! [b c]
+	--test-- "select-hash-value-2"
+		--assert 'd = select make hash! [a b c d] make hash! [b c]
+	--test-- "select-hash-value-3"
+		--assert 'd = select [a b c d] next make hash! [x b c]
+	--test-- "select-hash-value-4"
+		--assert none? select [a b c d] make hash! [c d]
+	--test-- "select-hash-value-5"
+		--assert 'k3 = select/skip [k1 v1 b c k3 v3] make hash! [b c] 2
+	--test-- "select-hash-value-6"
+		--assert 'y = select/last [b c x b c y] make hash! [b c]
+	--test-- "select-hash-value-7"
+		--assert 'x = select/reverse at [b c x b c y] 4 make hash! [b c]
+
+===end-group===
+
 ===start-group=== "SELECT issue #4165"
 
 	--test-- "select-issue-4165"
