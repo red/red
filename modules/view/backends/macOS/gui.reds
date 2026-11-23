@@ -1026,6 +1026,7 @@ change-selection: func [
 		wnd [integer!]
 		sel [red-pair!]
 		win [integer!]
+		fr	[integer!]
 ][
 	if type <> window [
 		idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
@@ -1096,7 +1097,18 @@ change-selection: func [
 			wnd: either TYPE_OF(int) = TYPE_OBJECT [
 				as-integer face-handle? as red-object! int
 			][0]
-			objc_msgSend [hWnd sel_getUid "makeFirstResponder:" wnd]
+			fr: objc_msgSend [hWnd sel_getUid "firstResponder"]
+			unless all [								;-- it has the focus already (itself, a field's editor, an area's text
+				wnd <> 0								;-- view): making it first responder again would resign it first
+				fr <> 0
+				any [
+					fr = wnd
+					all [ns-kind? wnd "NSControl" fr = objc_msgSend [wnd sel_getUid "currentEditor"]]
+					all [ns-kind? wnd "NSScrollView" fr = objc_msgSend [wnd sel_getUid "documentView"]]
+				]
+			][
+				objc_msgSend [hWnd sel_getUid "makeFirstResponder:" wnd]
+			]
 		]
 		true [0]										;-- default, do nothing
 	]
@@ -2179,7 +2191,7 @@ OS-make-view: func [
 
 	SET_PAIR_SIZE_FLAG(obj size)
 
-	change-selection obj as red-integer! values + FACE_OBJ_SELECTED sym
+	if sym <> field [change-selection obj as red-integer! values + FACE_OBJ_SELECTED sym]	;-- a field in no window has no editor: the call would only take the main window's focus
 	change-para obj face as red-object! values + FACE_OBJ_PARA font sym
 
 	unless show?/value [change-visible obj no sym]
