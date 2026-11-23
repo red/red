@@ -1810,6 +1810,54 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "operators with casted float! paths"
+
+	fcp32-s: declare struct! [m [float!] u [float!] w [float32!]]
+	fcp32-s/m: 2.0
+	fcp32-s/u: (1.0 / 16777216.0) + (1.0 / 1125899906842624.0)	;-- 2^-24 + 2^-50, 2^-24 once cast to float32!
+	fcp32-s/w: as float32! 1.5
+	fcp32-p: as pointer! [float!] allocate 2 * size? float!
+	fcp32-p/1: 2.0
+	fcp32-p/2: fcp32-s/u
+	fcp32-one: as float32! 1.0
+	fcp32-half: as float32! 0.5
+	fcp32-tiny: as float32! (1.0 / 16777216.0)
+	fcp32-f: as float32! 0.0
+	fcp32-r: false
+	fcp32-id: func [f [float32!] return: [float32!]][f]
+	fcp32-ret: func [return: [float32!]][(as float32! fcp32-s/u) + fcp32-one]
+	fcp32-arg: func [return: [float32!]][fcp32-id (fcp32-one + fcp32-one) + as float32! fcp32-s/m]
+
+	--test-- "fcp32-left-1"
+		fcp32-f: (as float32! fcp32-s/m) + fcp32-half
+		--assert fcp32-f = as float32! 2.5
+		fcp32-f: (as float32! fcp32-s/m) * fcp32-s/w
+		--assert fcp32-f = as float32! 3.0
+		fcp32-f: (as float32! fcp32-p/1) - fcp32-one
+		--assert fcp32-f = fcp32-one
+	--test-- "fcp32-left-2"								;-- 1 + 2^-24 is a tie: rounded to 1.0
+		fcp32-f: (as float32! fcp32-s/u) + fcp32-one
+		--assert fcp32-f = fcp32-one
+		fcp32-f: (as float32! fcp32-p/2) + fcp32-one
+		--assert fcp32-f = fcp32-one
+		fcp32-f: fcp32-ret
+		--assert fcp32-f = fcp32-one
+	--test-- "fcp32-compare-1"
+		--assert fcp32-tiny = as float32! fcp32-s/u
+		--assert (as float32! fcp32-s/u) = fcp32-tiny
+		--assert fcp32-one < as float32! fcp32-s/m
+		fcp32-r: false
+		if fcp32-one < as float32! fcp32-s/m [fcp32-r: true]
+		--assert fcp32-r
+	--test-- "fcp32-right-1"
+		fcp32-f: fcp32-one + as float32! fcp32-s/u
+		--assert fcp32-f = fcp32-one
+		fcp32-f: (fcp32-one * fcp32-one) + as float32! fcp32-s/u
+		--assert fcp32-f = fcp32-one
+		--assert (as float32! 4.0) = fcp32-arg
+
+===end-group===
+
 ===start-group=== "Arithmetic and comparison"
 
   --test-- "float-auto-1"

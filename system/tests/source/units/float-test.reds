@@ -1814,6 +1814,62 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "operators with casted float32! paths"
+
+	fcp-s: declare struct! [w [float32!] v [float32!] m [float!]]
+	fcp-s/w: as float32! 1.5
+	fcp-s/v: as float32! 0.25
+	fcp-s/m: 2.0
+	fcp-p: as pointer! [float32!] allocate 2 * size? float32!
+	fcp-p/1: as float32! 1.5
+	fcp-p/2: as float32! 0.25
+	fcp-g: 3.0
+	fcp-f: 0.0
+	fcp-r: false
+	fcp-id: func [f [float!] return: [float!]][f]
+	fcp-ret: func [return: [float!]][(as float! fcp-s/w) * fcp-s/m]
+	fcp-arg: func [return: [float!]][fcp-id (fcp-g * 1.0) + as float! fcp-s/w]
+	fcp-local: func [g [float!] return: [float!] /local f [float!]][
+		f: (as float! fcp-s/w) * g
+		f
+	]
+
+	--test-- "fcp-left-1"
+		fcp-f: (as float! fcp-s/w) + 0.0
+		--assert fcp-f = 1.5
+		fcp-f: (as float! fcp-s/w) * 2.0
+		--assert fcp-f = 3.0
+		fcp-f: (as float! fcp-s/w) - fcp-g
+		--assert fcp-f = -1.5
+		fcp-f: (as float! fcp-s/w) / fcp-s/m
+		--assert fcp-f = 0.75
+	--test-- "fcp-left-2"
+		fcp-f: (as float! fcp-s/w) * (as float! fcp-s/v)
+		--assert fcp-f = 0.375
+		fcp-f: (as float! fcp-p/1) + (as float! fcp-p/2)
+		--assert fcp-f = 1.75
+	--test-- "fcp-left-3"
+		--assert 3.0 = fcp-ret
+		--assert 4.5 = fcp-local fcp-g
+		--assert 3.0 = fcp-id (as float! fcp-s/w) * fcp-s/m
+	--test-- "fcp-compare-1"
+		--assert 1.0 < as float! fcp-s/w
+		--assert fcp-g > as float! fcp-s/w
+		--assert fcp-s/m >= as float! fcp-s/w
+		--assert (as float! fcp-s/w) < fcp-s/m
+	--test-- "fcp-compare-2"
+		fcp-r: false
+		if 1.0 < as float! fcp-s/w [fcp-r: true]
+		--assert fcp-r
+		either fcp-s/m <= as float! fcp-s/w [fcp-r: false][fcp-r: true]
+		--assert fcp-r
+	--test-- "fcp-right-1"
+		fcp-f: fcp-g * as float! fcp-s/w
+		--assert fcp-f = 4.5
+		--assert 4.5 = fcp-arg
+
+===end-group===
+
 ===start-group=== "float locals far from the frame pointer"
 
 	ffar-block!: alias struct! [

@@ -1745,7 +1745,7 @@ make-profilable make target-class [
 			]
 			path! [
 				emitter/access-path value none
-				compiler/last-type: either all [cast not keep][
+				compiler/last-type: either cast [	;-- cast once the path value is loaded
 					emit-casting cast no
 					cast/type
 				][
@@ -1769,7 +1769,7 @@ make-profilable make target-class [
 					not find [block! tag!] type?/word value/data
 					emit-load value/data
 				]
-				either keep [emit-casting value no][
+				either keep [if conv-int-float? [emit-casting value no]][
 					unless all [
 						float?
 						any [decimal? value/data compiler/any-float? type]
