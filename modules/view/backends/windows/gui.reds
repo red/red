@@ -609,6 +609,7 @@ update-caret: func [
 	GET_PAIR_XY_INT(size x y)
 	owner: as handle! GetWindowLong hWnd wc-offset - 24
 	CreateCaret owner null x y
+	HideCaret owner										;-- kept hidden: EndPaint shows a caret made while its owner paints
 	change-offset hWnd as red-point2D! values + FACE_OBJ_OFFSET caret null
 ]
 
