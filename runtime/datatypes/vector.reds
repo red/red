@@ -1017,7 +1017,7 @@ vector: context [
 			src: as red-block! value
 			s2: GET_BUFFER(src)
 			added: (as-integer s2/tail - (s2/offset + src/head)) >> 4
-			if zero? added [return as red-value! vec]
+			if added <= 0 [return as red-value! vec]	;-- empty value (or index past its tail)
 			either part > 0 [if part < added [added: part]][part: added]
 		][
 			added: 1
@@ -1096,6 +1096,7 @@ vector: context [
 		][
 			either vec? [_series/get-length as red-series! value no][1]
 		]
+		if negative? added [added: 0]					;-- value index past its tail
 		part?: part > -1								;-- /part: nb of target items to replace (decoded by the action wrapper)
 		if part > avail [part: avail]
 		;-- Ownership pre-check --

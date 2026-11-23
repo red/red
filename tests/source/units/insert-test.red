@@ -1547,5 +1547,35 @@ Red [
 
 ===end-group===
 
+===start-group=== "insert a value past its tail into binary! and vector!"
+
+	ipv-b: tail copy #{0102}
+	clear head ipv-b								;-- ipv-b's index is past its tail
+	ipv-k: tail copy [7 8]
+	clear head ipv-k								;-- ipv-k's index is past its tail
+
+	--test-- "insert-past-tail-vector-1"
+		ipv-x: make vector! [1 2 3]
+		append ipv-x ipv-k
+		--assert ipv-x = make vector! [1 2 3]
+	--test-- "insert-past-tail-vector-2"
+		ipv-x: make vector! [1 2 3]
+		--assert 2 = index? insert next ipv-x ipv-k
+		--assert ipv-x = make vector! [1 2 3]
+	--test-- "insert-past-tail-binary-1"
+		ipv-x: copy #{010203}
+		append ipv-x ipv-b
+		--assert #{010203} = ipv-x
+	--test-- "insert-past-tail-binary-2"
+		ipv-x: copy #{010203}
+		--assert 2 = index? insert next ipv-x ipv-b
+		--assert #{010203} = ipv-x
+	--test-- "insert-past-tail-binary-3"
+		ipv-x: copy #{010203}
+		--assert 3 = index? insert next ipv-x reduce [#{AA} ipv-b]
+		--assert #{01AA0203} = ipv-x
+
+===end-group===
+
 ~~~end-file~~~
 

@@ -1570,4 +1570,34 @@ Red [
 
 ===end-group===
 
+===start-group=== "change binary! and vector! with a value past its tail"
+
+	cpv-b: tail copy #{0102}
+	clear head cpv-b								;-- cpv-b's index is past its tail
+	cpv-k: tail copy [7 8]
+	clear head cpv-k								;-- cpv-k's index is past its tail
+
+	--test-- "change-past-tail-binary-1"
+		cpv-x: copy #{010203}
+		--assert 2 = index? change next cpv-x cpv-b
+		--assert #{010203} = cpv-x
+	--test-- "change-past-tail-binary-2"
+		cpv-x: copy #{010203}
+		--assert 2 = index? change/part next cpv-x cpv-b 1
+		--assert #{0103} = cpv-x
+	--test-- "change-past-tail-binary-3"
+		cpv-x: copy #{010203}
+		--assert 3 = index? change next cpv-x reduce [#{AA} cpv-b]
+		--assert #{01AA03} = cpv-x
+	--test-- "change-past-tail-vector-1"
+		cpv-x: make vector! [1 2 3]
+		--assert 2 = index? change next cpv-x cpv-k
+		--assert cpv-x = make vector! [1 2 3]
+	--test-- "change-past-tail-vector-2"
+		cpv-x: make vector! [1 2 3]
+		--assert 2 = index? change/part next cpv-x cpv-k 1
+		--assert cpv-x = make vector! [1 3]
+
+===end-group===
+
 ~~~end-file~~~

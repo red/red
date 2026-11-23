@@ -1007,6 +1007,7 @@ binary: context [
 				bin: as red-binary! value
 				s2: GET_BUFFER(bin)
 				added: (as-integer s2/tail - s2/offset) - bin/head
+				if negative? added [added: 0]			;-- value index past its tail
 				if all [part > 0 part < added][added: part]
 				if count? [return added]
 				move-memory p (as byte-ptr! s2/offset) + bin/head added ;-- from head; move-memory handles same-series overlap
