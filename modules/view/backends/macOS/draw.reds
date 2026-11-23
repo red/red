@@ -1496,11 +1496,11 @@ OS-matrix-scale: func [
 	GET_PAIR_XY(center x y)
 	sy: sx + 1
 	either pen = -1 [
-		if TYPE_OF(center) = TYPE_PAIR [
+		if ANY_COORD?(center) [
 			_OS-matrix-translate dc/raw x y
 		]
 		CGContextScaleCTM dc/raw get-float32 sx get-float32 sy
-		if TYPE_OF(center) = TYPE_PAIR [
+		if ANY_COORD?(center) [
 			_OS-matrix-translate dc/raw (as float32! 0.0) - x (as float32! 0.0) - y
 		]
 	][
@@ -1549,7 +1549,7 @@ OS-matrix-skew: func [
 	xv: get-float sx
 	yv: either any [
 		sx = center
-		TYPE_OF(sy) = TYPE_PAIR
+		ANY_COORD?(sy)
 	][0.0][get-float sy]
 
 	m/a: as float32! 1.0
@@ -1560,11 +1560,11 @@ OS-matrix-skew: func [
 	m/ty: as float32! 0.0
 	GET_PAIR_XY(center x y)
 	either pen = -1 [
-		if TYPE_OF(center) = TYPE_PAIR [
+		if ANY_COORD?(center) [
 			_OS-matrix-translate dc/raw x y
 		]
 		CGContextConcatCTM dc/raw m
-		if TYPE_OF(center) = TYPE_PAIR [
+		if ANY_COORD?(center) [
 			_OS-matrix-translate dc/raw (as float32! 0.0) - x (as float32! 0.0) - y
 		]
 	][
