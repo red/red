@@ -703,6 +703,7 @@ text-will-selection: func [
 		sel/x: idx2 + 1
 		sel/y: idx2 + len2
 	]
+	objc_setAssociatedObject self RedSelectedKey self OBJC_ASSOCIATION_ASSIGN	;-- `selected` now holds the editor's range
 
 	make-event self 0 EVT_SELECT
 	system/cpu/edx: len2

@@ -165,6 +165,7 @@ Red/System [
 #define IVAR_RED_DRAW_CTX	"red-draw-ctx"	;-- pointer! 4 bytes, for storing draw-ctx!
 #define NSString(cStr) [objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithUTF8String:" cStr]] 
 
+#define RedSelectedKey			4000FFEEh		;-- set once a field's `selected` holds its editor's range
 #define RedNSEventKey			4000FFF0h
 #define RedCameraSessionKey		4000FFF1h
 #define RedCameraDevicesKey		4000FFF2h

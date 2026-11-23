@@ -219,6 +219,7 @@ free-handles: func [
 		pane   [red-block!]
 		state  [red-value!]
 		rate   [red-value!]
+		sel	   [red-value!]
 		sym	   [integer!]
 		handle [integer!]
 ][
@@ -246,6 +247,11 @@ free-handles: func [
 			if handle <> 0 [free-handles handle force?]
 			face: face + 1
 		]
+	]
+
+	if all [sym = field 0 <> objc_getAssociatedObject hWnd RedSelectedKey][
+		sel: values + FACE_OBJ_SELECTED					;-- a range of its editor ends with it
+		sel/header: TYPE_NONE
 	]
 
 	either sym = window [
@@ -1040,9 +1046,10 @@ change-selection: func [
 			][
 				idx: sel/x - 1
 				sz: sel/y - idx						;-- should point past the last selected char
+				if sz < 0 [sz: 0]					;-- a reversed pair: a caret, a negative length ends the process at the next key
 			]
 			either type = field [
-				win: objc_msgSend [NSApp sel_getUid "mainWindow"]
+				win: objc_msgSend [hWnd sel_getUid "window"]	;-- its own window, not the main one
 				objc_msgSend [win sel_getUid "makeFirstResponder:" hWnd]
 				wnd: objc_msgSend [hWnd sel_getUid "currentEditor"]
 			][
@@ -1107,7 +1114,15 @@ change-selection: func [
 					all [ns-kind? wnd "NSScrollView" fr = objc_msgSend [wnd sel_getUid "documentView"]]
 				]
 			][
-				objc_msgSend [hWnd sel_getUid "makeFirstResponder:" wnd]
+				sel: as red-pair! none-value
+				if all [wnd <> 0 ns-kind? wnd "NSTextField" 0 = objc_getAssociatedObject wnd RedSelectedKey][
+					sel: as red-pair! (get-face-values wnd) + FACE_OBJ_SELECTED	;-- still the range the script gave
+				]
+				either TYPE_OF(sel) = TYPE_PAIR [
+					change-selection wnd as red-integer! sel field	;-- focuses the field with that range
+				][
+					objc_msgSend [hWnd sel_getUid "makeFirstResponder:" wnd]
+				]
 			]
 		]
 		true [0]										;-- default, do nothing
@@ -2191,7 +2206,7 @@ OS-make-view: func [
 
 	SET_PAIR_SIZE_FLAG(obj size)
 
-	if sym <> field [change-selection obj as red-integer! values + FACE_OBJ_SELECTED sym]	;-- a field in no window has no editor: the call would only take the main window's focus
+	if sym <> field [change-selection obj as red-integer! values + FACE_OBJ_SELECTED sym]	;-- a field in no window has no editor: its window applies the range when it focuses it
 	change-para obj face as red-object! values + FACE_OBJ_PARA font sym
 
 	unless show?/value [change-visible obj no sym]
