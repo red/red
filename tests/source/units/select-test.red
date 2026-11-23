@@ -212,6 +212,8 @@ Red [
 	clear sev-b										;-- the cleared cell stays past sev-b's tail
 	sev-c: next copy [x make]
 	clear head sev-c								;-- sev-c's index is past its tail
+	sev-h: next make hash! [1 2]
+	clear head sev-h								;-- sev-h's index is past its tail
 
 	--test-- "select-empty-value-1"
 		--assert none? select [make 1] sev-b
@@ -221,6 +223,8 @@ Red [
 		--assert none? select [1 [] 2] []
 	--test-- "select-empty-value-4"
 		--assert 2 = select/only [1 [] 2] sev-b
+	--test-- "select-empty-value-5"
+		--assert none? select [1 2] sev-h
 
 ===end-group===
 
