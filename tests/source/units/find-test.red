@@ -566,4 +566,30 @@ Red [
 
 ===end-group===
 
+===start-group=== "FIND with an empty block value"
+
+	fev-b: copy [make]
+	clear fev-b										;-- the cleared cell stays past fev-b's tail
+	fev-c: next copy [x make]
+	clear head fev-c								;-- fev-c's index is past its tail
+
+	--test-- "find-empty-value-1"
+		--assert none? find [copy make] fev-b
+	--test-- "find-empty-value-2"
+		--assert none? find [a make] fev-c
+	--test-- "find-empty-value-3"
+		--assert none? find/last [copy make] fev-b
+	--test-- "find-empty-value-4"
+		--assert none? find/match [make] fev-b
+	--test-- "find-empty-value-5"
+		--assert none? find/tail [copy make] fev-b
+	--test-- "find-empty-value-6"
+		--assert none? find make hash! [copy make] fev-b
+	--test-- "find-empty-value-7"
+		--assert none? find [1 [] 2] []
+	--test-- "find-empty-value-8"
+		--assert [[] 2] = find/only [1 [] 2] fev-b
+
+===end-group===
+
 ~~~end-file~~~

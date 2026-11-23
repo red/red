@@ -1007,7 +1007,10 @@ block: context [
 					(as-integer s2/tail - s2/offset) >> 4 - b/head
 				][0]
 			]
-			if negative? values [values: 0]				;-- empty value series case
+			if all [any-blk? not only? values <= 0][	;-- empty value series: no match
+				result/header: TYPE_NONE
+				return result
+			]
 
 			case [
 				last? [
@@ -1528,7 +1531,7 @@ block: context [
 		][
 			1
 		]
-		if zero? added [return as red-value! blk]
+		if added <= 0 [return as red-value! blk]		;-- empty value (or index past its tail)
 		if any [negative? part part > added][part: added] ;-- truncate if off-range part value
 		
 		s: GET_BUFFER(blk)
@@ -1660,6 +1663,7 @@ block: context [
 			cell: value
 			1
 		]
+		if negative? items [items: 0]					;-- value index past its tail
 		self?: no
 		if values? [self?: b/node = blk/node]			;-- spread value shares blk's buffer (b = value here)
 

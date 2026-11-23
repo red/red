@@ -206,5 +206,23 @@ Red [
 
 ===end-group===
 
+===start-group=== "SELECT with an empty block value"
+
+	sev-b: copy [make]
+	clear sev-b										;-- the cleared cell stays past sev-b's tail
+	sev-c: next copy [x make]
+	clear head sev-c								;-- sev-c's index is past its tail
+
+	--test-- "select-empty-value-1"
+		--assert none? select [make 1] sev-b
+	--test-- "select-empty-value-2"
+		--assert none? select [a make 1] sev-c
+	--test-- "select-empty-value-3"
+		--assert none? select [1 [] 2] []
+	--test-- "select-empty-value-4"
+		--assert 2 = select/only [1 [] 2] sev-b
+
+===end-group===
+
 ~~~end-file~~~
 

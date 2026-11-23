@@ -1531,5 +1531,21 @@ Red [
 
 ===end-group===
 
+===start-group=== "insert a block value past its tail"
+
+	iev-v: tail copy [a b]
+	clear head iev-v								;-- iev-v's index is past its tail
+
+	--test-- "insert-past-tail-value-1"
+		iev-x: copy [1 2 3]
+		--assert 2 = index? insert next iev-x iev-v
+		--assert [1 2 3] = iev-x
+	--test-- "insert-past-tail-value-2"
+		iev-x: copy [1 2 3]
+		--assert 1 = index? insert iev-x iev-v
+		--assert [1 2 3] = iev-x
+
+===end-group===
+
 ~~~end-file~~~
 

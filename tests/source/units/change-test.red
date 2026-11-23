@@ -1550,4 +1550,24 @@ Red [
 
 ===end-group===
 
+===start-group=== "change with a block value past its tail"
+
+	cev-v: tail copy [a b]
+	clear head cev-v								;-- cev-v's index is past its tail
+
+	--test-- "change-past-tail-value-1"
+		cev-x: copy [1 2 3]
+		--assert 1 = index? change cev-x cev-v
+		--assert [1 2 3] = cev-x
+	--test-- "change-past-tail-value-2"
+		cev-x: copy [1 2 3]
+		--assert 2 = index? change next cev-x cev-v
+		--assert [1 2 3] = cev-x
+	--test-- "change-past-tail-value-3"
+		cev-x: copy [1 2 3]
+		--assert 1 = index? change/part cev-x cev-v 2
+		--assert [3] = cev-x
+
+===end-group===
+
 ~~~end-file~~~
