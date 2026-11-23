@@ -154,10 +154,27 @@ request-color: function [
 				grid/draw: either same? grid focused [mark grid spot any [swatch spot black]][[]]
 			]
 
+			point: func [f [object!] p [pair!]][		;-- picks the color at cell P of picker F
+				case [
+					same? f canvas [
+						set-channel 2 p/x / 31
+						set-channel 3 1 - (p/y / 7)
+					]
+					same? f grid [
+						spot: max 0x0 min 21x2 p
+						if c: swatch spot [set-color c]
+					]
+					true [set-channel f/extra p/x / 23]
+				]
+				refresh none
+			]
+
 			body: compose/only [
-				style picker: base with [flags: [focusable]]
+				style picker: base with [flags: [focusable all-over]]
 					on-focus [focused: face  refresh none]
 					on-unfocus [focused: none  refresh none]
+					on-down [point face event/offset]	;-- the pressed picker follows the mouse until the button is up
+					on-over [if event/down? [point face event/offset]]
 				canvas: picker 32x8 focus on-key [
 					if d: select moves event/key [
 						set-channel 2 hsv/2 + (d/x / 31)
@@ -180,16 +197,12 @@ request-color: function [
 					]
 					style label: text 2x1
 					style num: text 4x1 right
-					preview: base 32x2
+					preview: base 32x2 on-down [if event/offset/x < 16 [set-color old  refresh none]]	;-- the original color: back to it
 					(rows)
 				])
 				return
 				grid: picker 22x3 on-key [
-					if d: select moves event/key [
-						spot: max 0x0 min 21x2 spot + (d * 1x-1)
-						if c: swatch spot [set-color c]
-						refresh none
-					]
+					if d: select moves event/key [point face spot + (d * 1x-1)]
 				]
 				pad 0x2 text 6x1 "Recent"
 				return
