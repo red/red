@@ -346,8 +346,8 @@ get-event-picked: func [
 			]
 		]
 		EVT_MENU   [
-			idx: evt/flags and FFFFh
-			either idx = FFFFh [none/push][word/push* idx]
+			idx: evt/flags
+			either idx = -1 [none/push][word/push* idx]
 		]
 		EVT_SCROLL [
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
@@ -612,7 +612,7 @@ make-event: func [
 		EVT_CLICK [
 			gui-evt/flags: check-extra-keys yes
 		]
-		EVT_MENU [gui-evt/flags: flags and FFFFh]		;-- symbol ID of the menu
+		EVT_MENU [gui-evt/flags: flags]					;-- symbol ID of the menu
 		default	 [0]
 	]
 

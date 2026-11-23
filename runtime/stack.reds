@@ -11,7 +11,8 @@ Red/System [
 ]
 
 #define CALL_STACK_MASK					0F000000h
-#define CALL_STACK_FULL_MASK			FF0000FFh
+#define CALL_STACK_FULL_MASK			FF000000h
+#define CALL_STACK_SYM_MASK				00FFFFFFh
 #define CALL_STACK_TYPE?(p flags)		(CALL_STACK_MASK and p/header = flags)
 #define NOT_CALL_STACK_TYPE?(p flags)	(CALL_STACK_MASK and p/header <> flags)
 
@@ -19,7 +20,7 @@ stack: context [										;-- call stack
 	verbose: 0
 	
 	call-frame!: alias struct! [
-		header [integer!]								;-- symbol ID of the calling function
+		header [integer!]								;-- flags, frame type, symbol ID of the calling function (bits 0-23)
 		prev   [red-value!]								;-- previous frame base
 		ctx	   [node!]									;-- context for function's name
 		fctx   [node!]
@@ -113,7 +114,7 @@ stack: context [										;-- call stack
 			cycles/reset
 			fire [TO_ERROR(internal stack-overflow)]
 		]
-		ctop/header: type or (fun/symbol << 8)
+		ctop/header: type or fun/symbol
 		ctop/prev:	 arguments
 		ctop/ctx:	 fun/ctx
 		ctop/fctx:	 null
@@ -145,7 +146,7 @@ stack: context [										;-- call stack
 			values: ctx/values							;-- swapped by mark-func-body, once the arguments are evaluated
 		]
 
-		ctop/header: FRAME_FUNCTION or (fun/symbol << 8)
+		ctop/header: FRAME_FUNCTION or fun/symbol
 		ctop/prev:	 arguments
 		ctop/ctx:	 fun/ctx
 		ctop/fctx:	 ctx-name
@@ -239,7 +240,7 @@ stack: context [										;-- call stack
 	][
 		p: ctop - 1
 		until [
-			sym: p/header >> 8 and FFFFh
+			sym: p/header and CALL_STACK_SYM_MASK
 			if all [sym <> body-symbol	sym <> anon-symbol][
 				ctx: either null? p/fctx [global-ctx][p/fctx]
 				block/rs-append dst as red-value! word/at ctx sym
@@ -258,7 +259,7 @@ stack: context [										;-- call stack
 		p: cbottom
 		while [p < ctop][
 			if p/ctx <> null [
-				either p/header >> 8 and FFFFh = words/self [	;-- as in collector/mark-values
+				either p/header and CALL_STACK_SYM_MASK = words/self [	;-- as in collector/mark-values
 					collector/mark-block-node :p/ctx
 				][
 					collector/mark-context :p/ctx
@@ -284,7 +285,7 @@ stack: context [										;-- call stack
 		p: either where-ctop = null [ctop][where-ctop]
 		until [
 			p: p - 1
-			sym: p/header >> 8 and FFFFh
+			sym: p/header and CALL_STACK_SYM_MASK
 			any [
 				all [sym <> body-symbol	sym <> anon-symbol]
 				p < cbottom
@@ -305,7 +306,7 @@ stack: context [										;-- call stack
 			p: either where-ctop = null [ctop][where-ctop]
 			assert p > cbottom
 			p: p - 1
-			p/header: p/header and CALL_STACK_FULL_MASK or (w/symbol << 8)
+			p/header: p/header and CALL_STACK_FULL_MASK or w/symbol
 		]
 	]
 	
@@ -527,7 +528,7 @@ stack: context [										;-- call stack
 		top: as call-frame! stk
 		base: cbottom
 		until [
-			sym: base/header >> 8 and FFFFh
+			sym: base/header and CALL_STACK_SYM_MASK
 			if all [sym <> body-symbol sym <> anon-symbol][
 				fun: _context/get-any sym base/ctx
 				if any [level > 1 TYPE_OF(fun) = TYPE_FUNCTION][
@@ -559,7 +560,7 @@ stack: context [										;-- call stack
 		base: cbottom
 		
 		until [
-			sym: base/header >> 8 and FFFFh
+			sym: base/header and CALL_STACK_SYM_MASK
 			
 			if all [sym <> body-symbol sym <> anon-symbol][
 				fun: _context/get-any sym base/ctx
@@ -917,7 +918,7 @@ stack: context [										;-- call stack
 			upper: top
 			
 			until [
-				sym: symbol/get p/header >> 8 and FFFFh
+				sym: symbol/get p/header and CALL_STACK_SYM_MASK
 				flags: p/header and FF000000h
 			
 				print ["^/-FRAME- : " as-c-string (as series! sym/cache/value) + 1 ", "]

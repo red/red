@@ -1339,6 +1339,19 @@ Red [
 			--assert err/arg3 = 'count
 		]
 
+	--test-- "err-3"									;-- a function named by a word made after 65535 others
+		do [
+			repeat i 70'000 [to word! rejoin ["err3-pad" i]]
+			err3-fun: to word! "err3-function-named-last"
+			set err3-fun func [x [integer!]][1 / x]
+			set/any 'err try [do reduce [err3-fun "a"]]
+			--assert err/where = err3-fun
+			set/any 'err try/keep [do reduce [err3-fun 0]]
+			--assert to logic! find err/stack err3-fun
+			unset err3-fun
+			unset 'err3-fun
+		]
+
 ===end-group===
 
 ===start-group=== "unset value passing"

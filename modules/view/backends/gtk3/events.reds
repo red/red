@@ -728,7 +728,7 @@ get-event-picked: func [
 			string/load str size UTF-8
 		]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
-		EVT_MENU [word/push* evt/flags and FFFFh]
+		EVT_MENU [word/push* evt/flags]
 		default	 [integer/push evt/flags and FFFFh]
 	]
 ]

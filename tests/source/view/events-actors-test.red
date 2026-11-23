@@ -125,6 +125,12 @@ got-face: got-window: got-offset: got-picked: bx: e: none
 		recycle												;-- the GC must not read its msg as a Red node
 		system/view/awake e
 		--assert same? bx got-face
+	--test-- "a headless menu event keeps its modifiers"		;-- only a native menu event's flags hold the picked item's symbol
+		p: layout [base 40x40]
+		e: make-event-wrapper 'menu p/pane/1 268435456		;-- 10000000h: control, as `do-event/flags 'menu [control]` gives
+		--assert e/ctrl?
+		--assert not e/shift?
+		--assert e/flags = [control]
 ===end-group===
 
 ~~~end-file~~~
