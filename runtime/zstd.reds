@@ -1290,6 +1290,38 @@ zstd: context [
 		either n > 0 [ZSTD-NO-MEM][ZSTD-OK]
 	]
 
+	unpack: func [									;-- decodes into a new buffer (freed by `release`), null on error
+		in			[byte-ptr!]
+		in-size		[integer!]
+		out-size	[int-ptr!]						;-- if not null, receives the decoded size
+		return:		[byte-ptr!]
+		/local
+			out		[byte-ptr!]
+			n		[integer!]
+			res		[integer!]
+	][
+		n: 0
+		res: uncompress null :n in in-size
+		if res <> ZSTD-NO-MEM [return null]			;-- invalid or empty
+		#either red-pass? = yes [
+			out: as byte-ptr! allocate-virtual n no
+		][
+			out: allocate n							;-- Red/System program: no allocate-virtual
+			if null? out [return null]
+		]
+		res: uncompress out :n in in-size
+		if res <> ZSTD-OK [
+			release out
+			return null
+		]
+		unless null? out-size [out-size/value: n]
+		out
+	]
+
+	release: func [p [byte-ptr!]][					;-- frees a buffer made by `unpack`
+		#either red-pass? = yes [free-virtual as int-ptr! p][free p]
+	]
+
 	;-- encoder
 
 	#define ZSTD_PRIME1			9E3779B1h
@@ -3819,16 +3851,17 @@ zstd: context [
 		if h3 > 0 [h3n: 1 << h3]
 		k: (1 << lg) + (1 << sg) + h3n + (ns * 3) + 3524 + x << 2 + (ns * 3) + bs + 512
 		heap: null
-		either k <= 32768 [							;-- small inputs: on the native stack
-			work: system/stack/allocate k >> 2 + 1
-			set-memory as byte-ptr! work null-byte (1 << lg) + (1 << sg) + h3n << 2	;-- empty hash tables
-		][
-			#either red-pass? = yes [
-				work: allocate-virtual k no			;-- zeroed: empty hash tables
+		#either red-pass? = yes [
+			either k <= 32768 [						;-- small inputs: on the native stack
+				work: system/stack/allocate k >> 2 + 1
+				set-memory as byte-ptr! work null-byte (1 << lg) + (1 << sg) + h3n << 2	;-- empty hash tables
 			][
-				work: as int-ptr! allocate k
-				set-memory as byte-ptr! work null-byte k
+				work: allocate-virtual k no			;-- zeroed: empty hash tables
+				heap: work
 			]
+		][
+			work: as int-ptr! allocate k			;-- Red/System program: on the heap, its host can commit the stack page by page (Rebol2: 4 KB)
+			set-memory as byte-ptr! work null-byte k
 			heap: work
 		]
 		st/in: in

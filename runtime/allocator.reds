@@ -131,12 +131,12 @@ init-mem: func [/local p [int-ptr!]][
 	collector/nodes-list/init
 	
 	p: as int-ptr! system/image/base + system/image/bitarray
-	if p/0 = 1 [p: as int-ptr! crush/decompress as byte-ptr! p null]
+	if p/0 > 0 [p: as int-ptr! zstd/unpack as byte-ptr! p p/0 null]	;-- p/0: size of the zstd frame, 0: not compressed
 	bitarrays-base: p
 
 	#if libRedRT? = yes [
 		p: as int-ptr! system/lib-image/base + system/lib-image/bitarray
-		if p/0 = 1 [p: as int-ptr! crush/decompress as byte-ptr! p null]
+		if p/0 > 0 [p: as int-ptr! zstd/unpack as byte-ptr! p p/0 null]
 		lib-bitarrays-base: p
 	]
 ]

@@ -82,7 +82,6 @@ write %build/bin/sources.r set-cache [
 		%collector.reds
 		%common.reds
 		%compress.reds
-		%crush.reds
 		%crypto.reds
 		%debug-tools.reds
 		%definitions.reds

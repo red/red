@@ -18,8 +18,8 @@ unless all [value? 'red object? :red][
 ]
 
 redc: context [
-	crush-lib:		none								;-- points to compiled crush library
-	crush-compress: none								;-- compression function
+	zstd-lib:		none								;-- points to compiled zstd library
+	zstd-pack:		none								;-- compression routine (level 9)
 	win-version:	none								;-- Windows version extracted from "ver" command
 	SSE3?:			yes
 
@@ -292,17 +292,23 @@ redc: context [
 		]
 	]
 
-	build-compress-lib: has [script basename filename text opts ext src][
-		src: %runtime/crush.reds
+	zstd-compress: func [data [binary!] /local out len][	;-- zstd frame of level 9, none if not smaller
+		len: length? data
+		out: make binary! len: len + (to integer! len / 128) + 64	;-- room for the largest frame
+		insert/dup out null len
+		len: zstd-pack data length? data out len
+		if all [len > 0 len < length? data][copy/part out len]
+	]
 
+	build-compress-lib: has [script basename filename opts][
 		basename: either encap? [
 			unless exists? temp-dir [make-dir temp-dir]
-			script: temp-dir/crush.reds
-			decorate-name %crush
+			script: temp-dir/zstd-lib.reds
+			decorate-name %zstd-lib
 		][
 			temp-dir: %./
-			script: %crush.reds
-			copy %crush
+			script: %runtime/zstd-lib.reds
+			copy %zstd-lib
 		]
 		filename: append temp-dir/:basename get-lib-suffix
 
@@ -310,16 +316,29 @@ redc: context [
 			not exists? filename
 			all [
 				not encap?
-				(modified? filename) < modified? src
+				any [
+					(modified? filename) < modified? %runtime/deflate.reds
+					(modified? filename) < modified? %runtime/zstd.reds
+				]
 			]
 		][
-			if crush-lib [
-				free crush-lib
-				crush-lib: none
+			if zstd-lib [
+				free zstd-lib
+				zstd-lib: none
 			]
-			text: copy read-cache src
-			append text " #export [crush/compress]"
-			write script text
+			if encap? [									;-- the sources beside the script
+				write temp-dir/deflate.reds read-cache %runtime/deflate.reds
+				write temp-dir/zstd.reds read-cache %runtime/zstd.reds
+			]
+			write script {Red/System []
+#include %deflate.reds
+#include %zstd.reds
+pack: func [in [byte-ptr!] size [integer!] out [byte-ptr!] out-size [integer!] return: [integer!] /local n [integer!] res [integer!]][
+	n: out-size
+	res: zstd/compress out :n in size 9
+	either res = 0 [n][-1]						;-- frame size, -1: error
+]
+#export [pack]}
 			unless encap? [basename: head insert basename %../]
 
 			opts: make system-dialect/options-class [	;-- minimal set of compilation options
@@ -341,17 +360,23 @@ redc: context [
 			]
 			system-dialect/compile/options script opts
 			delete script
-			unless encap? [change-dir %../]
+			either encap? [
+				delete temp-dir/deflate.reds
+				delete temp-dir/zstd.reds
+			][
+				change-dir %../
+			]
 		]
 
-		unless crush-lib [
-			crush-lib: load/library filename
-			crush-compress: make routine! [
-				in		[binary!]
-				size	[integer!]						;-- size in bytes
-				out		[binary!]						;-- output buffer (pre-allocated)
-				return: [integer!]						;-- compressed data size
-			] crush-lib "crush/compress"
+		unless zstd-lib [
+			zstd-lib: load/library filename
+			zstd-pack: make routine! [
+				in		 [binary!]
+				size	 [integer!]						;-- size in bytes
+				out		 [binary!]						;-- output buffer (pre-allocated)
+				out-size [integer!]						;-- its size in bytes
+				return:  [integer!]						;-- compressed data size, -1: error
+			] zstd-lib "pack"
 		]
 	]
 	

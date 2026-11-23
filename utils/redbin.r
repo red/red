@@ -532,7 +532,7 @@ context [
 		clear contexts
 	]
 	
-	finish: func [spec [block!] /local flags compress? out len][
+	finish: func [spec [block!] /local flags compress? out][
 		flags: #{05}									;-- compact + symbol table
 		
 		repend header [
@@ -547,16 +547,13 @@ context [
 		
 		if all [
 			compress?: find spec 'compress
-			128 < len: length? buffer
+			128 < length? buffer
+			out: redc/zstd-compress buffer
 		][
-			out: make binary! len
-			insert/dup out null len
-			len: redc/crush-compress buffer len out
-			if len > 0 [
-				flags: flags or #{02}
-				clear buffer
-				insert/part buffer out len
-			]
+			flags: flags or #{02}
+			clear buffer
+			emit-u32-le length? out						;-- frame size
+			append buffer out
 		]
 		
 		clear header

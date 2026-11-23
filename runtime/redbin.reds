@@ -413,8 +413,13 @@ redbin: context [
 		
 		saved: null
 		written: 0
-		if compressed? [
-			p: crush/decompress p :written
+		if compressed? [							;-- frame size (4 bytes), zstd frame
+			if any [iend = null (as-integer iend - p) >= 4][
+				written: zstd/le32 p
+				p: p + 4
+				if all [iend <> null written > (as-integer iend - p)][written: 0]
+			]
+			p: either written > 0 [zstd/unpack p written :written][null]
 			if p = null [
 				either codec? [
 					fire [TO_ERROR(script invalid-data) stack/arguments]
@@ -437,7 +442,7 @@ redbin: context [
 			decode-fat p iend parent sym-table?
 		]
 		
-		if compressed? [crush/release saved]
+		if compressed? [zstd/release saved]
 		input: null
 		unless codec? [root-base: (block/rs-head parent) + root-offset]
 		root-base

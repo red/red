@@ -30,7 +30,6 @@ red: context [
 	
 	#include %threads.reds
 	#include %allocator.reds
-	#include %crush.reds
 	
 	;-- Datatypes --
 	
