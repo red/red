@@ -66,7 +66,7 @@ event: context [
 				default [null]							;-- type/flags/modifiers live in the cell
 			]
 		]
-		if all [evt/type = gui/EVT_MENU  field >= 7  field <= 14  (evt/header and flag-synthetic) = 0  gui/menu-symbol-in-flags?][
+		if all [(evt/header and flag-menu-pick) <> 0  field >= 7  field <= 14][
 			v: either field = 7 [as red-value! block/push-only* 1][as red-value! logic/push false]	;-- a native menu event's flags hold the item's symbol
 		]
 		if null? v [

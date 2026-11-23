@@ -728,7 +728,7 @@ get-event-picked: func [
 			string/load str size UTF-8
 		]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
-		EVT_MENU [word/push* evt/flags]
+		EVT_MENU [either (evt/header and flag-menu-pick) = 0 [none/push][word/push* evt/flags]]
 		default	 [integer/push evt/flags and FFFFh]
 	]
 ]
@@ -999,6 +999,7 @@ make-event: func [
 		char   [integer!]
 		type   [integer!]
 ][
+	gui-evt/header: TYPE_EVENT
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! msg
 	gui-evt/flags: flags
@@ -1054,7 +1055,7 @@ make-event: func [
 		; ]
 		; EVT_CLICK [0
 		; ]
-		; EVT_MENU [0]		;-- symbol ID of the menu
+		EVT_MENU [gui-evt/header: TYPE_EVENT or flag-menu-pick]	;-- flags: symbol ID of the menu
 		default	 [0]
 	]
 

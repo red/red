@@ -512,10 +512,6 @@ system/view/platform: context [
 				evt/type: sym
 			]
 
-			menu-symbol-in-flags?: func [return: [logic!]][	;-- a native menu event's flags hold the picked item's symbol
-				#either GUI-engine = 'test [no][yes]		;-- a headless one's hold the modifiers given to `do-event/flags`
-			]
-
 			#import  [
 			LIBM-file cdecl [
 				fabsf: "fabsf" [
