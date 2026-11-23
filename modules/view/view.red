@@ -898,6 +898,10 @@ show: function [
 	]
 	if debug-info? face [print ["show:" face/type " with?:" with]]
 	
+	unless all [face/state face/state/1][				;-- a new face gets its parent first: the facets set by
+		if with [face/parent: parent]					;-- a reaction to `parent` are the ones it is made with
+		if face/type = 'window [face/parent: get-current-screen]
+	]
 	either all [face/state face/state/1][
 		pending: face/state/3
 
@@ -937,8 +941,6 @@ show: function [
 			]
 
 			handle: system/view/platform/make-view face p
-			if with [face/parent: parent]
-			if face/type = 'window [face/parent: get-current-screen]	;-- before the state: on-change* would SHOW it before the append
 
 			face/state: reduce [handle 0 none false]
 
