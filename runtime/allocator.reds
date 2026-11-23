@@ -216,7 +216,7 @@ free-virtual: func [
 ;-- Free all frames (part of Red's global exit handler)
 ;-------------------------------------------
 free-all: func [
-	/local n-frame s-frame b-frame n-next s-next b-next
+	/local n-frame s-frame b-frame n-next s-next b-next p
 ][
 	n-frame: memory/n-head
 	while [n-frame <> null][
@@ -237,6 +237,13 @@ free-all: func [
 		b-next: b-frame/next
 		free-virtual as int-ptr! b-frame
 		b-frame: b-next
+	]
+
+	p: as int-ptr! system/image/base + system/image/bitarray
+	if p/0 > 0 [zstd/release as byte-ptr! bitarrays-base]	;-- bit-arrays decoded by init-mem
+	#if libRedRT? = yes [
+		p: as int-ptr! system/lib-image/base + system/lib-image/bitarray
+		if p/0 > 0 [zstd/release as byte-ptr! lib-bitarrays-base]
 	]
 ]
 
