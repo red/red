@@ -422,7 +422,7 @@ pack: func [in [byte-ptr!] size [integer!] out [byte-ptr!] out-size [integer!] r
 		show-stats opts result
 	]
 	
-	needs-libRedRT?: func [opts [object!] /local file path lib lib? get-date ts date current? defs][
+	needs-libRedRT?: func [opts [object!] /local file path lib lib? get-date ts date current?][
 		unless opts/dev-mode? [return no]
 		
 		path: get-output-path opts
@@ -438,11 +438,10 @@ pack: func [in [byte-ptr!] size [integer!] out [byte-ptr!] out-size [integer!] r
 			date: modified? lib
 			current?: all [
 				any [not encap? date > build-date]
-				libRedRT/boot-format = attempt [pick load defs: join path libRedRT/defs-file 13]	;-- built for the same boot data format
-				date >= modified? defs				;-- a failed rebuild leaves new definitions beside the old library
+				libRedRT/boot-format = attempt [pick load join path libRedRT/defs-file 13]	;-- built for the same boot data format
 			]
 			
-			either all [load-lib? opts/OS = get-OS-name][
+			either all [current? load-lib? opts/OS = get-OS-name][
 				lib: load/library lib
 				get-date: make routine! [return: [string!]] lib "red/get-build-date"
 				ts: get-date
@@ -450,7 +449,11 @@ pack: func [in [byte-ptr!] size [integer!] out [byte-ptr!] out-size [integer!] r
 			][
 				ts: date
 			]
-			if current? [print ["...using libRedRT built on" ts]]
+			either current? [print ["...using libRedRT built on" ts]][
+				if error? try [delete lib][				;-- a failed rebuild then leaves no old library to reuse
+					fail ["*** Linker Error: locked or unreachable file:" to-local-file lib]
+				]
+			]
 		]
 		not all [
 			lib?
