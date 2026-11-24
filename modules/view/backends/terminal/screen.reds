@@ -815,7 +815,7 @@ screen: context [
 		clear-buffer
 		render-widget wm/window
 		unless WIDGET_EDITABLE?(focus-widget) [
-			tty/hide-cursor
+			if tty/raw-mode? [tty/hide-cursor]			;-- only in raw mode: the loop that set it shows it again
 		]
 		fflush 0
 		present
