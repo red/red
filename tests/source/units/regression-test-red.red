@@ -3395,6 +3395,13 @@ comment {
 			--assert err/id = 'dup-refine
 		]
 
+	--test-- "#5053"
+		--assert 47 = modulo 7FFFFFFFh 100
+		--assert 47 = mod 7FFFFFFFh 100
+		--assert 117440512 = mod 7F000000h F000000h
+		--assert 0 = (7F000000h // 1000000h)
+		--assert 0 = modulo 7F000000h 1000000h
+
 	--test-- "#5058"
 		--assert strict-equal?
 			"1 a^/2 b^/3 c"
