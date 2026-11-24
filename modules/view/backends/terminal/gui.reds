@@ -851,7 +851,10 @@ OS-update-facet: func [
 						sym = words/_clear/symbol
 						sym = words/_move/symbol
 					][
+						blk: as red-block! (object/get-values face) + FACE_OBJ_DATA	;-- the rows (`value` can be another reference)
 						len: block/rs-length? blk
+						index: index - blk/head					;-- `index` counts from the block's head, the scroll position from `data`'s position
+						if index < 0 [index: 0]
 						if (as-integer widget/data) > index [widget/data: as int-ptr! index]
 						if all [			;-- cleared
 							zero? index

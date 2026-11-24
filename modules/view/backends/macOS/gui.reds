@@ -922,6 +922,7 @@ change-data: func [
 		str		[red-string!]
 		caption [c-string!]
 		type	[integer!]
+		t		[integer!]
 		len		[integer!]
 		font	[red-object!]
 		ivar	[integer!]
@@ -986,7 +987,8 @@ change-data: func [
 			]
 			max-w: as float32! 2.0
 			loop len [
-				if TYPE_OF(data) <> TYPE_STRING [continue]
+				t: TYPE_OF(data)
+				unless ANY_STRING?(t) [data: data + 1 continue]	;-- every row the table shows is measured
 				nsstr: to-NSString as red-string! data
 				sz: objc_msgSend_sz [nsstr sel_getUid "sizeWithAttributes:" attr]
 				if sz/w > max-w [max-w: sz/w]
