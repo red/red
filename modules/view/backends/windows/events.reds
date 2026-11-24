@@ -1076,7 +1076,10 @@ process-command-event: func [
 			][
 				make-event current-msg -1 EVT_CHANGE
 			]
-			if type/symbol = text-list [make-event current-msg 0 EVT_UNFOCUS]
+			if type/symbol = text-list [
+				make-event current-msg 0 EVT_UNFOCUS
+				UpdateWindow child						;-- paint now: a drop-list opening next would erase it and delay its WM_PAINT
+			]
 		]
 		STN_CLICKED [
 			current-msg/hWnd: child
