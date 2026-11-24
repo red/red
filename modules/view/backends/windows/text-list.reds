@@ -184,6 +184,31 @@ remove-list-items: func [
 	]
 ]
 
+reselect: func [										;-- puts back from `selected` a native selection lost by
+	face  [red-object!]									;-- deleting its row (a drop-down's typed text is left alone)
+	hWnd  [handle!]
+	drop? [logic!]
+	/local
+		sel	 [red-integer!]
+		word [red-word!]
+		msg	 [integer!]
+][
+	sel: as red-integer! (object/get-values face) + FACE_OBJ_SELECTED
+	word: as red-word! (object/get-values face) + FACE_OBJ_TYPE
+	msg: either drop? [CB_GETCURSEL][LB_GETCURSEL]
+	if any [
+		TYPE_OF(sel) <> TYPE_INTEGER
+		sel/value < 1
+		-1 <> as-integer SendMessage hWnd msg 0 0
+		all [
+			drop-down = symbol/resolve word/symbol
+			0 < as-integer SendMessage hWnd WM_GETTEXTLENGTH 0 0
+		]
+	][exit]
+	msg: either drop? [CB_SETCURSEL][LB_SETCURSEL]
+	SendMessage hWnd msg sel/value - 1 0
+]
+
 update-list: func [
 	face  [red-object!]
 	value [red-value!]
@@ -196,7 +221,6 @@ update-list: func [
 		hWnd [handle!]
 		msg  [integer!]
 		str  [red-string!]
-		sel  [red-integer!]
 		blk  [red-block!]
 		data [red-block!]
 		val  [red-value!]
@@ -204,20 +228,19 @@ update-list: func [
 		type [integer!]
 ][
 	hWnd: get-face-handle face
+	;-- caculate the index in native widget, e.g.
+	;-- we have data: ["abc" 32 "zyz" 8 "xxx"]   index: 4
+	;-- the actual insertion index: 2
+	val: block/rs-head as red-block! (object/get-values face) + FACE_OBJ_DATA
+	i: 0 n: 0
+	while [n < index][
+		type: TYPE_OF(val)
+		if ANY_STRING?(type) [i: i + 1]
+		val: val + 1
+		n: n + 1
+	]
 	switch TYPE_OF(value) [
 		TYPE_BLOCK [
-			;-- caculate the index in native widget, e.g.
-			;-- we have data: ["abc" 32 "zyz" 8 "xxx"]   index: 4
-			;-- the actual insertion index: 2
-			val: block/rs-head as red-block! (object/get-values face) + FACE_OBJ_DATA
-			i: 0 n: 0
-			while [n < index][
-				type: TYPE_OF(val)
-				if ANY_STRING?(type) [i: i + 1]
-				val: val + 1
-				n: n + 1
-			]
-
 			blk: as red-block! value
 			case [
 				any [
@@ -228,6 +251,7 @@ update-list: func [
 					sym = words/_put/symbol
 					sym = words/_poke/symbol
 					sym = words/_move/symbol
+					sym = words/_change/symbol
 				][
 					data: as red-block! new
 					if all [
@@ -259,15 +283,9 @@ update-list: func [
 					sym = words/_put-ed/symbol
 					sym = words/_reversed/symbol
 					sym = words/_moved/symbol
+					sym = words/_changed/symbol
 				][
-					str: as red-string! either any [
-						null? new
-						TYPE_OF(new) = TYPE_BLOCK
-					][
-						block/rs-abs-at blk index
-					][
-						new
-					]
+					str: as red-string! block/rs-abs-at blk index	;-- not `new`: /dup copies, PUT may keep the old value
 					ownership/unbind-each as red-block! value index part
 					loop part [
 						type: TYPE_OF(str)
@@ -278,17 +296,15 @@ update-list: func [
 						]
 						str: str + 1
 					]
+					reselect face hWnd drop?
 				]
 				true [0]
 			]
 		]
 		TYPE_ANY_STRING [
-			if any [sym = words/_lowercase/symbol sym = words/_uppercase/symbol][
-				sel: as red-integer! (object/get-values face) + FACE_OBJ_SELECTED
-				index: sel/value - 1
-			]
-			remove-list-item hWnd index drop?
-			insert-list-item hWnd as red-string! value index drop?
+			remove-list-item hWnd i drop?
+			insert-list-item hWnd as red-string! value i drop?
+			reselect face hWnd drop?
 		]
 		default [assert false]			;@@ raise a runtime error
 	]

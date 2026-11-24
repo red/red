@@ -3244,12 +3244,24 @@ OS-update-facet: func [
 			type: symbol/resolve word/symbol
 			sym: action/symbol
 			case [
-				type = text-list [
-					either sym = words/_sort/symbol [
-						OS-update-view face
-					][
-						update-list face value sym new index part no
+				all [
+					any [
+						type = text-list
+						type = drop-list
+						type = drop-down
 					]
+					any [							;-- after the change: reload the whole list
+						sym = words/_sorted/symbol
+						sym = words/_randomized/symbol
+						sym = words/_swaped/symbol
+					]
+				][
+					if type = drop-down [get-text-alt face -1]	;-- the reload shows `text`: a typed draft too
+					OS-update-view face
+				]
+				type = text-list [
+					if zero? part [exit]
+					update-list face value sym new index part no
 				]
 				any [
 					type = drop-list
