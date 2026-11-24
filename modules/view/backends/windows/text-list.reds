@@ -231,13 +231,18 @@ update-list: func [
 	;-- caculate the index in native widget, e.g.
 	;-- we have data: ["abc" 32 "zyz" 8 "xxx"]   index: 4
 	;-- the actual insertion index: 2
-	val: block/rs-head as red-block! (object/get-values face) + FACE_OBJ_DATA
-	i: 0 n: 0
+	blk: as red-block! (object/get-values face) + FACE_OBJ_DATA
+	val: block/rs-head blk
+	i: 0 n: blk/head								;-- `index` counts from the block's head, the rows from `data`'s position
 	while [n < index][
 		type: TYPE_OF(val)
 		if ANY_STRING?(type) [i: i + 1]
 		val: val + 1
 		n: n + 1
+	]
+	if index < n [										;-- changed through a reference before `data`'s position: the series
+		index: n										;-- shifts under `data`, whose first `part` values go or come
+		if part > block/rs-length? blk [part: block/rs-length? blk]
 	]
 	switch TYPE_OF(value) [
 		TYPE_BLOCK [

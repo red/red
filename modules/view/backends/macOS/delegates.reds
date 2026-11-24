@@ -816,7 +816,7 @@ object-for-table: func [
 	if any [idx = -1 row >= 0][return 0]
 
 	font: (as red-object! get-face-values obj) + FACE_OBJ_FONT
-	str: to-NSString as red-string! block/rs-abs-at data idx
+	str: to-NSString as red-string! head - 1				;-- the row's cell (`idx` counts from `data`'s position)
 	if TYPE_OF(font) = TYPE_OBJECT [
 		id: 0
 		object_getInstanceVariable self IVAR_RED_FACE :id
