@@ -666,7 +666,7 @@ change-data: func [
 	w		[widget!]
 	values	[red-value!]
 ][
-	0
+	if WIDGET_TYPE(w) = text-list [w/data: null]		;-- a new `data`: shown from its first row
 ]
 
 select-text: func [
@@ -827,6 +827,7 @@ OS-update-facet: func [
 		len		[integer!]
 		blk		[red-block!]
 		sel		[red-integer!]
+		flags	[red-integer!]
 ][
 	sym: symbol/resolve facet/symbol
 	
@@ -842,6 +843,8 @@ OS-update-facet: func [
 			sym: action/symbol
 			case [
 				type = text-list [
+					flags: (as red-integer! block/rs-head as red-block! (object/get-values face) + FACE_OBJ_STATE) + 1
+					flags/value: flags/value and (not FACET_FLAG_DATA)	;-- changed in place, not a new `data`: the update keeps the scroll position
 					blk: as red-block! value
 					sel: as red-integer! (object/get-values face) + FACE_OBJ_SELECTED
 					if TYPE_OF(blk) <> TYPE_BLOCK [exit]

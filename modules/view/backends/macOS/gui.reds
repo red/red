@@ -2113,6 +2113,7 @@ OS-make-view: func [
 		]
 		sym = text-list [
 			make-text-list face obj rc menu bits and FACET_FLAGS_NO_BORDER = 0
+			change-data obj values						;-- as wide as its widest row, as after a `data` change
 			integer/make-at values + FACE_OBJ_SELECTED 0
 		]
 		any [
