@@ -2448,6 +2448,14 @@ OS-show-window: func [
 	g_object_unref win								;-- release pin; win may finalize now
 ]
 
+free-im-context: func [[cdecl] data [int-ptr!]][		;-- im-context-id's GDestroyNotify: the rich-text is finalized
+	g_object_unref data
+]
+
+free-base-buffer: func [[cdecl] data [int-ptr!]][		;-- base-buffer's GDestroyNotify: replaced, or the base is finalized
+	cairo_surface_destroy data
+]
+
 set-buffer: func [
 	widget	[handle!]
 	x		[integer!]
@@ -2460,9 +2468,6 @@ set-buffer: func [
 ][
 	unless transparent-base? color [exit]
 
-	buf: GET-BASE-BUFFER(widget)
-	if buf <> null [cairo_surface_destroy buf]
-
 	;-- Match the widget's device scale so HiDPI displays don't end up
 	;-- upscaling a logical-pixel buffer (which looks blurry).
 	scale: gtk_widget_get_scale_factor widget
@@ -2472,7 +2477,7 @@ set-buffer: func [
 		fs: as-float scale
 		cairo_surface_set_device_scale buf fs fs
 	]
-	SET-BASE-BUFFER(widget buf)
+	g_object_set_qdata_full widget base-buffer buf as-integer :free-base-buffer	;-- owned: destroys the one it replaces
 ]
 
 OS-make-view: func [
@@ -2595,7 +2600,7 @@ OS-make-view: func [
 			widget: gtk_layout_new null null
 			gtk_layout_set_size widget sx sy
 			handle: gtk_im_multicontext_new
-			SET-IM-CONTEXT(widget handle)
+			g_object_set_qdata_full widget im-context-id handle as-integer :free-im-context	;-- owned: unref'd when the widget is finalized
 			gobj_signal_connect(handle "commit" :im-commit widget)
 			gobj_signal_connect(handle "preedit-start" :im-preedit-start widget)
 			;gobj_signal_connect(handle "preedit-end" :im-preedit-end widget)
