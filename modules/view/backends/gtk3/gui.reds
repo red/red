@@ -1003,6 +1003,7 @@ change-pane: func [
 		win: gtk_widget_get_toplevel parent
 		focus: gtk_window_get_focus win
 		if focus <> null [								;-- #5761: silence the focus churn from re-parenting
+			g_object_ref focus							;-- a face removed from the pane frees it below
 			g_signal_handlers_block_by_func(focus :focus-out-event focus)
 			g_signal_handlers_block_by_func(focus :focus-in-event focus)
 		]
@@ -1039,9 +1040,10 @@ change-pane: func [
 			g_list_free list
 		]
 		if focus <> null [
-			gtk_widget_grab_focus focus
+			if gtk_widget_is_ancestor focus win [gtk_widget_grab_focus focus]	;-- not if its face left the pane
 			g_signal_handlers_unblock_by_func(focus :focus-in-event focus)
 			g_signal_handlers_unblock_by_func(focus :focus-out-event focus)
+			g_object_unref focus
 		]
 	]
 ]
@@ -1518,6 +1520,7 @@ deferred-grab-focus: func [
 	if all [
 		not null? self
 		gtk_widget_is_visible self
+		g_type_check_instance_is_a gtk_widget_get_toplevel self gtk_window_get_type	;-- not a removed face's widget
 	][
 		old-focus: null
 		win: gtk_widget_get_toplevel self
@@ -1538,7 +1541,7 @@ deferred-grab-focus: func [
 		]
 		already?: gtk_widget_is_focus self				;-- the grab below is then a no-op emitting no signal
 		SET-FOCUS-EVENT(self 1)
-		gtk_widget_grab_focus self
+		unless already? [gtk_widget_grab_focus self]	;-- a focused field would select all its text
 		pending: as integer! g_object_get_qdata self focus-event-id
 		face: get-face-obj self
 		focused?: gtk_widget_is_focus self
@@ -3028,6 +3031,7 @@ OS-destroy-view: func [
 		obj		[red-object!]
 		flags	[integer!]
 		sym		[integer!]
+		parent	[handle!]
 ][
 	handle: face-handle? face
 	if null? handle [exit]
@@ -3042,8 +3046,10 @@ OS-destroy-view: func [
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 
 	sym: get-widget-symbol handle
+	parent: gtk_widget_get_parent get-face-layout handle sym	;-- read first: free-handles destroys a window
 	free-handles handle no
 	if sym <> window [remove-tab-page handle]			;-- free-handles destroys a window
+	if g_type_check_instance_is_a parent gtk_layout_get_type [gtk_container_remove parent get-face-layout handle sym]
 ]
 
 OS-update-facet: func [
