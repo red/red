@@ -400,11 +400,11 @@ OS-text-box-layout: func [
 	values: object/get-values box
 
 	str: to-NSString as red-string! values + FACE_OBJ_TEXT
-	state: as red-block! values + FACE_OBJ_EXT3
+	state: get-text-box-state box						;-- null: not kept, the caller frees the storage
 	size: as red-pair! values + FACE_OBJ_SIZE
 	font: as red-object! values + FACE_OBJ_FONT
 	nsfont: as-integer get-font null font
-	cached?: TYPE_OF(state) = TYPE_BLOCK
+	cached?: all [state <> null TYPE_OF(state) = TYPE_BLOCK]
 
 	h: 7CF0BDC2h w: 7CF0BDC2h
 	sz: as NSSize! :h
@@ -443,19 +443,21 @@ OS-text-box-layout: func [
 		objc_msgSend [para sel_getUid "setTabStops:" objc_msgSend [objc_getClass "NSArray" sel_getUid "array"]]
 
 		h: 7CF0BDC2h
-		block/make-at state 6
-		integer/make-in state layout
-		integer/make-in state tc
-		hndl: handle/make-in state ts handle/CLASS_RICHTEXT
-		hndl/extID: externals/store as int-ptr! ts tb-ext-type		;-- GC releases both with the face
-		hndl: handle/make-in state para handle/CLASS_RICHTEXT
-		hndl/extID: externals/store as int-ptr! para tb-ext-type
-		none/make-in state
-		logic/make-in state false
+		if state <> null [
+			block/make-at state 6
+			integer/make-in state layout
+			integer/make-in state tc
+			hndl: handle/make-in state ts handle/CLASS_RICHTEXT
+			hndl/extID: externals/store as int-ptr! ts tb-ext-type		;-- GC releases both with the face
+			hndl: handle/make-in state para handle/CLASS_RICHTEXT
+			hndl/extID: externals/store as int-ptr! para tb-ext-type
+			none/make-in state
+			logic/make-in state false
+		]
 	]
 	objc_setAssociatedObject layout RedAttachedWidgetKey nsfont OBJC_ASSOCIATION_ASSIGN	;-- the current font, for the line spacing
 
-	copy-cell values + FACE_OBJ_TEXT (block/rs-head state) + 4
+	if state <> null [copy-cell values + FACE_OBJ_TEXT (block/rs-head state) + 4]
 
 	;@@ set para: as red-object! values + FACE_OBJ_PARA
 
@@ -504,9 +506,12 @@ OS-text-box-layout: func [
 	]
 
 	objc_msgSend [ts sel_getUid "endEditing"]
+	if null? state [objc_msgSend [para sel_release]]	;-- not kept: the storage's attributes hold it
 	if system/thrown <> 0 [							;-- a Draw error in the data, the storage closed:
-		bool: as red-logic! (block/rs-tail state) - 1	;-- the layout is redone at its next use
-		bool/value: true
+		either null? state [objc_msgSend [ts sel_release]][	;-- the layout is redone at its next use
+			bool: as red-logic! (block/rs-tail state) - 1
+			bool/value: true
+		]
 		re-throw
 	]
 	layout

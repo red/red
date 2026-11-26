@@ -838,6 +838,32 @@ system/view/platform: context [
 				true
 			]
 
+			get-text-box-state: func [							;-- the cell keeping a rich-text's layout block: its `handles`
+				box		[red-object!]							;-- facet (rich-text style), else a 5th cell added to its /state
+				return: [red-block!]							;-- once shown; null for any other object (made from face! and
+				/local											;-- never shown, a base face in Draw `text`): laid out at each use
+					ctx	  [red-context!]
+					s	  [series!]
+					word  [red-word!]
+					state [red-block!]
+					n	  [integer!]
+			][
+				ctx: GET_CTX(box)
+				s: as series! ctx/values/value
+				n: (as-integer s/tail - s/offset) >> 4
+				word: as red-word! s/offset + FACE_OBJ_TYPE
+				if any [
+					n <= FACE_OBJ_STATE
+					TYPE_OF(word) <> TYPE_WORD
+					rich-text <> symbol/resolve word/symbol
+				][return null]
+				if n > FACE_OBJ_EXT3 [return as red-block! s/offset + FACE_OBJ_EXT3]
+				state: as red-block! s/offset + FACE_OBJ_STATE
+				if TYPE_OF(state) <> TYPE_BLOCK [return null]		;-- not shown
+				if 5 > block/rs-length? state [block/rs-append state none-value]
+				as red-block! (block/rs-head state) + 4
+			]
+
 			#include %keycodes.reds
 			#switch GUI-engine [
 				native [
@@ -1157,7 +1183,8 @@ system/view/platform: context [
 		#either GUI-engine = 'terminal [
 			stack/set-last gui/OS-text-box-metrics box arg0 type
 		][
-			state: as red-block! values + gui/FACE_OBJ_EXT3
+			state: gui/get-text-box-state box
+			if null? state [fire [TO_ERROR(script not-linked)]]	;-- made from face!: a layout is kept only once shown
 			if TYPE_OF(state) = TYPE_BLOCK [
 				bool: as red-logic! (block/rs-tail state) - 1
 				layout?: bool/value

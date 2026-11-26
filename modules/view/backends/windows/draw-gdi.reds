@@ -271,6 +271,7 @@ OS-draw-text-d2d: func [
 		flags	[integer!]
 		x y		[float32!]
 		pt		[red-point2D!]
+		unk		[IUnknown]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
@@ -285,6 +286,9 @@ OS-draw-text-d2d: func [
 	flags: either win8+? [4][0]		;-- 4: D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
 	GET_PAIR_XY(pos x y)
 	rt/DrawTextLayout this x y layout as this! ctx/pen flags 
+	if all [TYPE_OF(text) = TYPE_OBJECT null? get-text-box-state as red-object! text][
+		COM_SAFE_RELEASE(unk layout)						;-- no face keeps it
+	]
 ]
 
 xform: declare XFORM!

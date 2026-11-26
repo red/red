@@ -576,7 +576,6 @@ draw-text: func [									;-- BG?: paint a text-box face's color behind its text
 		pen		[this!]
 		obj		[red-object!]
 		values	[red-value!]
-		type	[red-word!]
 		size	[red-pair!]
 		color	[red-tuple!]
 		bg		[ptr-value!]
@@ -594,8 +593,7 @@ draw-text: func [									;-- BG?: paint a text-box face's color behind its text
 	dc: as ID2D1DeviceContext this/vtbl
 
 	layout: either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
-		type: as red-word! (object/get-values as red-object! text) + FACE_OBJ_TYPE
-		release?: rich-text <> symbol/resolve type/symbol	;-- only a rich-text face keeps its layout
+		release?: null? get-text-box-state as red-object! text	;-- only a rich-text face keeps its layout
 		OS-text-box-layout as red-object! text as render-target! ctx/target 0 catch?
 	][
 		release?: yes

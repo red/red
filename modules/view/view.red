@@ -90,7 +90,7 @@ size-text: function [
 	return:  [point2D! none!]	"Return the text's size or NONE if failed"
 ][
 	either face/type = 'rich-text [
-		if block? h: face/handles [poke h length? h true]
+		if block? h: select face 'handles [poke h length? h true]	;-- a rich-text made from face! has no handles facet
 		system/view/platform/text-box-metrics face 0 3
 	][
 		system/view/platform/size-text face text
@@ -487,6 +487,7 @@ face!: object [				;-- keep in sync with facet! enum
 	parent:		none
 	pane:		none
 	state:		none		;-- [handle [integer! none!] change-array [integer!] deferred [block! none!] drag-offset [pair! none!]]
+						;-- + text-layout [block! none!]: added for a rich-text without a `handles` facet (made from face!)
 	rate:		none
 	edge:		none
 	para:		none

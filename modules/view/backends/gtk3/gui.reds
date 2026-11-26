@@ -2210,7 +2210,7 @@ update-rich-text: func [
 	/local
 		redraw	[red-logic!]
 ][
-	if TYPE_OF(handles) = TYPE_BLOCK [
+	if all [handles <> null TYPE_OF(handles) = TYPE_BLOCK] [
 		redraw: as red-logic! (block/rs-tail handles) - 1
 		redraw/value: true
 	]
@@ -2908,7 +2908,7 @@ OS-update-view: func [
 
 	if all [
 		type = rich-text
-		update-rich-text state as red-block! values + FACE_OBJ_EXT3
+		update-rich-text state get-text-box-state face
 	][
 		exit
 	]

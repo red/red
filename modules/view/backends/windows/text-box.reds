@@ -384,31 +384,33 @@ OS-text-box-layout: func [
 	ext-id: -1
 	old-layout: null
 	para: either sym = rich-text [
-		state: as red-block! values + FACE_OBJ_EXT3
-		either TYPE_OF(state) = TYPE_BLOCK [
-			pval: block/rs-head state
-			hndl: as red-handle! pval
-			if TYPE_OF(hndl) = TYPE_HANDLE [ext-id: hndl/extID]
-			int: as red-integer! pval
-			old-layout: as this! int/value
-			bool: as red-logic! int + 3
-			bool/value: false
-		][
-			block/make-at state 4
-			none/make-in state					;-- 1: text layout
-			handle/make-in state 0 handle/CLASS_RICHTEXT	;-- 2: target
-			none/make-in state					;-- 3: text
-			logic/make-in state false			;-- 4: layout?
-			pval: block/rs-head state
+		state: get-text-box-state box			;-- null: not kept, the caller releases the layout
+		if state <> null [
+			either TYPE_OF(state) = TYPE_BLOCK [
+				pval: block/rs-head state
+				hndl: as red-handle! pval
+				if TYPE_OF(hndl) = TYPE_HANDLE [ext-id: hndl/extID]
+				int: as red-integer! pval
+				old-layout: as this! int/value
+				bool: as red-logic! int + 3
+				bool/value: false
+			][
+				block/make-at state 4
+				none/make-in state					;-- 1: text layout
+				handle/make-in state 0 handle/CLASS_RICHTEXT	;-- 2: target
+				none/make-in state					;-- 3: text
+				logic/make-in state false			;-- 4: layout?
+				pval: block/rs-head state
+			]
+			handle/make-at pval + 1 as-integer target handle/CLASS_RICHTEXT
 		]
-		handle/make-at pval + 1 as-integer target handle/CLASS_RICHTEXT
 		DT_WORDBREAK	;-- wrap by default
 	][5]	;-- base face
 	vec: target/styles
 	if vec <> null [vector/rs-clear vec]
 
 	set-text-format fmt as red-object! values + FACE_OBJ_PARA para sym
-	if sym = rich-text [
+	if all [sym = rich-text state = as red-block! values + FACE_OBJ_EXT3][	;-- the rich-text style's facets
 		set-tab-size fmt as red-integer! values + FACE_OBJ_EXT1
 		set-line-spacing fmt as red-integer! values + FACE_OBJ_EXT2
 	]

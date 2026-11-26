@@ -780,14 +780,15 @@ draw-text-box: func [
 		w h		[float32!]
 		nsgc	[integer!]
 		pool	[integer!]
+		own		[integer!]
 ][
 	values: object/get-values tbox
 	str: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(str) <> TYPE_STRING [exit]
 
-	state: as red-block! values + FACE_OBJ_EXT3
+	state: get-text-box-state tbox					;-- null: laid out here, freed after drawing
 	layout?: yes
-	if TYPE_OF(state) = TYPE_BLOCK [
+	if all [state <> null TYPE_OF(state) = TYPE_BLOCK] [
 		bool: as red-logic! (block/rs-tail state) - 1
 		layout?: bool/value
 	]
@@ -795,13 +796,24 @@ draw-text-box: func [
 		clr: either null? dc [0][
 			objc_msgSend [dc/font-attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
 		]
-		OS-text-box-layout tbox null clr catch?
+		if null? state [							;-- what laying it out and drawing it autorelease (no pool is drained outside events)
+			own: objc_msgSend [objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"] sel_getUid "init"]
+		]
+		catch RED_THROWN_ERROR [layout: OS-text-box-layout tbox null clr catch?]
+		if system/thrown <> 0 [
+			if null? state [objc_msgSend [own sel_getUid "drain"]]
+			re-throw
+		]
 	]
 
-	int: as red-integer! block/rs-head state
-	layout: int/value
-	int: int + 1
-	tc: int/value
+	either null? state [							;-- not kept: its only text container
+		tc: objc_msgSend [objc_msgSend [layout sel_getUid "textContainers"] sel_getUid "firstObject"]
+	][
+		int: as red-integer! block/rs-head state
+		layout: int/value
+		int: int + 1
+		tc: int/value
+	]
 
 	idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
 	len: system/cpu/edx
@@ -831,6 +843,10 @@ draw-text-box: func [
 	if pool <> 0 [
 		objc_msgSend [nsgc sel_getUid "restoreGraphicsState"]
 		objc_msgSend [pool sel_getUid "drain"]
+	]
+	if null? state [
+		objc_msgSend [objc_msgSend [layout sel_getUid "textStorage"] sel_release]	;-- frees its layout manager and container
+		objc_msgSend [own sel_getUid "drain"]
 	]
 ]
 

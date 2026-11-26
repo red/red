@@ -2559,18 +2559,18 @@ draw-text-box: func [
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) <> TYPE_STRING [exit]
 
-	state: as red-block! values + FACE_OBJ_EXT3
+	state: get-text-box-state tbox					;-- null: laid out here, freed after drawing
 	layout?: yes
-	if TYPE_OF(state) = TYPE_BLOCK [
+	if all [state <> null TYPE_OF(state) = TYPE_BLOCK] [
 		bool: as red-logic! (block/rs-tail state) - 1
 		layout?: bool/value
 	]
-	if any [force? layout?] [
-		OS-text-box-layout tbox null clr catch?
+	either any [force? layout?] [
+		layout: OS-text-box-layout tbox null clr catch?
+	][
+		int: as red-integer! block/rs-head state
+		layout: as handle! int/value
 	]
-
-	int: as red-integer! block/rs-head state
-	layout: as handle! int/value
 	GET_PAIR_XY_F(pos x y)
 	text-x: x
 	text-y: y
@@ -2630,6 +2630,7 @@ draw-text-box: func [
 	cairo_move_to cr text-x text-y
 	if force? [set-source-color cr clr]
 	pango_cairo_show_layout cr layout
+	if null? state [g_object_unref layout]
 ]
 
 OS-draw-text: func [

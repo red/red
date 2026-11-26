@@ -460,17 +460,19 @@ OS-text-box-layout: func [
 		tab-array [handle!]
 		i		[integer!]
 		hndl	[red-handle!]
+		ext?	[logic!]
 ][
 	values: object/get-values box
 
 	text: as red-string! values + FACE_OBJ_TEXT
-	state: as red-block! values + FACE_OBJ_EXT3
+	state: get-text-box-state box						;-- null: not kept, the caller frees the layout
+	ext?: state = as red-block! values + FACE_OBJ_EXT3	;-- has the rich-text style's tabs and line-spacing
 	size: as red-pair! values + FACE_OBJ_SIZE
 	font: as red-object! values + FACE_OBJ_FONT
 	pobj: as red-object! values + FACE_OBJ_PARA
 	parent: as red-object! values + FACE_OBJ_PARENT
 	styles: as red-block! values + FACE_OBJ_DATA
-	cached?: TYPE_OF(state) = TYPE_BLOCK
+	cached?: all [state <> null TYPE_OF(state) = TYPE_BLOCK]
 
 	either cached? [
 		int: as red-integer! block/rs-head state
@@ -485,12 +487,14 @@ OS-text-box-layout: func [
 		]
 		layout: pango_layout_new pango-context
 
-		block/make-at state 4
-		hndl: handle/make-in state as integer! layout handle/CLASS_RICHTEXT
-		hndl/extID: externals/store layout tb-ext-type	;-- GC releases the layout with the face
-		integer/make-in state as integer! para
-		none/make-in state
-		logic/make-in state false
+		if state <> null [
+			block/make-at state 4
+			hndl: handle/make-in state as integer! layout handle/CLASS_RICHTEXT
+			hndl/extID: externals/store layout tb-ext-type	;-- GC releases the layout with the face
+			integer/make-in state as integer! para
+			none/make-in state
+			logic/make-in state false
+		]
 	]
 	if all [
 		TYPE_OF(font) <> TYPE_OBJECT
@@ -560,12 +564,14 @@ OS-text-box-layout: func [
 	pango_layout_set_attributes layout attrs
 	pango_attr_list_unref attrs
 	if system/thrown <> 0 [							;-- a Draw error in the data, the attributes freed:
-		bool: as red-logic! (block/rs-tail state) - 1	;-- the layout is redone at its next use
-		bool/value: true
+		either null? state [g_object_unref layout][		;-- the layout is redone at its next use
+			bool: as red-logic! (block/rs-tail state) - 1
+			bool/value: true
+		]
 		re-throw
 	]
 	tabs: as red-integer! values + FACE_OBJ_EXT1
-	ttype: TYPE_OF(tabs)
+	ttype: either ext? [TYPE_OF(tabs)][TYPE_NONE]
 	either any [ttype = TYPE_INTEGER ttype = TYPE_FLOAT][
 		tab-size: as-integer get-float tabs
 		either tab-size > 0 [
@@ -591,7 +597,7 @@ OS-text-box-layout: func [
 		pango_layout_set_tabs layout null
 	]
 	spacing: as red-integer! values + FACE_OBJ_EXT2
-	stype: TYPE_OF(spacing)
+	stype: either ext? [TYPE_OF(spacing)][TYPE_NONE]
 	either any [stype = TYPE_INTEGER stype = TYPE_FLOAT][
 		pango_layout_index_to_pos layout 0 :rect
 		natural: rect/height
